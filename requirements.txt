@@ -1,0 +1,9 @@
+yt-dlp
+boto3
+python-dotenv
+requests
+flask
+gunicorn
+thefuzz[speed]
+google-genai
+prometheus-client

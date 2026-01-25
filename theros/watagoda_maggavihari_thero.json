@@ -1,0 +1,47 @@
+{
+    "id": "watagoda_maggavihari_thero",
+    "enabled": true,
+    "name": "Ven. Watagoda Maggavihari Thero",
+    "youtube_channel_urls": [
+        "https://www.youtube.com/channel/UCFhy_YsPcufmBl4AqkvaUXA/videos"
+    ],
+    "ai_config": {
+        "enabled": true,
+        "summarize": true,
+        "check_podcast_friendly": true
+    },
+    "sync_config": {
+        "max_videos_per_day": 999,
+        "max_ai_calls_per_day": 10
+    },
+    "rss_filename": "podcast.xml",
+    "s3": {
+        "endpoint_env": "WATAGODA_THERO_S3_ENDPOINT",
+        "bucket_env": "WATAGODA_THERO_S3_BUCKET",
+        "access_key_env": "WATAGODA_THERO_S3_ACCESS_KEY",
+        "secret_key_env": "WATAGODA_THERO_S3_SECRET_KEY"
+    },
+    "matcher": {
+        "sinhala_tokens": [
+            "වටගොඩ",
+            "මග්ගවිහාරී"
+        ],
+        "english_tokens": [
+            "Watagoda",
+            "Maggavihari"
+        ]
+    },
+    "podcast": {
+        "title": "පූජ්‍ය වටගොඩ මග්ගවිහාරී හිමි (Ven. Watagoda Maggavihari Thero)",
+        "description": "පූජ්‍ය වටගොඩ මග්ගවිහාරී ස්වාමීන් වහන්සේගේ ධර්ම දේශනා ඇතුළත්, අන්තර්ජාතික ථේරවාද බෞද්ධ ආයතනය (IIT) ඉදිරිපත් කරන නිල පෝඩ්කාස්ට් වැඩසටහන වෙත ඔබව මෙත් සිතින් පිළිගනිමු.",
+        "link": "https://www.theravado.com/",
+        "author": "පූජ්‍ය වටගොඩ මග්ගවිහාරී හිමි (Ven. Watagoda Maggavihari Thero) - The International Institute of Theravada (IIT)",
+        "language": "si",
+        "category": "Religion & Spirituality",
+        "subcategory": "Buddhism",
+        "image_url": "maggavihari_thero.jpg",
+        "explicit": "no",
+        "email": "dhammadhana@widanage.com",
+        "description_template": "<p>පූජ්‍ය වටගොඩ මග්ගවිහාරී ස්වාමීන් වහන්සේ (Ven. Watagoda Maggavihari Thero) විසින් නිර්මල සද්ධර්මය ඇසුරෙන් පවත්වන ලද මෙම දේශනාවේ සම්පූර්ණ හඬ පටය (Full Audio) මෙහිදී ඔබට ශ්‍රවණය කළ හැක.</p><p>ඔබ මෙම ධර්ම දේශනාව (Sinhala Dhamma Deshana) වීඩියෝවක් ලෙස නැරඹීමට කැමති නම්, පහත ඇති YouTube සබැඳිය (Link) වෙත පිවිසෙන්න.</p><p><a href=\"{original_url}\">{original_title}</a></p>"
+    }
+}
