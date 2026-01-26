@@ -46,7 +46,8 @@ class S3Manager:
             resp = self.client.get_object(Bucket=self.bucket, Key=key)
             return json.loads(resp["Body"].read().decode("utf-8"))
         except ClientError as e:
-            if e.response["Error"]["Code"] == "NoSuchKey":
+            error_code = str(e.response.get("Error", {}).get("Code", "")).lower()
+            if error_code in ["nosuchkey", "404", "not found"]:
                 return None
             raise
         except json.JSONDecodeError as e:
