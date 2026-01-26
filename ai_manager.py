@@ -20,7 +20,8 @@ class AIRateLimitError(AIGenerationError):
 
 
 class AIManager:
-    def __init__(self):
+    def __init__(self, s3_manager=None):
+        self.s3_manager = s3_manager
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
             print("Warning: GEMINI_API_KEY not found in environment variables.")
@@ -79,6 +80,24 @@ class AIManager:
             raise AIGenerationError(f"AI Generation failed: {e}")
 
         return None
+
+    def get_cached_response(self, video_id):
+        """Retrieves cached AI response from S3 if available."""
+        if not self.s3_manager:
+            return None
+
+        key = f"ai_cache/{video_id}.json"
+        print(f"Checking AI cache for {video_id}...")
+        return self.s3_manager.get_json(key)
+
+    def cache_response(self, video_id, response):
+        """Caches AI response to S3."""
+        if not self.s3_manager or not response:
+            return
+
+        key = f"ai_cache/{video_id}.json"
+        print(f"Caching AI response for {video_id}...")
+        self.s3_manager.save_json(key, response)
 
 
 if __name__ == "__main__":

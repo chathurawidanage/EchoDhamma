@@ -73,18 +73,18 @@ class S3Manager:
             return {}
 
     def save_state(self, state_file, state):
-        local_temp = f"temp_{state_file}"
-        with open(local_temp, "w") as f:
-            json.dump(state, f)
-        self.upload_file(local_temp, state_file, "application/json")
-        if os.path.exists(local_temp):
-            os.remove(local_temp)
+        self.save_json(state_file, state)
 
     def save_metadata(self, metadata):
         vid_id = metadata["id"]
         meta_file = f"{vid_id}.json"
-        with open(meta_file, "w", encoding="utf-8") as f:
-            json.dump(metadata, f, indent=2, ensure_ascii=False)
-        self.upload_file(meta_file, meta_file, "application/json")
-        if os.path.exists(meta_file):
-            os.remove(meta_file)
+        self.save_json(meta_file, metadata)
+
+    def save_json(self, key, data):
+        """Generic method to save JSON data to S3."""
+        local_temp = f"temp_{key.replace('/', '_')}"
+        with open(local_temp, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        self.upload_file(local_temp, key, "application/json")
+        if os.path.exists(local_temp):
+            os.remove(local_temp)

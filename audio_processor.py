@@ -15,12 +15,18 @@ class AudioProcessor:
     def __init__(self, thero_name):
         self.thero_name = thero_name
 
-    def _get_loudness_stats(self, input_file):
-        safe_input = (
-            f"./{input_file}"
-            if not os.path.isabs(input_file) and not input_file.startswith("./")
-            else input_file
+    def _sanitize_path(self, path):
+        """Ensure path starts with ./ if it is relative, to prevent ffmpeg from interpreting it as a flag."""
+        if not path:
+            return path
+        return (
+            f"./{path}"
+            if not os.path.isabs(path) and not path.startswith("./")
+            else path
         )
+
+    def _get_loudness_stats(self, input_file):
+        safe_input = self._sanitize_path(input_file)
         cmd = [
             "ffmpeg",
             "-i",
@@ -58,11 +64,8 @@ class AudioProcessor:
         else:
             print(f"[{self.thero_name}] Warn: Using single-pass normalization.")
 
-        safe_input = (
-            f"./{input_file}"
-            if not os.path.isabs(input_file) and not input_file.startswith("./")
-            else input_file
-        )
+        safe_input = self._sanitize_path(input_file)
+        safe_output = self._sanitize_path(output_file)
         cmd = [
             "ffmpeg",
             "-i",
@@ -76,7 +79,7 @@ class AudioProcessor:
             "-af",
             loudnorm_filter,
             "-y",
-            output_file,
+            safe_output,
         ]
         subprocess.run(
             cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE

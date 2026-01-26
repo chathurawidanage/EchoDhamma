@@ -58,7 +58,7 @@ class PodcastSync:
         self.audio = AudioProcessor(self.thero_name)
 
         # AI Manager Setup
-        self.ai_manager = AIManager() if self.ai_config.get("enabled") else None
+        self.ai_manager = AIManager(self.s3) if self.ai_config.get("enabled") else None
 
         # Rate Limiting State (delegated to RateLimiter)
         self.state_file = "sync_state.json"
@@ -139,34 +139,16 @@ class PodcastSync:
 
                 # AI Metadata Generation (Before Download)
                 if self.ai_manager:
-                    print(
-                        f"[{self.thero_name}] Generating AI metadata for {metadata['id']}..."
+                    metadata["ai_response"] = self._get_ai_metadata(
+                        metadata["id"], video_url
                     )
-                    try:
-                        metadata["ai_response"] = self.ai_manager.generate_metadata(
-                            video_url
+
+                    # Common processing for both cached and new responses
+                    if metadata["ai_response"]:
+                        # Validate and format title
+                        metadata["ai_response"]["title"] = get_safe_title(
+                            metadata["title"], metadata["ai_response"]
                         )
-                        if metadata["ai_response"]:
-                            print(
-                                f"[{self.thero_name}] AI metadata generated for {metadata['id']}."
-                            )
-                            # Validate and format title
-                            metadata["ai_response"]["title"] = get_safe_title(
-                                metadata["title"], metadata["ai_response"]
-                            )
-                    except AIRateLimitError as e:
-                        print(f"[{self.thero_name}] AI Rate Limit reached: {e}")
-                        ai_rate_limited_counter.labels(thero=self.thero_id).inc()
-                        raise
-                    except AIGenerationError as e:
-                        print(
-                            f"[{self.thero_name}] AI Generation failed for {metadata['id']}: {e}"
-                        )
-                        ai_failure_counter.labels(thero=self.thero_id).inc()
-                        raise
-                    finally:
-                        # Record AI call whether it succeeds or fails (API quota is consumed)
-                        self.rate_limiter.record_ai_call()
 
                 mp3_file, img_file = (
                     f"{metadata['id']}.mp3",
@@ -285,6 +267,33 @@ class PodcastSync:
 
         return is_friendly is not False and is_match is not False
 
+    def _get_ai_metadata(self, video_id, video_url):
+        # Check cache first
+        cached_response = self.ai_manager.get_cached_response(video_id)
+
+        if cached_response:
+            print(f"[{self.thero_name}] Using cached AI metadata for {video_id}.")
+            return cached_response
+
+        print(f"[{self.thero_name}] Generating AI metadata for {video_id}...")
+        try:
+            response = self.ai_manager.generate_metadata(video_url)
+            if response:
+                print(f"[{self.thero_name}] AI metadata generated for {video_id}.")
+                self.ai_manager.cache_response(video_id, response)
+            return response
+        except AIRateLimitError as e:
+            print(f"[{self.thero_name}] AI Rate Limit reached: {e}")
+            ai_rate_limited_counter.labels(thero=self.thero_id).inc()
+            raise
+        except AIGenerationError as e:
+            print(f"[{self.thero_name}] AI Generation failed for {video_id}: {e}")
+            ai_failure_counter.labels(thero=self.thero_id).inc()
+            raise
+        finally:
+            # Record AI call whether it succeeds or fails (API quota is consumed)
+            self.rate_limiter.record_ai_call()
+
     def process_video_task(self, item):
         vid_id = item["id"]
 
@@ -358,8 +367,8 @@ class PodcastSync:
         # Process videos sequentially
         processed_videos = False
         for item in video_items:
-            if not self._is_sync_allowed():
-                break
+            # if not self._is_sync_allowed():
+            #     break
             processed_videos = processed_videos or self.process_video_task(item)
 
         if processed_videos:
@@ -425,7 +434,7 @@ class PodcastSync:
         if len(items) < original_count:
             count = original_count - len(items)
             print(
-                f"[{self.thero_name}] Filtered out {count} non-podcast friendly items."
+                f"[{self.thero_name}] Filtered out {count} non-podcast friendly or non related items."
             )
             filtered_items_counter.labels(thero=self.thero_id).inc(count)
 
