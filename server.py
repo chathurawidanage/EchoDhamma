@@ -3,6 +3,15 @@ from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 from concurrent.futures import ThreadPoolExecutor
 from sync import run_sync_workflow, run_rss_update_workflow
 import os
+import sentry_sdk
+from sentry_sdk.integrations.flask import FlaskIntegration
+
+sentry_sdk.init(
+    dsn=os.getenv("SENTRY_DSN"),
+    integrations=[FlaskIntegration()],
+    traces_sample_rate=1.0,
+    profiles_sample_rate=1.0,
+)
 
 app = Flask(__name__)
 
@@ -21,6 +30,9 @@ def _run_sync():
         print("Scheduled sync completed.")
     except Exception as e:
         print(f"Error during sync: {e}")
+        with sentry_sdk.push_scope() as scope:
+            scope.set_tag("task", "sync_workflow")
+            sentry_sdk.capture_exception(e)
     finally:
         _current_task = None
 
@@ -34,6 +46,9 @@ def _run_rss_update():
         print("RSS update completed.")
     except Exception as e:
         print(f"Error during RSS update: {e}")
+        with sentry_sdk.push_scope() as scope:
+            scope.set_tag("task", "rss_update")
+            sentry_sdk.capture_exception(e)
     finally:
         _current_task = None
 

@@ -11,6 +11,7 @@ from metrics import (
 )
 import os
 import requests
+import sentry_sdk
 from dotenv import load_dotenv
 import email.utils
 import datetime
@@ -275,6 +276,15 @@ class PodcastSync:
 
         return True
 
+    def _is_valid_episode(self, metadata):
+        ai_resp = metadata.get("ai_response") or {}
+        # Check podcast friendly status (default True)
+        is_friendly = ai_resp.get("podcast_friendly", True)
+        # Check title match status (default True)
+        is_match = metadata.get("title_match", True)
+
+        return is_friendly is not False and is_match is not False
+
     def process_video_task(self, item):
         vid_id = item["id"]
 
@@ -289,11 +299,19 @@ class PodcastSync:
             self.s3.save_metadata(metadata)
             self.rate_limiter.record_success()
             success_counter.labels(thero=self.thero_id).inc()
+
+            return self._is_valid_episode(metadata)
         except Exception as e:
             print(
                 f"[{self.thero_name}] Error during download_and_process for {vid_id}: {e}"
             )
+            with sentry_sdk.push_scope() as scope:
+                scope.set_tag("video_id", vid_id)
+                scope.set_tag("thero_id", self.thero_id)
+                sentry_sdk.capture_exception(e)
+
             failure_counter.labels(thero=self.thero_id).inc()
+            return False
 
     def sync(self):
         sync_run_counter.labels(thero=self.thero_id).inc()
@@ -338,12 +356,16 @@ class PodcastSync:
                     print(f"[{self.thero_name}] Error fetching channel: {e}")
 
         # Process videos sequentially
+        processed_videos = False
         for item in video_items:
             if not self._is_sync_allowed():
                 break
-            self.process_video_task(item)
+            processed_videos = processed_videos or self.process_video_task(item)
 
-        self.refresh_rss()
+        if processed_videos:
+            self.refresh_rss()
+        else:
+            print(f"[{self.thero_name}] No videos processed.")
         print(f"[{self.thero_name}] Sync complete.")
 
     def refresh_rss(self):
@@ -395,17 +417,11 @@ class PodcastSync:
 
         # Filter out non-podcast friendly items if AI is enabled and flagged
         original_count = len(items)
-        filtered_items = []
+        valid_items = []
         for item in items:
-            ai_resp = item.get("ai_response") or {}
-            # Check podcast friendly status (default True)
-            is_friendly = ai_resp.get("podcast_friendly", True)
-            # Check title match status (default True)
-            is_match = item.get("title_match", True)
-
-            if is_friendly is not False and is_match is not False:
-                filtered_items.append(item)
-        items = filtered_items
+            if self._is_valid_episode(item):
+                valid_items.append(item)
+        items = valid_items
         if len(items) < original_count:
             count = original_count - len(items)
             print(
@@ -433,6 +449,9 @@ def run_sync_workflow():
                 PodcastSync(config).sync()
             except Exception as e:
                 print(f"Error syncing {filename}: {e}")
+                with sentry_sdk.push_scope() as scope:
+                    scope.set_tag("thero_config", filename)
+                    sentry_sdk.capture_exception(e)
 
 
 def run_rss_update_workflow():
@@ -447,8 +466,16 @@ def run_rss_update_workflow():
                 PodcastSync(config).refresh_rss()
             except Exception as e:
                 print(f"Error refreshing RSS for {filename}: {e}")
+                with sentry_sdk.push_scope() as scope:
+                    scope.set_tag("thero_config", filename)
+                    sentry_sdk.capture_exception(e)
 
 
 if __name__ == "__main__":
-    # run_sync_workflow()
-    run_rss_update_workflow()
+    sentry_sdk.init(
+        dsn=os.getenv("SENTRY_DSN"),
+        traces_sample_rate=1.0,
+        profiles_sample_rate=1.0,
+    )
+    run_sync_workflow()
+    # run_rss_update_workflow()

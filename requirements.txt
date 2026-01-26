@@ -7,3 +7,4 @@ gunicorn
 thefuzz[speed]
 google-genai
 prometheus-client
+sentry-sdk[flask]
