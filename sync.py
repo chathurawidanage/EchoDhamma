@@ -367,8 +367,8 @@ class PodcastSync:
         # Process videos sequentially
         processed_videos = False
         for item in video_items:
-            # if not self._is_sync_allowed():
-            #     break
+            if not self._is_sync_allowed():
+                break
             processed_videos = processed_videos or self.process_video_task(item)
 
         if processed_videos:
