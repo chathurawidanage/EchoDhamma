@@ -278,10 +278,16 @@ class PodcastSync:
         print(f"[{self.thero_name}] Generating AI metadata for {video_id}...")
         try:
             response = self.ai_manager.generate_metadata(video_url)
+
             if response:
-                print(f"[{self.thero_name}] AI metadata generated for {video_id}.")
+                # Validate and clean
+                response = self._validate_ai_response(response)
+                print(
+                    f"[{self.thero_name}] AI metadata generated and validated for {video_id}."
+                )
                 self.ai_manager.cache_response(video_id, response)
-            return response
+                return response
+            raise AIGenerationError("AI metadata generation returned empty response")
         except AIRateLimitError as e:
             print(f"[{self.thero_name}] AI Rate Limit reached: {e}")
             ai_rate_limited_counter.labels(thero=self.thero_id).inc()
@@ -293,6 +299,44 @@ class PodcastSync:
         finally:
             # Record AI call whether it succeeds or fails (API quota is consumed)
             self.rate_limiter.record_ai_call()
+
+    def _validate_ai_response(self, response):
+        """
+        Validates and cleans the AI response.
+        Returns the cleaned response dictionary.
+        Raises AIGenerationError if validation fails.
+        """
+        # Handle list response from Gemini (take first element if it's a list)
+        if isinstance(response, list):
+            if response and isinstance(response[0], dict):
+                print(f"[{self.thero_name}] AI returned a list, using first element.")
+                response = response[0]
+            else:
+                raise AIGenerationError(
+                    f"AI returned an empty or invalid list: {response}"
+                )
+
+        # Schema Validation
+        if not isinstance(response, dict):
+            raise AIGenerationError(
+                f"AI returned non-dict response type: {type(response)}"
+            )
+
+        required_keys = ["podcast_friendly", "title_components", "description"]
+        if not all(k in response for k in required_keys):
+            missing = [k for k in required_keys if k not in response]
+            raise AIGenerationError(f"AI response missing required keys: {missing}")
+
+        title_comps = response.get("title_components")
+        if not isinstance(title_comps, dict):
+            raise AIGenerationError("title_components is not a dict")
+
+        tc_keys = ["series_name", "episode_number", "topic_summary"]
+        if not all(k in title_comps for k in tc_keys):
+            missing_tc = [k for k in tc_keys if k not in title_comps]
+            raise AIGenerationError(f"title_components missing keys: {missing_tc}")
+
+        return response
 
     def process_video_task(self, item):
         vid_id = item["id"]
