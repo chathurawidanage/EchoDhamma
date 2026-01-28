@@ -10,11 +10,13 @@ from metrics import (
     filtered_items_counter,
 )
 import os
+import json
 import requests
 import sentry_sdk
 from dotenv import load_dotenv
 import email.utils
 import datetime
+import re
 
 from title_matcher import is_thero_in_content, load_thero_data
 from title_formatter import get_safe_title
@@ -83,6 +85,19 @@ class PodcastSync:
                 pass
         return email.utils.formatdate(usegmt=True)
 
+    def _parse_time_to_seconds(self, time_str):
+        """Converts HH:MM:SS string to seconds (float)."""
+        try:
+            parts = list(map(int, time_str.split(":")))
+            if len(parts) == 3:
+                return parts[0] * 3600 + parts[1] * 60 + parts[2]
+            elif len(parts) == 2:
+                return parts[0] * 60 + parts[1]
+            else:
+                return 0
+        except ValueError:
+            return 0
+
     def download_and_process(self, video_url):
         ydl_opts = {
             "format": "bestaudio/best",
@@ -96,7 +111,7 @@ class PodcastSync:
                 }
             },
         }
-        raw_file, mp3_file, img_file = None, None, None
+        raw_file, mp3_file, img_file, chapters_file = None, None, None, None
 
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -149,6 +164,50 @@ class PodcastSync:
                         metadata["ai_response"]["title"] = get_safe_title(
                             metadata["title"], metadata["ai_response"]
                         )
+
+                        # Process Chapters
+                        chapters = metadata["ai_response"].get("chapters")
+                        if chapters and isinstance(chapters, list):
+                            print(
+                                f"[{self.thero_name}] Processing chapters for {metadata['id']}"
+                            )
+                            formatted_chapters = {"version": "1.2.0", "chapters": []}
+                            for ch in chapters:
+                                start = ch.get("start_time")
+                                title = ch.get("title")
+                                is_qa = ch.get("isQ&A")
+                                if start and title:
+                                    if is_qa:
+                                        title = f"Q&A: {title}"
+
+                                    chapter_data = {
+                                        "startTime": self._parse_time_to_seconds(start),
+                                        "title": title,
+                                    }
+                                    formatted_chapters["chapters"].append(chapter_data)
+
+                            if formatted_chapters["chapters"]:
+                                # Ensure sorted by time
+                                formatted_chapters["chapters"].sort(
+                                    key=lambda x: x["startTime"]
+                                )
+
+                                # Ensure first chapter starts at 0
+                                if formatted_chapters["chapters"][0]["startTime"] > 0:
+                                    formatted_chapters["chapters"].insert(
+                                        0, {"startTime": 0, "title": "Start"}
+                                    )
+
+                                chapters_file = f"{metadata['id']}_chapters.json"
+                                with open(chapters_file, "w", encoding="utf-8") as f:
+                                    json.dump(formatted_chapters, f, indent=2)
+
+                                print(
+                                    f"[{self.thero_name}] Uploading chapters: {metadata['id']}"
+                                )
+                                self.s3.upload_file(
+                                    chapters_file, chapters_file, "application/json"
+                                )
 
                 mp3_file, img_file = (
                     f"{metadata['id']}.mp3",
@@ -208,7 +267,7 @@ class PodcastSync:
                 return metadata
 
         finally:
-            for f in [raw_file, mp3_file, img_file]:
+            for f in [raw_file, mp3_file, img_file, chapters_file]:
                 if f and os.path.exists(f):
                     os.remove(f)
 
@@ -335,6 +394,27 @@ class PodcastSync:
         if not all(k in title_comps for k in tc_keys):
             missing_tc = [k for k in tc_keys if k not in title_comps]
             raise AIGenerationError(f"title_components missing keys: {missing_tc}")
+
+        # Validate Chapters if present
+        chapters = response.get("chapters")
+        if chapters:
+            if not isinstance(chapters, list):
+                raise AIGenerationError("chapters must be a list")
+
+            for idx, ch in enumerate(chapters):
+                if not isinstance(ch, dict):
+                    raise AIGenerationError(f"chapter at index {idx} is not a dict")
+
+                if "start_time" not in ch or "title" not in ch:
+                    raise AIGenerationError(
+                        f"chapter at index {idx} missing required fields"
+                    )
+
+                # strict HH:MM:SS validation
+                if not re.match(r"^\d{2}:\d{2}:\d{2}$", ch["start_time"]):
+                    raise AIGenerationError(
+                        f"chapter at index {idx} has invalid start_time format: {ch['start_time']}"
+                    )
 
         return response
 

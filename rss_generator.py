@@ -8,6 +8,7 @@ class RSSGenerator:
     def generate(config, items, base_url, local_filename):
         podcast_config = config["podcast"]
         ET.register_namespace("itunes", "http://www.itunes.com/dtds/podcast-1.0.dtd")
+        ET.register_namespace("podcast", "https://podcastindex.org/namespace/1.0")
 
         root = ET.Element("rss", version="2.0")
         channel = ET.SubElement(root, "channel")
@@ -77,6 +78,29 @@ class RSSGenerator:
             add_tag(rss_item, "title", title)
 
             desc = item.get("description", "")
+
+            # Append chapters to description if available
+            chapters_data = item.get("chapters")
+            if chapters_data and chapters_data.get("chapters"):
+                desc += "<br /><br />Chapters:<br />"
+                for ch in chapters_data["chapters"]:
+                    start_seconds = int(ch.get("startTime", 0))
+                    m, s = divmod(start_seconds, 60)
+                    h, m = divmod(m, 60)
+                    if h > 0:
+                        time_str = f"({h:02d}:{m:02d}:{s:02d})"
+                    else:
+                        time_str = f"({m:02d}:{s:02d})"
+
+                    line = f"{time_str} {ch.get('title')}"
+
+                    desc_text = ch.get("description")
+                    if desc_text:
+                        if ch.get("is_qa"):
+                            desc_text = f"Q&A: {desc_text}"
+                        line += f" - {desc_text}"
+                    desc += f"{line}<br />"
+
             add_tag(rss_item, "description", f"%%CDATA_START%%{desc}%%CDATA_END%%")
 
             add_tag(
@@ -114,6 +138,17 @@ class RSSGenerator:
                     rss_item,
                     "{http://www.itunes.com/dtds/podcast-1.0.dtd}image",
                     attrib={"href": item["image_url"]},
+                )
+
+            if item.get("chapters"):
+                chapters_url = f"{base_url}/{item['id']}_chapters.json"
+                add_tag(
+                    rss_item,
+                    "{https://podcastindex.org/namespace/1.0}chapters",
+                    attrib={
+                        "url": chapters_url,
+                        "type": "application/json+chapters",
+                    },
                 )
 
         tree = ET.ElementTree(root)

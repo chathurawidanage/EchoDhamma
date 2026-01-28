@@ -33,7 +33,7 @@ Analyze the provided YouTube video and return a structured JSON response contain
 5. **Chapter Segmentation**:
    * **Language**: Sinhala.
    * **Granularity**: Break the content into logical segments based on topic shifts.
-   * **Start Time**: Provide the starting timestamp for the segment (e.g., "00:00:00", "04:30:00").
+   * **Start Time**: Provide the starting timestamp strictly in **"HH:MM:SS"** format.
    * **Title**:
      * Create a concise title for the segment.
      * **CRITICAL Q&A RULE**: If `isQ&A` is `true`, the `title` **MUST** be the summary of the question asked (e.g., "Why do we meditate?" instead of "Answer about meditation").
@@ -52,7 +52,7 @@ Analyze the provided YouTube video and return a structured JSON response contain
   },
   "chapters": [
     {
-      "start_time": "string",
+      "start_time": "string (HH:MM:SS)",
       "title": "string",
       "description": "string or null",
       "isQ&A": boolean
