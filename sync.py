@@ -164,30 +164,31 @@ class PodcastSync:
 
                 # AI Metadata Generation (Before Download)
                 if self.ai_manager:
-                    # Fetch Transcript
-                    try:
-                        logger.info(
-                            f"[{self.thero_name}] Fetching transcript for {metadata['id']}..."
-                        )
-                        transcript_text = get_transcript_text(video_url)
-
-                        if transcript_text:
-                            transcript_path = f"{metadata['id']}_transcript.txt"
-                            with open(transcript_path, "w", encoding="utf-8") as f:
-                                f.write(transcript_text)
-
+                    # Fetch Transcript only if chapters are enabled
+                    if self.ai_config.get("chapters"):
+                        try:
                             logger.info(
-                                f"[{self.thero_name}] Uploading transcript to S3: {metadata['id']}"
+                                f"[{self.thero_name}] Fetching transcript for {metadata['id']}..."
                             )
-                            self.s3.upload_file(
-                                transcript_path,
-                                f"transcripts/{metadata['id']}.txt",
-                                "text/plain",
+                            transcript_text = get_transcript_text(video_url)
+
+                            if transcript_text:
+                                transcript_path = f"{metadata['id']}_transcript.txt"
+                                with open(transcript_path, "w", encoding="utf-8") as f:
+                                    f.write(transcript_text)
+
+                                logger.info(
+                                    f"[{self.thero_name}] Uploading transcript to S3: {metadata['id']}"
+                                )
+                                self.s3.upload_file(
+                                    transcript_path,
+                                    f"transcripts/{metadata['id']}.txt",
+                                    "text/plain",
+                                )
+                        except Exception as e:
+                            logger.warning(
+                                f"[{self.thero_name}] Warning: Failed to fetch/upload transcript: {e}"
                             )
-                    except Exception as e:
-                        logger.warning(
-                            f"[{self.thero_name}] Warning: Failed to fetch/upload transcript: {e}"
-                        )
 
                     metadata["ai_response"] = self._get_ai_metadata(
                         metadata["id"], video_url, transcript_path
