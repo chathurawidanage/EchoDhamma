@@ -31,28 +31,24 @@ class AIManager:
 
         self.model_name = os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
 
-        # Load prompt template
-        self.prompt_template = ""
-        prompt_path = os.path.join(os.path.dirname(__file__), "prompt.md")
-        if os.path.exists(prompt_path):
-            with open(prompt_path, "r", encoding="utf-8") as f:
-                self.prompt_template = f.read()
-        else:
-            print(f"Warning: prompt.md not found at {prompt_path}")
+        # Initialize Prompt Service
+        from prompt_service import PromptService
+
+        self.prompt_service = PromptService()
 
     def generate_metadata(self, video_url, transcript_path=None):
         """
-        Calls Gemini to generate metadata based on the prompt.md template.
+        Calls Gemini to generate metadata using PromptService.
 
         Args:
             video_url (str): The YouTube video URL.
             transcript_path (str, optional): Local path to the transcript file.
+            include_chapters (bool, optional): Whether to request chapters in the output.
         """
-        if not self.prompt_template:
-            raise AIGenerationError("Prompt template not found")
-
-        # Prepare the prompt
-        prompt_text = self.prompt_template.replace("{video_url}", video_url)
+        # Get the prompt from the service
+        prompt_text = self.prompt_service.get_prompt(
+            include_chapters=transcript_path is not None
+        )
 
         try:
             # Construct content with video file data and prompt text as separate parts

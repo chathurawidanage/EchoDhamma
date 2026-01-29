@@ -694,5 +694,5 @@ if __name__ == "__main__":
         traces_sample_rate=1.0,
         profiles_sample_rate=1.0,
     )
-    # run_sync_workflow()
-    run_rss_update_workflow()
+    run_sync_workflow()
+    # run_rss_update_workflow()
