@@ -1,7 +1,11 @@
 from flask import Flask, jsonify
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 from concurrent.futures import ThreadPoolExecutor
-from sync import run_sync_workflow, run_rss_update_workflow
+from sync import (
+    run_sync_workflow,
+    run_rss_update_workflow,
+    run_chapter_alignment_workflow,
+)
 import os
 import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
@@ -32,7 +36,9 @@ def _run_sync():
     global _current_task
     try:
         logger.info("Starting scheduled sync...")
+        run_chapter_alignment_workflow()
         run_sync_workflow()
+        run_rss_update_workflow()
         logger.info("Scheduled sync completed.")
     except Exception as e:
         logger.error(f"Error during sync: {e}", exc_info=True)

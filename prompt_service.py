@@ -7,16 +7,12 @@ class PromptService:
         self.base_prompt_path = os.path.join(
             os.path.dirname(__file__), "prompts", "base.md"
         )
-        self.chapters_prompt_path = os.path.join(
-            os.path.dirname(__file__), "prompts", "chapters.md"
-        )
-        self.source_material_prompt_path = os.path.join(
-            os.path.dirname(__file__), "prompts", "source_material.md"
+        self.alignment_prompt_path = os.path.join(
+            os.path.dirname(__file__), "prompts", "chapter_alignment.md"
         )
         # Load prompts into memory
         self.base_prompt = self._read_file(self.base_prompt_path)
-        self.chapters_prompt = self._read_file(self.chapters_prompt_path)
-        self.source_material_prompt = self._read_file(self.source_material_prompt_path)
+        self.alignment_prompt = self._read_file(self.alignment_prompt_path)
 
     def _read_file(self, path):
         if os.path.exists(path):
@@ -24,30 +20,10 @@ class PromptService:
                 return f.read()
         return ""
 
-    def get_prompt(self, include_chapters=True):
-        prompt_text = self.base_prompt
+    def get_base_prompt(self):
+        return self.base_prompt
 
-        # Add chapters prompt if requested
-        chapters_content = ""
-        source_material_content = ""
-
-        if include_chapters:
-            chapters_content = self.chapters_prompt
-            source_material_content = self.source_material_prompt
-
-        # Inject source material
-        prompt_text = prompt_text.replace("{source_material}", source_material_content)
-
-        # Inject chapters
-        prompt_text = prompt_text.replace("{chapters}", chapters_content)
-
-        # Build JSON Schema
-        schema_json = self._build_schema(include_chapters)
-        prompt_text += "\n# JSON Output Schema\n\n" + schema_json
-
-        return prompt_text
-
-    def get_response_schema(self, include_chapters=True):
+    def get_base_schema(self):
         schema = {
             "type": "object",
             "properties": {
@@ -62,50 +38,58 @@ class PromptService:
                     "required": ["series_name", "episode_number", "topic_summary"],
                 },
                 "description": {"type": "string"},
-            },
-            "required": ["podcast_friendly", "title_components", "description"],
-        }
-
-        if include_chapters:
-            schema["properties"]["chapters"] = {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "start_time": {"type": "string"},
-                        "title": {"type": "string"},
-                        "description": {"type": "string", "nullable": True},
-                        "isQ&A": {"type": "boolean"},
+                "chapters": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "start_time": {"type": "string"},
+                            "title": {"type": "string"},
+                            "description": {"type": "string", "nullable": True},
+                            "isQ&A": {"type": "boolean"},
+                        },
+                        "required": ["start_time", "title", "description", "isQ&A"],
                     },
-                    "required": ["start_time", "title", "description", "isQ&A"],
                 },
-            }
-            schema["required"].append("chapters")
+            },
+            "required": [
+                "podcast_friendly",
+                "title_components",
+                "description",
+                "chapters",
+            ],
+        }
 
         return schema
 
-    def _build_schema(self, include_chapters):
+    def get_alignment_prompt(self, current_chapters):
+        prompt_text = self.alignment_prompt
+        # Inject chapters as JSON string
+        chapters_json = json.dumps(current_chapters, indent=2, ensure_ascii=False)
+        prompt_text = prompt_text.replace("{chapters}", chapters_json)
+        return prompt_text
+
+    def get_alignment_schema(self):
         schema = {
-            "podcast_friendly": "boolean",
-            "title_components": {
-                "series_name": "string or null",
-                "episode_number": "string or null",
-                "topic_summary": "string",
-            },
-            "description": "HTML_CONTENT_HERE",
-        }
-
-        if include_chapters:
-            schema["chapters"] = [
-                {
-                    "start_time": "string (HH:MM:SS)",
-                    "title": "string",
-                    "description": "string or null",
-                    "isQ&A": "boolean",
+            "type": "object",
+            "properties": {
+                "chapters": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "start_time": {"type": "string"},
+                            "title": {"type": "string"},
+                            "description": {"type": "string", "nullable": True},
+                            "isQ&A": {"type": "boolean"},
+                        },
+                        "required": ["start_time", "title", "description", "isQ&A"],
+                    },
                 }
-            ]
-
-        return json.dumps(schema, indent=4)
+            },
+            "required": ["chapters"],
+        }
+        return schema
 
 
 if __name__ == "__main__":
@@ -113,4 +97,4 @@ if __name__ == "__main__":
 
     setup_logging()
     service = PromptService()
-    print(service.get_prompt(include_chapters=True))
+    print(service.get_base_prompt(include_chapters=True))

@@ -120,7 +120,6 @@ class PodcastSync:
         raw_file = None
         mp3_file = None
         img_file = None
-        chapters_file = None
         transcript_path = None
 
         try:
@@ -164,32 +163,6 @@ class PodcastSync:
 
                 # AI Metadata Generation (Before Download)
                 if self.ai_manager:
-                    # Fetch Transcript only if chapters are enabled
-                    if self.ai_config.get("chapters"):
-                        try:
-                            logger.info(
-                                f"[{self.thero_name}] Fetching transcript for {metadata['id']}..."
-                            )
-                            transcript_text = get_transcript_text(video_url)
-
-                            if transcript_text:
-                                transcript_path = f"{metadata['id']}_transcript.txt"
-                                with open(transcript_path, "w", encoding="utf-8") as f:
-                                    f.write(transcript_text)
-
-                                logger.info(
-                                    f"[{self.thero_name}] Uploading transcript to S3: {metadata['id']}"
-                                )
-                                self.s3.upload_file(
-                                    transcript_path,
-                                    f"transcripts/{metadata['id']}.txt",
-                                    "text/plain",
-                                )
-                        except Exception as e:
-                            logger.warning(
-                                f"[{self.thero_name}] Warning: Failed to fetch/upload transcript: {e}"
-                            )
-
                     metadata["ai_response"] = self._get_ai_metadata(
                         metadata["id"], video_url, transcript_path
                     )
@@ -200,27 +173,6 @@ class PodcastSync:
                         metadata["ai_response"]["title"] = get_safe_title(
                             metadata["title"], metadata["ai_response"]
                         )
-
-                        # Process Chapters
-                        formatted_chapters = self._get_formatted_chapters(
-                            metadata["ai_response"]
-                        )
-                        if formatted_chapters:
-                            chapters_file = f"{metadata['id']}_chapters.json"
-                            with open(chapters_file, "w", encoding="utf-8") as f:
-                                json.dump(
-                                    formatted_chapters,
-                                    f,
-                                    indent=2,
-                                    ensure_ascii=False,
-                                )
-
-                            logger.info(
-                                f"[{self.thero_name}] Uploading chapters: {metadata['id']}"
-                            )
-                            self.s3.upload_file(
-                                chapters_file, chapters_file, "application/json"
-                            )
 
                 mp3_file, img_file = (
                     f"{metadata['id']}.mp3",
@@ -284,7 +236,7 @@ class PodcastSync:
                 return metadata
 
         finally:
-            for f in [raw_file, mp3_file, img_file, chapters_file, transcript_path]:
+            for f in [raw_file, mp3_file, img_file, transcript_path]:
                 if f and os.path.exists(f):
                     os.remove(f)
 
@@ -445,7 +397,7 @@ class PodcastSync:
         Enforces 00:00:00 start time.
         Returns a dictionary suitable for assignment to metadata["chapters"] or file dump.
         """
-        chapters = ai_response.get("chapters")
+        chapters = ai_response.get("aligned_chapters")
         if not chapters or not isinstance(chapters, list):
             return None
 
@@ -527,6 +479,13 @@ class PodcastSync:
     def sync(self):
         sync_run_counter.labels(thero=self.thero_id).inc()
         logger.info(f"[{self.thero_name}] Starting sync...")
+
+        if not self._is_sync_allowed():
+            logger.info(
+                f"[{self.thero_name}] Sync not allowed due to rate limits, skipping."
+            )
+            return
+
         urls = self.config.get("youtube_channel_urls", []) or [
             self.config.get("youtube_channel_url")
         ]
@@ -576,10 +535,6 @@ class PodcastSync:
                 break
             processed_videos = processed_videos or self.process_video_task(item)
 
-        if processed_videos:
-            self.refresh_rss()
-        else:
-            logger.info(f"[{self.thero_name}] No videos processed.")
         logger.info(f"[{self.thero_name}] Sync complete.")
 
     def refresh_rss(self):
@@ -612,7 +567,8 @@ class PodcastSync:
 
                     # Backfill chapters (formatted) from AI response if missing in metadata or just to ensure latest format
                     ai_data = res.get("ai_response")
-                    if ai_data:
+                    if ai_data and ai_data.get("aligned_chapters"):
+                        # get from s3
                         formatted = self._get_formatted_chapters(ai_data)
                         if formatted:
                             res["chapters"] = formatted
@@ -680,6 +636,111 @@ class PodcastSync:
             os.remove(rss_file)
         logger.info(f"[{self.thero_name}] RSS refresh complete.")
 
+    def align_all_chapters(self):
+        """
+        Iterates through all metadata files and runs alignment pass if needed.
+        """
+        if not self.ai_manager:
+            logger.info(f"[{self.thero_name}] AI not enabled, skipping alignment.")
+            return
+        elif not self.ai_config.get("chapters"):
+            logger.info(
+                f"[{self.thero_name}] Chapters not enabled, skipping alignment."
+            )
+            return
+
+        logger.info(f"[{self.thero_name}] Starting chapter alignment pass...")
+        metadata_keys = self.s3.list_metadata_files()
+
+        for key in metadata_keys:
+            # Check rate limits (reuse AI periodic limit logic primarily)
+            if not self.rate_limiter.can_ai_call_periodic()[0]:
+                logger.info(
+                    f"[{self.thero_name}] AI rate limit hit, pausing alignment."
+                )
+                break
+
+            metadata = self.s3.get_json(key)
+            if not metadata:
+                continue
+
+            video_id = metadata.get("id")
+            ai_resp = metadata.get("ai_response")
+
+            if (
+                ai_resp
+                and ai_resp.get("chapters")
+                and not ai_resp.get("aligned_chapters")
+            ):
+                logger.info(f"[{self.thero_name}] Aligning chapters for {video_id}...")
+
+                transcript_path = None
+                try:
+                    logger.info(
+                        f"[{self.thero_name}] Fetching transcript for {metadata['id']}..."
+                    )
+                    transcript_text = get_transcript_text(metadata["original_url"])
+
+                    if transcript_text:
+                        transcript_path = f"{metadata['id']}_transcript.txt"
+                        with open(transcript_path, "w", encoding="utf-8") as f:
+                            f.write(transcript_text)
+
+                        logger.info(
+                            f"[{self.thero_name}] Uploading transcript to S3: {metadata['id']}"
+                        )
+                        self.s3.upload_file(
+                            transcript_path,
+                            f"transcripts/{metadata['id']}.txt",
+                            "text/plain",
+                        )
+                except Exception as e:
+                    logger.warning(
+                        f"[{self.thero_name}] Warning: Failed to fetch/upload transcript: {e}"
+                    )
+                    continue
+
+                if transcript_path:
+                    aligned_chapters = None
+                    try:
+                        aligned_chapters = self.ai_manager.align_chapters(
+                            video_id, ai_resp["chapters"], transcript_path
+                        )
+                    except Exception as e:
+                        logger.warning(
+                            f"[{self.thero_name}] Warning: Failed to align chapters for {video_id}: {e}"
+                        )
+                    finally:
+                        self.rate_limiter.record_ai_call()
+
+                    if aligned_chapters:
+                        ai_resp["aligned_chapters"] = aligned_chapters
+                        metadata["ai_response"] = ai_resp
+
+                        self.ai_manager.cache_response(video_id, ai_resp)
+                        self.s3.save_metadata(metadata)
+
+                        # Re-format chapters for chapters.json (00:00 start, etc)
+                        formatted = self._get_formatted_chapters(ai_resp)
+                        if formatted:
+                            # Upload chapters.json
+                            chapters_file = f"{video_id}_chapters.json"
+                            with open(chapters_file, "w", encoding="utf-8") as f:
+                                json.dump(formatted, f, indent=2, ensure_ascii=False)
+                            self.s3.upload_file(
+                                chapters_file, chapters_file, "application/json"
+                            )
+                            if os.path.exists(chapters_file):
+                                os.remove(chapters_file)
+
+                        logger.info(
+                            f"[{self.thero_name}] Chapter alignment complete for {video_id}."
+                        )
+                    else:
+                        logger.warning(
+                            f"[{self.thero_name}] Alignment returned None for {video_id}."
+                        )
+
 
 def run_sync_workflow():
     theros_dir = os.path.join(os.path.dirname(__file__), "theros")
@@ -715,6 +776,21 @@ def run_rss_update_workflow():
                     sentry_sdk.capture_exception(e)
 
 
+def run_chapter_alignment_workflow():
+    theros_dir = os.path.join(os.path.dirname(__file__), "theros")
+    for filename in os.listdir(theros_dir):
+        if filename.endswith(".json") and "_thero" in filename:
+            try:
+                config = load_thero_data(os.path.join(theros_dir, filename))
+                if not config.get("enabled", True):
+                    continue
+                PodcastSync(config).align_all_chapters()
+            except Exception as e:
+                logger.error(
+                    f"Error in alignment workflow for {filename}: {e}", exc_info=True
+                )
+
+
 if __name__ == "__main__":
     sentry_sdk.init(
         dsn=os.getenv("SENTRY_DSN"),
@@ -722,5 +798,6 @@ if __name__ == "__main__":
         profiles_sample_rate=1.0,
     )
     setup_logging()
-    run_sync_workflow()
+    # run_sync_workflow()
     # run_rss_update_workflow()
+    run_chapter_alignment_workflow()
