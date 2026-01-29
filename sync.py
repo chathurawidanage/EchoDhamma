@@ -1,32 +1,36 @@
-import yt_dlp
-from metrics import (
-    attempt_counter,
-    success_counter,
-    skipped_counter,
-    failure_counter,
-    ai_failure_counter,
-    ai_rate_limited_counter,
-    sync_run_counter,
-    filtered_items_counter,
-)
-import os
-import json
-import requests
-import sentry_sdk
-from dotenv import load_dotenv
-import email.utils
 import datetime
+import email.utils
+import json
+import logging
+import os
 import re
 
-from title_matcher import is_thero_in_content, load_thero_data
-from title_formatter import get_safe_title
-from s3_manager import S3Manager
+import requests
+import sentry_sdk
+import yt_dlp
+from dotenv import load_dotenv
+
+from ai_manager import AIGenerationError, AIManager, AIRateLimitError
 from audio_processor import AudioProcessor
-from rss_generator import RSSGenerator
-from ai_manager import AIManager, AIRateLimitError, AIGenerationError
+from logger import setup_logging
+from metrics import (
+    ai_failure_counter,
+    ai_rate_limited_counter,
+    attempt_counter,
+    failure_counter,
+    filtered_items_counter,
+    skipped_counter,
+    success_counter,
+    sync_run_counter,
+)
 from rate_limiter import RateLimiter
+from rss_generator import RSSGenerator
+from s3_manager import S3Manager
+from title_formatter import get_safe_title
+from title_matcher import is_thero_in_content, load_thero_data
 from transcript_service import get_transcript_text
 
+logger = logging.getLogger(__name__)
 load_dotenv()
 
 # Default rate limit when not specified in config (effectively unlimited)
@@ -147,7 +151,7 @@ class PodcastSync:
                 if "matcher" in self.config and not is_thero_in_content(
                     metadata["title"], yt_description, self.config
                 ):
-                    print(
+                    logger.info(
                         f"[{self.thero_name}] Skipping {metadata['id']}: Title mismatch. Saving ignore record."
                     )
                     # Metadata for ignored video
@@ -161,7 +165,7 @@ class PodcastSync:
                 if self.ai_manager:
                     # Fetch Transcript
                     try:
-                        print(
+                        logger.info(
                             f"[{self.thero_name}] Fetching transcript for {metadata['id']}..."
                         )
                         transcript_text = get_transcript_text(video_url)
@@ -171,7 +175,7 @@ class PodcastSync:
                             with open(transcript_path, "w", encoding="utf-8") as f:
                                 f.write(transcript_text)
 
-                            print(
+                            logger.info(
                                 f"[{self.thero_name}] Uploading transcript to S3: {metadata['id']}"
                             )
                             self.s3.upload_file(
@@ -180,7 +184,7 @@ class PodcastSync:
                                 "text/plain",
                             )
                     except Exception as e:
-                        print(
+                        logger.warning(
                             f"[{self.thero_name}] Warning: Failed to fetch/upload transcript: {e}"
                         )
 
@@ -209,7 +213,7 @@ class PodcastSync:
                                     ensure_ascii=False,
                                 )
 
-                            print(
+                            logger.info(
                                 f"[{self.thero_name}] Uploading chapters: {metadata['id']}"
                             )
                             self.s3.upload_file(
@@ -228,7 +232,7 @@ class PodcastSync:
                     and metadata["ai_response"].get("podcast_friendly") is False
                 ):
                     is_podcast_friendly = False
-                    print(
+                    logger.info(
                         f"[{self.thero_name}] Video {metadata['id']} is not podcast-friendly. Skipping audio processing."
                     )
                     skipped_counter.labels(
@@ -239,16 +243,20 @@ class PodcastSync:
 
                 if is_podcast_friendly:
                     # Now download because the title matched and it's podcast friendly
-                    print(f"[{self.thero_name}] Downloading audio: {metadata['id']}")
+                    logger.info(
+                        f"[{self.thero_name}] Downloading audio: {metadata['id']}"
+                    )
                     ydl.download([video_url])
                     raw_file = ydl.prepare_filename(info)
 
                     # Audio Conversion
-                    print(f"[{self.thero_name}] Processing audio: {metadata['id']}")
+                    logger.info(
+                        f"[{self.thero_name}] Processing audio: {metadata['id']}"
+                    )
                     self.audio.convert_to_mp3(raw_file, mp3_file)
 
                     # Upload Audio
-                    print(f"[{self.thero_name}] Uploading MP3: {metadata['id']}")
+                    logger.info(f"[{self.thero_name}] Uploading MP3: {metadata['id']}")
                     self.s3.upload_file(mp3_file, mp3_file, "audio/mpeg")
                     metadata["s3_audio_url"] = f"{self.base_url}/{mp3_file}"
                     metadata["length_bytes"] = os.path.getsize(mp3_file)
@@ -269,7 +277,7 @@ class PodcastSync:
                                     )
                                 metadata["s3_image_url"] = f"{self.base_url}/{img_file}"
                         except Exception as e:
-                            print(f"[{self.thero_name}] Thumbnail error: {e}")
+                            logger.error(f"[{self.thero_name}] Thumbnail error: {e}")
 
                 return metadata
 
@@ -286,7 +294,7 @@ class PodcastSync:
         """
         # Check daily video limit
         if not self.rate_limiter.can_sync_daily():
-            print(
+            logger.info(
                 f"[{self.thero_name}] Daily sync limit reached ({self.rate_limiter.max_per_day}). Stopping sync."
             )
             skipped_counter.labels(thero=self.thero_id, reason="daily_limit").inc()
@@ -295,7 +303,7 @@ class PodcastSync:
         # Check periodic video limit
         can_sync, wait_min = self.rate_limiter.can_sync_periodic()
         if not can_sync:
-            print(
+            logger.info(
                 f"[{self.thero_name}] Sync limited; waiting {wait_min} minutes before next attempt."
             )
             skipped_counter.labels(thero=self.thero_id, reason="periodic_limit").inc()
@@ -304,7 +312,7 @@ class PodcastSync:
         # Check AI rate limits if AI is enabled (AI is mandatory when enabled)
         if self.ai_manager:
             if not self.rate_limiter.can_ai_call_daily():
-                print(
+                logger.info(
                     f"[{self.thero_name}] Daily AI call limit reached ({self.rate_limiter.max_ai_calls_per_day}). Stopping sync."
                 )
                 skipped_counter.labels(
@@ -314,7 +322,7 @@ class PodcastSync:
 
             can_ai_call, ai_wait_min = self.rate_limiter.can_ai_call_periodic()
             if not can_ai_call:
-                print(
+                logger.info(
                     f"[{self.thero_name}] AI rate limited; waiting {ai_wait_min} minutes before next attempt."
                 )
                 skipped_counter.labels(
@@ -338,28 +346,30 @@ class PodcastSync:
         cached_response = self.ai_manager.get_cached_response(video_id)
 
         if cached_response:
-            print(f"[{self.thero_name}] Using cached AI metadata for {video_id}.")
+            logger.info(f"[{self.thero_name}] Using cached AI metadata for {video_id}.")
             return cached_response
 
-        print(f"[{self.thero_name}] Generating AI metadata for {video_id}...")
+        logger.info(f"[{self.thero_name}] Generating AI metadata for {video_id}...")
         try:
             response = self.ai_manager.generate_metadata(video_url, transcript_path)
 
             if response:
                 # Validate and clean
                 response = self._validate_ai_response(response)
-                print(
+                logger.info(
                     f"[{self.thero_name}] AI metadata generated and validated for {video_id}."
                 )
                 self.ai_manager.cache_response(video_id, response)
                 return response
             raise AIGenerationError("AI metadata generation returned empty response")
         except AIRateLimitError as e:
-            print(f"[{self.thero_name}] AI Rate Limit reached: {e}")
+            logger.warning(f"[{self.thero_name}] AI Rate Limit reached: {e}")
             ai_rate_limited_counter.labels(thero=self.thero_id).inc()
             raise
         except AIGenerationError as e:
-            print(f"[{self.thero_name}] AI Generation failed for {video_id}: {e}")
+            logger.error(
+                f"[{self.thero_name}] AI Generation failed for {video_id}: {e}"
+            )
             ai_failure_counter.labels(thero=self.thero_id).inc()
             raise
         finally:
@@ -375,7 +385,9 @@ class PodcastSync:
         # Handle list response from Gemini (take first element if it's a list)
         if isinstance(response, list):
             if response and isinstance(response[0], dict):
-                print(f"[{self.thero_name}] AI returned a list, using first element.")
+                logger.info(
+                    f"[{self.thero_name}] AI returned a list, using first element."
+                )
                 response = response[0]
             else:
                 raise AIGenerationError(
@@ -498,8 +510,9 @@ class PodcastSync:
 
             return self._is_valid_episode(metadata)
         except Exception as e:
-            print(
-                f"[{self.thero_name}] Error during download_and_process for {vid_id}: {e}"
+            logger.error(
+                f"[{self.thero_name}] Error during download_and_process for {vid_id}: {e}",
+                exc_info=True,
             )
             with sentry_sdk.push_scope() as scope:
                 scope.set_tag("video_id", vid_id)
@@ -511,7 +524,7 @@ class PodcastSync:
 
     def sync(self):
         sync_run_counter.labels(thero=self.thero_id).inc()
-        print(f"[{self.thero_name}] Starting sync...")
+        logger.info(f"[{self.thero_name}] Starting sync...")
         urls = self.config.get("youtube_channel_urls", []) or [
             self.config.get("youtube_channel_url")
         ]
@@ -533,11 +546,11 @@ class PodcastSync:
             for url in urls:
                 if not url:
                     continue
-                print(f"[{self.thero_name}] Fetching videos from: {url}")
+                logger.info(f"[{self.thero_name}] Fetching videos from: {url}")
                 try:
                     info = ydl.extract_info(url, download=False)
                     entries = info.get("entries", [])
-                    print(f"[{self.thero_name}] Found {len(entries)} videos.")
+                    logger.info(f"[{self.thero_name}] Found {len(entries)} videos.")
                     for entry in entries:
                         if entry and "id" in entry:
                             video_items.append(
@@ -549,7 +562,10 @@ class PodcastSync:
                                 }
                             )
                 except Exception as e:
-                    print(f"[{self.thero_name}] Error fetching channel: {e}")
+                    logger.error(
+                        f"[{self.thero_name}] Error fetching channel: {e}",
+                        exc_info=True,
+                    )
 
         # Process videos sequentially
         processed_videos = False
@@ -561,14 +577,16 @@ class PodcastSync:
         if processed_videos:
             self.refresh_rss()
         else:
-            print(f"[{self.thero_name}] No videos processed.")
-        print(f"[{self.thero_name}] Sync complete.")
+            logger.info(f"[{self.thero_name}] No videos processed.")
+        logger.info(f"[{self.thero_name}] Sync complete.")
 
     def refresh_rss(self):
         # Refresh RSS
-        print(f"[{self.thero_name}] Refreshing RSS feed...")
+        logger.info(f"[{self.thero_name}] Refreshing RSS feed...")
         metadata_keys = self.s3.list_metadata_files()
-        print(f"[{self.thero_name}] Found {len(metadata_keys)} metadata files in S3.")
+        logger.info(
+            f"[{self.thero_name}] Found {len(metadata_keys)} metadata files in S3."
+        )
 
         items = []
         for key in metadata_keys:
@@ -611,8 +629,9 @@ class PodcastSync:
 
                             res["description"] = description
                 except Exception as e:
-                    print(
-                        f"[{self.thero_name}] Error regenerating description for {key}: {e}"
+                    logger.error(
+                        f"[{self.thero_name}] Error regenerating description for {key}: {e}",
+                        exc_info=True,
                     )
 
                 items.append(res)
@@ -626,7 +645,7 @@ class PodcastSync:
             except Exception:
                 return datetime.datetime.min.replace(tzinfo=datetime.timezone.utc)
 
-        print(f"[{self.thero_name}] Sorting {len(items)} items by date...")
+        logger.info(f"[{self.thero_name}] Sorting {len(items)} items by date...")
         items.sort(
             key=get_safe_pub_date,
             reverse=True,
@@ -641,7 +660,7 @@ class PodcastSync:
         items = valid_items
         if len(items) < original_count:
             count = original_count - len(items)
-            print(
+            logger.info(
                 f"[{self.thero_name}] Filtered out {count} non-podcast friendly or non related items."
             )
             filtered_items_counter.labels(thero=self.thero_id).inc(count)
@@ -651,7 +670,7 @@ class PodcastSync:
         self.s3.upload_file(rss_file, rss_file, "application/xml")
         if os.path.exists(rss_file):
             os.remove(rss_file)
-        print(f"[{self.thero_name}] RSS refresh complete.")
+        logger.info(f"[{self.thero_name}] RSS refresh complete.")
 
 
 def run_sync_workflow():
@@ -661,11 +680,11 @@ def run_sync_workflow():
             try:
                 config = load_thero_data(os.path.join(theros_dir, filename))
                 if not config.get("enabled", True):
-                    print(f"Skipping {filename}: Disabled in config.")
+                    logger.info(f"Skipping {filename}: Disabled in config.")
                     continue
                 PodcastSync(config).sync()
             except Exception as e:
-                print(f"Error syncing {filename}: {e}")
+                logger.error(f"Error syncing {filename}: {e}", exc_info=True)
                 with sentry_sdk.push_scope() as scope:
                     scope.set_tag("thero_config", filename)
                     sentry_sdk.capture_exception(e)
@@ -678,11 +697,11 @@ def run_rss_update_workflow():
             try:
                 config = load_thero_data(os.path.join(theros_dir, filename))
                 if not config.get("enabled", True):
-                    print(f"Skipping {filename}: Disabled in config.")
+                    logger.info(f"Skipping {filename}: Disabled in config.")
                     continue
                 PodcastSync(config).refresh_rss()
             except Exception as e:
-                print(f"Error refreshing RSS for {filename}: {e}")
+                logger.error(f"Error refreshing RSS for {filename}: {e}", exc_info=True)
                 with sentry_sdk.push_scope() as scope:
                     scope.set_tag("thero_config", filename)
                     sentry_sdk.capture_exception(e)
@@ -694,5 +713,6 @@ if __name__ == "__main__":
         traces_sample_rate=1.0,
         profiles_sample_rate=1.0,
     )
+    setup_logging()
     run_sync_workflow()
     # run_rss_update_workflow()

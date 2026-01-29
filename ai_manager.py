@@ -3,6 +3,9 @@ import json
 from google import genai
 from google.genai import types
 from dotenv import load_dotenv
+import logging
+
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -24,7 +27,7 @@ class AIManager:
         self.s3_manager = s3_manager
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
-            print("Warning: GEMINI_API_KEY not found in environment variables.")
+            logger.warning("GEMINI_API_KEY not found in environment variables.")
 
         # Initialize the new GenAI client
         self.client = genai.Client(api_key=api_key)
@@ -45,6 +48,9 @@ class AIManager:
             transcript_path (str, optional): Local path to the transcript file.
             include_chapters (bool, optional): Whether to request chapters in the output.
         """
+        logger.info(
+            f"Generating metadata for {video_url} with transcript: {transcript_path}"
+        )
         # Get the prompt from the service
         prompt_text = self.prompt_service.get_prompt(
             include_chapters=transcript_path is not None
@@ -59,10 +65,10 @@ class AIManager:
 
             # Add transcript if available
             if transcript_path and os.path.exists(transcript_path):
-                print(f"Uploading transcript to Gemini from {transcript_path}...")
+                logger.info(f"Uploading transcript to Gemini from {transcript_path}...")
                 # upload method typically takes 'file' or just the path
                 transcript_file = self.client.files.upload(file=transcript_path)
-                print(f"Using transcript URI: {transcript_file.uri}")
+                logger.debug(f"Using transcript URI: {transcript_file.uri}")
                 parts.insert(
                     1,
                     types.Part(file_data=types.FileData(file_uri=transcript_file.uri)),
@@ -102,7 +108,7 @@ class AIManager:
             return None
 
         key = f"ai_cache/{video_id}.json"
-        print(f"Checking AI cache for {video_id}...")
+        logger.debug(f"Checking AI cache for {video_id}...")
         return self.s3_manager.get_json(key)
 
     def cache_response(self, video_id, response):
@@ -111,14 +117,17 @@ class AIManager:
             return
 
         key = f"ai_cache/{video_id}.json"
-        print(f"Caching AI response for {video_id}...")
+        logger.info(f"Caching AI response for {video_id}...")
         self.s3_manager.save_json(key, response)
 
 
 if __name__ == "__main__":
+    from logger import setup_logging
+
+    setup_logging()
     # Simple test if run directly
     manager = AIManager()
     test_url = "https://www.youtube.com/watch?v=rsTQQxtuZvc"
-    print(f"Testing Gemini with URL: {test_url}")
+    logger.info(f"Testing Gemini with URL: {test_url}")
     result = manager.generate_metadata(test_url)
     print(json.dumps(result, indent=2, ensure_ascii=False))

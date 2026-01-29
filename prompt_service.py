@@ -72,5 +72,8 @@ class PromptService:
 
 
 if __name__ == "__main__":
+    from logger import setup_logging
+
+    setup_logging()
     service = PromptService()
     print(service.get_prompt(include_chapters=True))

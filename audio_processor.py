@@ -1,6 +1,9 @@
 import subprocess
 import json
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Audio processing configuration
 AUDIO_CHANNELS = 1  # Mono
@@ -62,7 +65,9 @@ class AudioProcessor:
                 f":offset={stats['target_offset']}:linear=true"
             )
         else:
-            print(f"[{self.thero_name}] Warn: Using single-pass normalization.")
+            logger.warning(
+                f"[{self.thero_name}] Warn: Using single-pass normalization."
+            )
 
         safe_input = self._sanitize_path(input_file)
         safe_output = self._sanitize_path(output_file)

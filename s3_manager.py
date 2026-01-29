@@ -1,12 +1,14 @@
 import boto3
 import json
 import os
+import logging
 from botocore.exceptions import ClientError
 from boto3.s3.transfer import TransferConfig
 
 
 class S3Manager:
     def __init__(self, endpoint, bucket, access_key, secret_key):
+        self.logger = logging.getLogger(__name__)
         self.bucket = bucket
         self.endpoint = endpoint
         # Use a more robust config for proxied S3 backends
@@ -51,7 +53,7 @@ class S3Manager:
                 return None
             raise
         except json.JSONDecodeError as e:
-            print(f"Warning: Invalid JSON in {key}: {e}")
+            self.logger.warning(f"Warning: Invalid JSON in {key}: {e}")
         return None
 
     def list_metadata_files(self):

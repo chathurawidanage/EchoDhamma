@@ -5,6 +5,12 @@ from sync import run_sync_workflow, run_rss_update_workflow
 import os
 import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
+import logging
+from logger import setup_logging
+
+# Configure logging for the application
+setup_logging()
+logger = logging.getLogger(__name__)
 
 sentry_sdk.init(
     dsn=os.getenv("SENTRY_DSN"),
@@ -25,11 +31,11 @@ def _run_sync():
     """Background sync task."""
     global _current_task
     try:
-        print("Starting scheduled sync...")
+        logger.info("Starting scheduled sync...")
         run_sync_workflow()
-        print("Scheduled sync completed.")
+        logger.info("Scheduled sync completed.")
     except Exception as e:
-        print(f"Error during sync: {e}")
+        logger.error(f"Error during sync: {e}", exc_info=True)
         with sentry_sdk.push_scope() as scope:
             scope.set_tag("task", "sync_workflow")
             sentry_sdk.capture_exception(e)
@@ -41,11 +47,11 @@ def _run_rss_update():
     """Background RSS update task."""
     global _current_task
     try:
-        print("Starting RSS update...")
+        logger.info("Starting RSS update...")
         run_rss_update_workflow()
-        print("RSS update completed.")
+        logger.info("RSS update completed.")
     except Exception as e:
-        print(f"Error during RSS update: {e}")
+        logger.error(f"Error during RSS update: {e}", exc_info=True)
         with sentry_sdk.push_scope() as scope:
             scope.set_tag("task", "rss_update")
             sentry_sdk.capture_exception(e)

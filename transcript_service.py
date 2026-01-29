@@ -1,6 +1,8 @@
 from youtube_transcript_api import YouTubeTranscriptApi
-import sys
 from urllib.parse import urlparse, parse_qs
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def get_video_id(url):
@@ -33,10 +35,10 @@ def get_transcript_text(url):
     """
     video_id = get_video_id(url)
     if not video_id:
-        print(f"Error: Could not extract video ID from URL: {url}", file=sys.stderr)
+        logger.error(f"Error: Could not extract video ID from URL: {url}")
         return None
 
-    print(f"Fetching transcript for Video ID: {video_id} ...", file=sys.stderr)
+    logger.info(f"Fetching transcript for Video ID: {video_id} ...")
 
     try:
         ytt = YouTubeTranscriptApi()
@@ -59,5 +61,5 @@ def get_transcript_text(url):
         return "\n".join(output_lines)
 
     except Exception as e:
-        print(f"Error fetching transcript: {e}", file=sys.stderr)
+        logger.error(f"Error fetching transcript: {e}")
         return None

@@ -8,3 +8,4 @@ thefuzz[speed]
 google-genai
 prometheus-client
 sentry-sdk[flask]
+youtube_transcript_api
