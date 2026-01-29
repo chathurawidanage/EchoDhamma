@@ -36,7 +36,7 @@ def _run_sync():
         logger.info("Scheduled sync completed.")
     except Exception as e:
         logger.error(f"Error during sync: {e}", exc_info=True)
-        with sentry_sdk.push_scope() as scope:
+        with sentry_sdk.new_scope() as scope:
             scope.set_tag("task", "sync_workflow")
             sentry_sdk.capture_exception(e)
     finally:
@@ -52,7 +52,7 @@ def _run_rss_update():
         logger.info("RSS update completed.")
     except Exception as e:
         logger.error(f"Error during RSS update: {e}", exc_info=True)
-        with sentry_sdk.push_scope() as scope:
+        with sentry_sdk.new_scope() as scope:
             scope.set_tag("task", "rss_update")
             sentry_sdk.capture_exception(e)
     finally:

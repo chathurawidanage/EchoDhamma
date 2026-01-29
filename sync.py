@@ -514,7 +514,7 @@ class PodcastSync:
                 f"[{self.thero_name}] Error during download_and_process for {vid_id}: {e}",
                 exc_info=True,
             )
-            with sentry_sdk.push_scope() as scope:
+            with sentry_sdk.new_scope() as scope:
                 scope.set_tag("video_id", vid_id)
                 scope.set_tag("thero_id", self.thero_id)
                 sentry_sdk.capture_exception(e)
@@ -685,7 +685,7 @@ def run_sync_workflow():
                 PodcastSync(config).sync()
             except Exception as e:
                 logger.error(f"Error syncing {filename}: {e}", exc_info=True)
-                with sentry_sdk.push_scope() as scope:
+                with sentry_sdk.new_scope() as scope:
                     scope.set_tag("thero_config", filename)
                     sentry_sdk.capture_exception(e)
 
@@ -702,7 +702,7 @@ def run_rss_update_workflow():
                 PodcastSync(config).refresh_rss()
             except Exception as e:
                 logger.error(f"Error refreshing RSS for {filename}: {e}", exc_info=True)
-                with sentry_sdk.push_scope() as scope:
+                with sentry_sdk.new_scope() as scope:
                     scope.set_tag("thero_config", filename)
                     sentry_sdk.capture_exception(e)
 

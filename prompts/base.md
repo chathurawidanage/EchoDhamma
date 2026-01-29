@@ -9,7 +9,7 @@ Analyze the provided YouTube video and Transcript to return a structured JSON re
 # Constraints
 
 1. **Output Format**:
-   * Return valid **JSON ONLY**. Do not include conversational filler or markdown code blocks around the JSON unless explicitly requested.
+   * Return valid **JSON ONLY**. Return the response as a single, minified JSON object. Ensure all internal HTML quotes are escaped (e.g., using single quotes for HTML attributes or escaping double quotes). Do not include any text before or after the JSON object.
 
 2. **Podcast Compatibility (`podcast_friendly`)**:
    * Set to `true` if the content is purely verbal or if the whiteboard/smartboard usage is **supplementary** (i.e., the listener can follow the logic easily without seeing the board).

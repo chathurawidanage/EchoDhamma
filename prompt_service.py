@@ -47,6 +47,43 @@ class PromptService:
 
         return prompt_text
 
+    def get_response_schema(self, include_chapters=True):
+        schema = {
+            "type": "object",
+            "properties": {
+                "podcast_friendly": {"type": "boolean"},
+                "title_components": {
+                    "type": "object",
+                    "properties": {
+                        "series_name": {"type": "string", "nullable": True},
+                        "episode_number": {"type": "string", "nullable": True},
+                        "topic_summary": {"type": "string"},
+                    },
+                    "required": ["series_name", "episode_number", "topic_summary"],
+                },
+                "description": {"type": "string"},
+            },
+            "required": ["podcast_friendly", "title_components", "description"],
+        }
+
+        if include_chapters:
+            schema["properties"]["chapters"] = {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "start_time": {"type": "string"},
+                        "title": {"type": "string"},
+                        "description": {"type": "string", "nullable": True},
+                        "isQ&A": {"type": "boolean"},
+                    },
+                    "required": ["start_time", "title", "description", "isQ&A"],
+                },
+            }
+            schema["required"].append("chapters")
+
+        return schema
+
     def _build_schema(self, include_chapters):
         schema = {
             "podcast_friendly": "boolean",

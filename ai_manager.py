@@ -48,9 +48,6 @@ class AIManager:
             transcript_path (str, optional): Local path to the transcript file.
             include_chapters (bool, optional): Whether to request chapters in the output.
         """
-        logger.info(
-            f"Generating metadata for {video_url} with transcript: {transcript_path}"
-        )
         # Get the prompt from the service
         prompt_text = self.prompt_service.get_prompt(
             include_chapters=transcript_path is not None
@@ -76,11 +73,17 @@ class AIManager:
 
             content = types.Content(parts=parts)
 
+            # Retrieve schema to enforce strict JSON output
+            schema = self.prompt_service.get_response_schema(
+                include_chapters=transcript_path is not None
+            )
+
             response = self.client.models.generate_content(
                 model=self.model_name,
                 contents=content,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
+                    response_schema=schema,
                     temperature=0.0,
                 ),
             )
@@ -92,6 +95,18 @@ class AIManager:
                     content = content[7:].strip()
                 if content.endswith("```"):
                     content = content[:-3].strip()
+
+                # Robust JSON extraction: Find start and end to handle extra data
+                start_idx = content.find("{")
+                end_idx = content.rfind("}")
+
+                if start_idx != -1 and end_idx != -1:
+                    try:
+                        return json.loads(content[start_idx : end_idx + 1])
+                    except json.JSONDecodeError as e:
+                        logger.warning(f"Failed to parse trimmed JSON: {e}")
+                        with open("temp_sync_state.json", "w") as f:
+                            f.write(content)
 
                 return json.loads(content)
         except Exception as e:
