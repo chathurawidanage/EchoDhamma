@@ -78,29 +78,6 @@ class RSSGenerator:
             add_tag(rss_item, "title", title)
 
             desc = item.get("description", "")
-
-            # Append chapters to description if available
-            chapters_data = item.get("chapters")
-            if chapters_data and chapters_data.get("chapters"):
-                desc += "<br /><br />Chapters:<br />"
-                for ch in chapters_data["chapters"]:
-                    start_seconds = int(ch.get("startTime", 0))
-                    m, s = divmod(start_seconds, 60)
-                    h, m = divmod(m, 60)
-                    if h > 0:
-                        time_str = f"({h:02d}:{m:02d}:{s:02d})"
-                    else:
-                        time_str = f"({m:02d}:{s:02d})"
-
-                    line = f"{time_str} {ch.get('title')}"
-
-                    desc_text = ch.get("description")
-                    if desc_text:
-                        if ch.get("is_qa"):
-                            desc_text = f"Q&A: {desc_text}"
-                        line += f" - {desc_text}"
-                    desc += f"{line}<br />"
-
             add_tag(rss_item, "description", f"%%CDATA_START%%{desc}%%CDATA_END%%")
 
             add_tag(

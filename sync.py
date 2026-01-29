@@ -166,48 +166,25 @@ class PodcastSync:
                         )
 
                         # Process Chapters
-                        chapters = metadata["ai_response"].get("chapters")
-                        if chapters and isinstance(chapters, list):
+                        formatted_chapters = self._get_formatted_chapters(
+                            metadata["ai_response"]
+                        )
+                        if formatted_chapters:
+                            chapters_file = f"{metadata['id']}_chapters.json"
+                            with open(chapters_file, "w", encoding="utf-8") as f:
+                                json.dump(
+                                    formatted_chapters,
+                                    f,
+                                    indent=2,
+                                    ensure_ascii=False,
+                                )
+
                             print(
-                                f"[{self.thero_name}] Processing chapters for {metadata['id']}"
+                                f"[{self.thero_name}] Uploading chapters: {metadata['id']}"
                             )
-                            formatted_chapters = {"version": "1.2.0", "chapters": []}
-                            for ch in chapters:
-                                start = ch.get("start_time")
-                                title = ch.get("title")
-                                is_qa = ch.get("isQ&A")
-                                if start and title:
-                                    if is_qa:
-                                        title = f"Q&A: {title}"
-
-                                    chapter_data = {
-                                        "startTime": self._parse_time_to_seconds(start),
-                                        "title": title,
-                                    }
-                                    formatted_chapters["chapters"].append(chapter_data)
-
-                            if formatted_chapters["chapters"]:
-                                # Ensure sorted by time
-                                formatted_chapters["chapters"].sort(
-                                    key=lambda x: x["startTime"]
-                                )
-
-                                # Ensure first chapter starts at 0
-                                if formatted_chapters["chapters"][0]["startTime"] > 0:
-                                    formatted_chapters["chapters"].insert(
-                                        0, {"startTime": 0, "title": "Start"}
-                                    )
-
-                                chapters_file = f"{metadata['id']}_chapters.json"
-                                with open(chapters_file, "w", encoding="utf-8") as f:
-                                    json.dump(formatted_chapters, f, indent=2)
-
-                                print(
-                                    f"[{self.thero_name}] Uploading chapters: {metadata['id']}"
-                                )
-                                self.s3.upload_file(
-                                    chapters_file, chapters_file, "application/json"
-                                )
+                            self.s3.upload_file(
+                                chapters_file, chapters_file, "application/json"
+                            )
 
                 mp3_file, img_file = (
                     f"{metadata['id']}.mp3",
@@ -418,6 +395,62 @@ class PodcastSync:
 
         return response
 
+    def _get_formatted_chapters(self, ai_response):
+        """
+        Extracts, formats, and sorts chapters from an AI response.
+        Enforces 00:00:00 start time.
+        Returns a dictionary suitable for assignment to metadata["chapters"] or file dump.
+        """
+        chapters = ai_response.get("chapters")
+        if not chapters or not isinstance(chapters, list):
+            return None
+
+        formatted_chapters = {"version": "1.2.0", "chapters": []}
+
+        for ch in chapters:
+            start = ch.get("start_time")
+            # Normalize to HH:MM:SS if needed (handle MM:SS)
+            if start and start.count(":") == 1:
+                start = f"00:{start}"
+
+            title = ch.get("title")
+            is_qa = ch.get("isQ&A")
+            description = ch.get("description")
+
+            if start and title:
+                if is_qa:
+                    title = f"Q&A: {title}"
+
+                chapter_data = {
+                    "startTime": self._parse_time_to_seconds(start),
+                    "title": title,
+                    "description": description,
+                    "is_qa": is_qa,
+                    "start_time_str": start,  # Keep original string for display
+                }
+                formatted_chapters["chapters"].append(chapter_data)
+
+        if not formatted_chapters["chapters"]:
+            return None
+
+        # Ensure sorted by time
+        formatted_chapters["chapters"].sort(key=lambda x: x["startTime"])
+
+        # Ensure first chapter starts at 0
+        if formatted_chapters["chapters"][0]["startTime"] > 0:
+            formatted_chapters["chapters"].insert(
+                0,
+                {
+                    "startTime": 0,
+                    "title": "Start",
+                    "description": "",
+                    "is_qa": False,
+                    "start_time_str": "00:00:00",
+                },
+            )
+
+        return formatted_chapters
+
     def process_video_task(self, item):
         vid_id = item["id"]
 
@@ -526,6 +559,27 @@ class PodcastSync:
                         description += "<br /><br />" + ai_data["description"]
 
                     res["description"] = description
+
+                    # Backfill chapters (formatted) from AI response if missing in metadata or just to ensure latest format
+                    ai_data = res.get("ai_response")
+                    if ai_data:
+                        formatted = self._get_formatted_chapters(ai_data)
+                        if formatted:
+                            res["chapters"] = formatted
+
+                            # Append chapters to description
+                            description += "<br /><br />Chapters:<br />"
+                            for ch in formatted["chapters"]:
+                                start_str = ch.get("start_time_str", "00:00:00")
+                                line = f"({start_str}) {ch.get('title')}"
+
+                                desc_text = ch.get("description")
+                                if desc_text:
+                                    line += f" - {desc_text}"
+
+                                description += f"{line}<br />"
+
+                            res["description"] = description
                 except Exception as e:
                     print(
                         f"[{self.thero_name}] Error regenerating description for {key}: {e}"
@@ -610,5 +664,5 @@ if __name__ == "__main__":
         traces_sample_rate=1.0,
         profiles_sample_rate=1.0,
     )
-    run_sync_workflow()
-    # run_rss_update_workflow()
+    # run_sync_workflow()
+    run_rss_update_workflow()
