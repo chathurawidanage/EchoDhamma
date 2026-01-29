@@ -25,6 +25,7 @@ from audio_processor import AudioProcessor
 from rss_generator import RSSGenerator
 from ai_manager import AIManager, AIRateLimitError, AIGenerationError
 from rate_limiter import RateLimiter
+from transcript_service import get_transcript_text
 
 load_dotenv()
 
@@ -111,7 +112,11 @@ class PodcastSync:
                 }
             },
         }
-        raw_file, mp3_file, img_file, chapters_file = None, None, None, None
+        raw_file = None
+        mp3_file = None
+        img_file = None
+        chapters_file = None
+        transcript_path = None
 
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -154,8 +159,33 @@ class PodcastSync:
 
                 # AI Metadata Generation (Before Download)
                 if self.ai_manager:
+                    # Fetch Transcript
+                    try:
+                        print(
+                            f"[{self.thero_name}] Fetching transcript for {metadata['id']}..."
+                        )
+                        transcript_text = get_transcript_text(video_url)
+
+                        if transcript_text:
+                            transcript_path = f"{metadata['id']}_transcript.txt"
+                            with open(transcript_path, "w", encoding="utf-8") as f:
+                                f.write(transcript_text)
+
+                            print(
+                                f"[{self.thero_name}] Uploading transcript to S3: {metadata['id']}"
+                            )
+                            self.s3.upload_file(
+                                transcript_path,
+                                f"transcripts/{metadata['id']}.txt",
+                                "text/plain",
+                            )
+                    except Exception as e:
+                        print(
+                            f"[{self.thero_name}] Warning: Failed to fetch/upload transcript: {e}"
+                        )
+
                     metadata["ai_response"] = self._get_ai_metadata(
-                        metadata["id"], video_url
+                        metadata["id"], video_url, transcript_path
                     )
 
                     # Common processing for both cached and new responses
@@ -244,7 +274,7 @@ class PodcastSync:
                 return metadata
 
         finally:
-            for f in [raw_file, mp3_file, img_file, chapters_file]:
+            for f in [raw_file, mp3_file, img_file, chapters_file, transcript_path]:
                 if f and os.path.exists(f):
                     os.remove(f)
 
@@ -303,7 +333,7 @@ class PodcastSync:
 
         return is_friendly is not False and is_match is not False
 
-    def _get_ai_metadata(self, video_id, video_url):
+    def _get_ai_metadata(self, video_id, video_url, transcript_path=None):
         # Check cache first
         cached_response = self.ai_manager.get_cached_response(video_id)
 
@@ -313,7 +343,7 @@ class PodcastSync:
 
         print(f"[{self.thero_name}] Generating AI metadata for {video_id}...")
         try:
-            response = self.ai_manager.generate_metadata(video_url)
+            response = self.ai_manager.generate_metadata(video_url, transcript_path)
 
             if response:
                 # Validate and clean

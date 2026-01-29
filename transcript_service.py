@@ -1,0 +1,63 @@
+from youtube_transcript_api import YouTubeTranscriptApi
+import sys
+from urllib.parse import urlparse, parse_qs
+
+
+def get_video_id(url):
+    """
+    Extracts the video ID from a YouTube URL.
+    Supports:
+    - https://www.youtube.com/watch?v=VIDEO_ID
+    - https://youtu.be/VIDEO_ID
+    """
+    parsed = urlparse(url)
+    if parsed.hostname in ("www.youtube.com", "youtube.com"):
+        if parsed.path == "/watch":
+            return parse_qs(parsed.query).get("v", [None])[0]
+    if parsed.hostname == "youtu.be":
+        return parsed.path[1:]
+    return None
+
+
+def format_timestamp(seconds):
+    """Converts seconds to HH:MM:SS string."""
+    m, s = divmod(seconds, 60)
+    h, m = divmod(m, 60)
+    return f"{int(h):02d}:{int(m):02d}:{int(s):02d}"
+
+
+def get_transcript_text(url):
+    """
+    Fetches the transcript for a given YouTube URL and returns it as a formatted string.
+    Returns None if retrieval fails.
+    """
+    video_id = get_video_id(url)
+    if not video_id:
+        print(f"Error: Could not extract video ID from URL: {url}", file=sys.stderr)
+        return None
+
+    print(f"Fetching transcript for Video ID: {video_id} ...", file=sys.stderr)
+
+    try:
+        ytt = YouTubeTranscriptApi()
+        transcript_data = ytt.fetch(video_id, languages=["si", "en"])
+
+        output_lines = []
+        for entry in transcript_data:
+            start = getattr(entry, "start", None)
+            text = getattr(entry, "text", None)
+
+            if start is None and hasattr(entry, "get"):
+                start = entry.get("start")
+                text = entry.get("text")
+
+            if start is not None and text is not None:
+                start_str = format_timestamp(float(start))
+                text = text.replace("\n", " ")
+                output_lines.append(f"[{start_str}] {text}")
+
+        return "\n".join(output_lines)
+
+    except Exception as e:
+        print(f"Error fetching transcript: {e}", file=sys.stderr)
+        return None

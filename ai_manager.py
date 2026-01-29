@@ -40,21 +40,40 @@ class AIManager:
         else:
             print(f"Warning: prompt.md not found at {prompt_path}")
 
-    def generate_metadata(self, video_url):
+    def generate_metadata(self, video_url, transcript_path=None):
         """
         Calls Gemini to generate metadata based on the prompt.md template.
+
+        Args:
+            video_url (str): The YouTube video URL.
+            transcript_path (str, optional): Local path to the transcript file.
         """
         if not self.prompt_template:
-            return None
+            raise AIGenerationError("Prompt template not found")
 
         # Prepare the prompt
         prompt_text = self.prompt_template.replace("{video_url}", video_url)
 
         try:
             # Construct content with video file data and prompt text as separate parts
-            video_part = types.Part(file_data=types.FileData(file_uri=video_url))
-            prompt_part = types.Part(text=prompt_text)
-            content = types.Content(parts=[video_part, prompt_part])
+            parts = [
+                types.Part(file_data=types.FileData(file_uri=video_url)),
+                types.Part(text=prompt_text),
+            ]
+
+            # Add transcript if available
+            if transcript_path and os.path.exists(transcript_path):
+                print(f"Uploading transcript to Gemini from {transcript_path}...")
+                # upload method typically takes 'file' or just the path
+                transcript_file = self.client.files.upload(file=transcript_path)
+                print(f"Using transcript URI: {transcript_file.uri}")
+                parts.insert(
+                    1,
+                    types.Part(file_data=types.FileData(file_uri=transcript_file.uri)),
+                )
+
+            content = types.Content(parts=parts)
+
             response = self.client.models.generate_content(
                 model=self.model_name,
                 contents=content,
