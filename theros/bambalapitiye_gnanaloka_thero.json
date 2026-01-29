@@ -1,13 +1,15 @@
 {
     "id": "bambalapitiye_gnanaloka_thero",
-    "enabled": false,
+    "enabled": true,
     "name": "Ven. Bambalapitiye Gnanaloka Thero",
+    "blocklist": [],
     "youtube_channel_urls": [
         "https://www.youtube.com/channel/UCXFiIVHYqQmgpmIi7KChMkQ/videos"
     ],
     "ai_config": {
         "enabled": false,
         "summarize": true,
+        "chapters": true,
         "check_podcast_friendly": true
     },
     "sync_config": {

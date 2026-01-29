@@ -56,7 +56,8 @@ podcast/
 ├── title_formatter.py  # AI title validation and formatting
 ├── title_matcher.py    # Thero name matching in video content
 ├── metrics.py          # Prometheus metrics definitions
-├── prompt.md           # AI prompt template for metadata generation
+├── prompt_service.py   # AI prompt construction and schema generation
+├── prompts/            # Markdown prompt templates and schemas
 ├── requirements.txt    # Python dependencies
 ├── Dockerfile          # Docker build configuration
 └── theros/             # Thero configuration files
@@ -85,6 +86,7 @@ Each Thero has its own JSON configuration file. Key fields include:
 | `s3.*_env` | Environment variable names for S3 credentials |
 | `podcast.*` | Podcast metadata (title, description, author, etc.) |
 | `matcher.english_tokens` / `matcher.sinhala_tokens` | Tokens for fuzzy title matching |
+| `blocklist` | List of video IDs to exclude from the RSS feed |
 
 ### Environment Variables (`.env`)
 

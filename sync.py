@@ -44,6 +44,7 @@ class PodcastSync:
     def __init__(self, thero_config):
         self.config = thero_config
         self.thero_id = thero_config["id"]
+        self.blocklist = set(thero_config.get("blocklist", []))
         self.thero_name = thero_config.get("name", self.thero_id)
         self.podcast_config = thero_config["podcast"]
         self.ai_config = thero_config.get("ai_config", {"enabled": False})
@@ -633,6 +634,12 @@ class PodcastSync:
                         f"[{self.thero_name}] Error regenerating description for {key}: {e}",
                         exc_info=True,
                     )
+
+                if res.get("id") in self.blocklist:
+                    logger.info(
+                        f"[{self.thero_name}] Skipping blocked video in RSS: {res.get('id')}"
+                    )
+                    continue
 
                 items.append(res)
 

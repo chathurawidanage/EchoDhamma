@@ -2,12 +2,16 @@
     "id": "watagoda_maggavihari_thero",
     "enabled": true,
     "name": "Ven. Watagoda Maggavihari Thero",
+    "blocklist": [
+        "ePgY335Vk5M"
+    ],
     "youtube_channel_urls": [
         "https://www.youtube.com/channel/UCFhy_YsPcufmBl4AqkvaUXA/videos"
     ],
     "ai_config": {
         "enabled": true,
         "summarize": true,
+        "chapters": true,
         "check_podcast_friendly": true
     },
     "sync_config": {
