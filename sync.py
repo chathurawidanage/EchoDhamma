@@ -121,7 +121,6 @@ class PodcastSync:
         raw_file = None
         mp3_file = None
         img_file = None
-        transcript_path = None
 
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -165,7 +164,7 @@ class PodcastSync:
                 # AI Metadata Generation (Before Download)
                 if self.ai_manager:
                     metadata["ai_response"] = self._get_ai_metadata(
-                        metadata["id"], video_url, transcript_path
+                        metadata["id"], video_url
                     )
 
                     # Common processing for both cached and new responses
@@ -237,7 +236,7 @@ class PodcastSync:
                 return metadata
 
         finally:
-            for f in [raw_file, mp3_file, img_file, transcript_path]:
+            for f in [raw_file, mp3_file, img_file]:
                 if f and os.path.exists(f):
                     os.remove(f)
 
@@ -296,7 +295,7 @@ class PodcastSync:
 
         return is_friendly is not False and is_match is not False
 
-    def _get_ai_metadata(self, video_id, video_url, transcript_path=None):
+    def _get_ai_metadata(self, video_id, video_url):
         # Check cache first
         cached_response = self.ai_manager.get_cached_response(video_id)
 
@@ -306,7 +305,7 @@ class PodcastSync:
 
         logger.info(f"[{self.thero_name}] Generating AI metadata for {video_id}...")
         try:
-            response = self.ai_manager.generate_metadata(video_url, transcript_path)
+            response = self.ai_manager.generate_metadata(video_url)
 
             if response:
                 # Validate and clean
@@ -689,70 +688,76 @@ class PodcastSync:
 
                 transcript_path = None
                 try:
-                    logger.info(
-                        f"[{self.thero_name}] Fetching transcript for {metadata['id']}..."
-                    )
-                    transcript_text = get_transcript_text(metadata["original_url"])
-
-                    if transcript_text:
-                        transcript_path = f"{metadata['id']}_transcript.txt"
-                        with open(transcript_path, "w", encoding="utf-8") as f:
-                            f.write(transcript_text)
-
-                        logger.info(
-                            f"[{self.thero_name}] Uploading transcript to S3: {metadata['id']}"
-                        )
-                        self.s3.upload_file(
-                            transcript_path,
-                            f"transcripts/{metadata['id']}.txt",
-                            "text/plain",
-                        )
-                except Exception as e:
-                    logger.warning(
-                        f"[{self.thero_name}] Warning: Failed to fetch/upload transcript: {e}"
-                    )
-                    continue
-
-                if transcript_path:
-                    aligned_chapters = None
                     try:
-                        aligned_chapters = self.ai_manager.align_chapters(
-                            video_id, ai_resp["chapters"], transcript_path
+                        logger.info(
+                            f"[{self.thero_name}] Fetching transcript for {metadata['id']}..."
                         )
+                        transcript_text = get_transcript_text(metadata["original_url"])
+
+                        if transcript_text:
+                            transcript_path = f"{metadata['id']}_transcript.txt"
+                            with open(transcript_path, "w", encoding="utf-8") as f:
+                                f.write(transcript_text)
+
+                            logger.info(
+                                f"[{self.thero_name}] Uploading transcript to S3: {metadata['id']}"
+                            )
+                            self.s3.upload_file(
+                                transcript_path,
+                                f"transcripts/{metadata['id']}.txt",
+                                "text/plain",
+                            )
                     except Exception as e:
                         logger.warning(
-                            f"[{self.thero_name}] Warning: Failed to align chapters for {video_id}: {e}"
+                            f"[{self.thero_name}] Warning: Failed to fetch/upload transcript: {e}"
                         )
-                    finally:
-                        self.rate_limiter.record_ai_call()
+                        continue
 
-                    if aligned_chapters:
-                        ai_resp["aligned_chapters"] = aligned_chapters
-                        metadata["ai_response"] = ai_resp
-
-                        self.ai_manager.cache_response(video_id, ai_resp)
-                        self.s3.save_metadata(metadata)
-
-                        # Re-format chapters for chapters.json (00:00 start, etc)
-                        formatted = self._get_formatted_chapters(ai_resp)
-                        if formatted:
-                            # Upload chapters.json
-                            chapters_file = f"{video_id}_chapters.json"
-                            with open(chapters_file, "w", encoding="utf-8") as f:
-                                json.dump(formatted, f, indent=2, ensure_ascii=False)
-                            self.s3.upload_file(
-                                chapters_file, chapters_file, "application/json"
+                    if transcript_path:
+                        aligned_chapters = None
+                        try:
+                            aligned_chapters = self.ai_manager.align_chapters(
+                                video_id, ai_resp["chapters"], transcript_path
                             )
-                            if os.path.exists(chapters_file):
-                                os.remove(chapters_file)
+                        except Exception as e:
+                            logger.warning(
+                                f"[{self.thero_name}] Warning: Failed to align chapters for {video_id}: {e}"
+                            )
+                        finally:
+                            self.rate_limiter.record_ai_call()
 
-                        logger.info(
-                            f"[{self.thero_name}] Chapter alignment complete for {video_id}."
-                        )
-                    else:
-                        logger.warning(
-                            f"[{self.thero_name}] Alignment returned None for {video_id}."
-                        )
+                        if aligned_chapters:
+                            ai_resp["aligned_chapters"] = aligned_chapters
+                            metadata["ai_response"] = ai_resp
+
+                            self.ai_manager.cache_response(video_id, ai_resp)
+                            self.s3.save_metadata(metadata)
+
+                            # Re-format chapters for chapters.json (00:00 start, etc)
+                            formatted = self._get_formatted_chapters(ai_resp)
+                            if formatted:
+                                # Upload chapters.json
+                                chapters_file = f"{video_id}_chapters.json"
+                                with open(chapters_file, "w", encoding="utf-8") as f:
+                                    json.dump(
+                                        formatted, f, indent=2, ensure_ascii=False
+                                    )
+                                self.s3.upload_file(
+                                    chapters_file, chapters_file, "application/json"
+                                )
+                                if os.path.exists(chapters_file):
+                                    os.remove(chapters_file)
+
+                            logger.info(
+                                f"[{self.thero_name}] Chapter alignment complete for {video_id}."
+                            )
+                        else:
+                            logger.warning(
+                                f"[{self.thero_name}] Alignment returned None for {video_id}."
+                            )
+                finally:
+                    if os.path.exists(transcript_path):
+                        os.remove(transcript_path)
 
 
 def run_sync_workflow():
