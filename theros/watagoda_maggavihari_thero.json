@@ -16,7 +16,7 @@
     },
     "sync_config": {
         "max_videos_per_day": 999,
-        "max_ai_calls_per_day": 10
+        "max_ai_calls_per_day": 18
     },
     "rss_filename": "podcast.xml",
     "s3": {

@@ -570,10 +570,10 @@ class PodcastSync:
                                 description += "<br/><br/>"
 
                             # Append chapters to description
-                            description += "📌 දේශනාවේ ප්‍රධාන මාතෘකා:<br /><br/>"
+                            description += "<b>📌 දේශනාවේ ප්‍රධාන මාතෘකා:</b><br /><br/>"
                             for ch in formatted["chapters"]:
                                 start_str = ch.get("start_time_str", "00:00:00")
-                                line = f"({start_str}) {ch.get('title')}"
+                                line = f"<b>({start_str}) {ch.get('title')}</b>"
 
                                 desc_text = ch.get("description")
                                 if desc_text:
