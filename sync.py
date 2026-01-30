@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import re
+from concurrent.futures import ThreadPoolExecutor
 
 import requests
 import sentry_sdk
@@ -447,7 +448,7 @@ class PodcastSync:
 
         return formatted_chapters
 
-    def process_video_task(self, item):
+    def _process_video_task(self, item):
         vid_id = item["id"]
 
         # Skip if we have a valid completion record
@@ -533,7 +534,7 @@ class PodcastSync:
         for item in video_items:
             if not self._is_sync_allowed():
                 break
-            processed_videos = processed_videos or self.process_video_task(item)
+            processed_videos = processed_videos or self._process_video_task(item)
 
         logger.info(f"[{self.thero_name}] Sync complete.")
 
@@ -545,36 +546,31 @@ class PodcastSync:
             f"[{self.thero_name}] Found {len(metadata_keys)} metadata files in S3."
         )
 
-        items = []
-        for key in metadata_keys:
+        def process_metadata_item(key):
             res = self.s3.get_json(key)
             if res:
                 # Regenerate description from current template to ensure consistency
                 try:
-                    desc_tmp = self.podcast_config["description_template"]
                     original_title = res.get("original_title") or res.get("title")
-                    description = desc_tmp.format(
-                        title=res.get("title"),
-                        original_url=res.get("original_url"),
-                        original_title=original_title,
-                    )
+                    description = ""
+
                     # Append AI description if available
                     ai_data = res.get("ai_response")
                     if ai_data and ai_data.get("description"):
-                        description += "<br /><br />" + ai_data["description"]
+                        description += ai_data["description"]
 
-                    res["description"] = description
-
-                    # Backfill chapters (formatted) from AI response if missing in metadata or just to ensure latest format
-                    ai_data = res.get("ai_response")
+                    # Append Chapters
                     if ai_data and ai_data.get("aligned_chapters"):
                         # get from s3
                         formatted = self._get_formatted_chapters(ai_data)
                         if formatted:
                             res["chapters"] = formatted
 
+                            if description != "":
+                                description += "<br/><br/>"
+
                             # Append chapters to description
-                            description += "<br /><br />Chapters:<br />"
+                            description += "📌 දේශනාවේ ප්‍රධාන මාතෘකා:<br /><br/>"
                             for ch in formatted["chapters"]:
                                 start_str = ch.get("start_time_str", "00:00:00")
                                 line = f"({start_str}) {ch.get('title')}"
@@ -583,9 +579,19 @@ class PodcastSync:
                                 if desc_text:
                                     line += f" - {desc_text}"
 
-                                description += f"{line}<br />"
+                                description += f"{line}<br /><br/>"
 
-                            res["description"] = description
+                    if description != "":
+                        description += "<br/>"
+
+                    desc_tmp = self.podcast_config["description_template"]
+                    description += desc_tmp.format(
+                        title=res.get("title"),
+                        original_url=res.get("original_url"),
+                        original_title=original_title,
+                    )
+
+                    res["description"] = description
                 except Exception as e:
                     logger.error(
                         f"[{self.thero_name}] Error regenerating description for {key}: {e}",
@@ -596,9 +602,16 @@ class PodcastSync:
                     logger.info(
                         f"[{self.thero_name}] Skipping blocked video in RSS: {res.get('id')}"
                     )
-                    continue
+                    return None
 
-                items.append(res)
+                return res
+
+        with ThreadPoolExecutor(max_workers=self.s3.max_concurrency) as executor:
+            items = [
+                res
+                for res in executor.map(process_metadata_item, metadata_keys)
+                if res is not None
+            ]
 
         def get_safe_pub_date(x):
             try:
@@ -799,5 +812,5 @@ if __name__ == "__main__":
     )
     setup_logging()
     # run_sync_workflow()
-    # run_rss_update_workflow()
-    run_chapter_alignment_workflow()
+    run_rss_update_workflow()
+    # run_chapter_alignment_workflow()

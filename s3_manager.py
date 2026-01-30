@@ -4,6 +4,9 @@ import os
 import logging
 from botocore.exceptions import ClientError
 from boto3.s3.transfer import TransferConfig
+from botocore.config import Config
+
+MAX_CONCURRENCY = min(32, (os.cpu_count() or 1) * 5)
 
 
 class S3Manager:
@@ -23,7 +26,12 @@ class S3Manager:
             endpoint_url=endpoint,
             aws_access_key_id=access_key,
             aws_secret_access_key=secret_key,
+            config=Config(max_pool_connections=MAX_CONCURRENCY),
         )
+
+    @property
+    def max_concurrency(self):
+        return self.transfer_config.max_concurrency
 
     def file_exists(self, key):
         try:
