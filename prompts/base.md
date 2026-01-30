@@ -17,8 +17,10 @@ Analyze the provided YouTube video and return a structured JSON response contain
 
 3. **Title Metadata Extraction**:
    * **Source Scope**: Analyze both the **Video Title** and the **Video Description** to find these details.
-   * **series_name**: Extract the recurring series name. If none exists in either source, return null.
+   * **series_name**: Extract the recurring series name only if it is explicitly stated in the video title or description.
+      * **Strict Constraint**: Do not infer or "invent" a series name based on the topic. If no formal series title is verbatim, return null.
    * **episode_number**: Extract the specific index number as a string. If none exists in either source, return null.
+      * **Strict Constraint**: Only extract numbers explicitly labeled as an episode, part, or sequence. If no explicit numerical indicator exists, return null. Do not assume a number based on the video's context.
    * **topic_summary**: Generate a concise, descriptive topic (3-10 words) based on the content or explicit topic statements in the description.
 
 4. **Podcast Description (Sinhala)**:
