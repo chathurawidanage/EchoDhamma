@@ -35,7 +35,7 @@ class AIManager:
         self.model_name = os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
 
         # Initialize Prompt Service
-        from prompt_service import PromptService
+        from echodhamma.services.prompt_service import PromptService
 
         self.prompt_service = PromptService()
 
@@ -199,7 +199,7 @@ class AIManager:
 
 
 if __name__ == "__main__":
-    from logger import setup_logging
+    from echodhamma.utils.logger import setup_logging
 
     setup_logging()
     # Simple test if run directly

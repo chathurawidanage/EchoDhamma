@@ -1,7 +1,7 @@
 from flask import Flask, jsonify
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 from concurrent.futures import ThreadPoolExecutor
-from sync import (
+from echodhamma.core.sync import (
     run_sync_workflow,
     run_rss_update_workflow,
     run_chapter_alignment_workflow,
@@ -10,7 +10,7 @@ import os
 import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
 import logging
-from logger import setup_logging
+from echodhamma.utils.logger import setup_logging
 
 # Configure logging for the application
 setup_logging()

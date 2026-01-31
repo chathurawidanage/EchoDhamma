@@ -11,10 +11,14 @@ import sentry_sdk
 import yt_dlp
 from dotenv import load_dotenv
 
-from ai_manager import AIGenerationError, AIManager, AIRateLimitError
-from audio_processor import AudioProcessor
-from logger import setup_logging
-from metrics import (
+from echodhamma.services.ai_manager import (
+    AIGenerationError,
+    AIManager,
+    AIRateLimitError,
+)
+from echodhamma.services.audio_processor import AudioProcessor
+from echodhamma.utils.logger import setup_logging
+from echodhamma.core.metrics import (
     ai_failure_counter,
     ai_rate_limited_counter,
     attempt_counter,
@@ -24,13 +28,13 @@ from metrics import (
     success_counter,
     sync_run_counter,
 )
-from notifier import Notifier
-from rate_limiter import RateLimiter
-from rss_generator import RSSGenerator
-from s3_manager import S3Manager
-from title_formatter import get_safe_title
-from title_matcher import is_thero_in_content, load_thero_data
-from transcript_service import get_transcript_text
+from echodhamma.services.notifier import Notifier
+from echodhamma.core.rate_limiter import RateLimiter
+from echodhamma.services.rss_generator import RSSGenerator
+from echodhamma.services.s3_manager import S3Manager
+from echodhamma.utils.title_formatter import get_safe_title
+from echodhamma.utils.title_matcher import is_thero_in_content, load_thero_data
+from echodhamma.services.transcript_service import get_transcript_text
 
 logger = logging.getLogger(__name__)
 load_dotenv()
@@ -770,7 +774,7 @@ class PodcastSync:
 
 
 def run_sync_workflow():
-    theros_dir = os.path.join(os.path.dirname(__file__), "theros")
+    theros_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "theros")
     for filename in os.listdir(theros_dir):
         if filename.endswith(".json") and "_thero" in filename:
             try:
@@ -787,7 +791,7 @@ def run_sync_workflow():
 
 
 def run_rss_update_workflow():
-    theros_dir = os.path.join(os.path.dirname(__file__), "theros")
+    theros_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "theros")
     for filename in os.listdir(theros_dir):
         if filename.endswith(".json") and "_thero" in filename:
             try:
@@ -804,7 +808,7 @@ def run_rss_update_workflow():
 
 
 def run_chapter_alignment_workflow():
-    theros_dir = os.path.join(os.path.dirname(__file__), "theros")
+    theros_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "theros")
     for filename in os.listdir(theros_dir):
         if filename.endswith(".json") and "_thero" in filename:
             try:

@@ -123,14 +123,16 @@ GEMINI_MODEL=gemini-3-flash-preview  # Optional, defaults to gemini-3-flash-prev
     Run the synchronization logic once for all enabled Theros:
 
     ```bash
-    python sync.py
+    export PYTHONPATH=$PYTHONPATH:$(pwd)/src
+    python -m echodhamma.core.sync
     ```
 
 3. **Run HTTP Server**:
     Start the API server to trigger syncs on demand:
 
     ```bash
-    python server.py
+    export PYTHONPATH=$PYTHONPATH:$(pwd)/src
+    python -m echodhamma.server
     ```
 
 ## API Endpoints

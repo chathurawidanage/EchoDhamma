@@ -5,10 +5,12 @@ import os
 class PromptService:
     def __init__(self):
         self.base_prompt_path = os.path.join(
-            os.path.dirname(__file__), "prompts", "base.md"
+            os.path.dirname(os.path.dirname(__file__)), "prompts", "base.md"
         )
         self.alignment_prompt_path = os.path.join(
-            os.path.dirname(__file__), "prompts", "chapter_alignment.md"
+            os.path.dirname(os.path.dirname(__file__)),
+            "prompts",
+            "chapter_alignment.md",
         )
         # Load prompts into memory
         self.base_prompt = self._read_file(self.base_prompt_path)
@@ -93,7 +95,7 @@ class PromptService:
 
 
 if __name__ == "__main__":
-    from logger import setup_logging
+    from echodhamma.utils.logger import setup_logging
 
     setup_logging()
     service = PromptService()

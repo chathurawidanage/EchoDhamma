@@ -14,7 +14,9 @@ ENV PYTHONUNBUFFERED=1
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+ENV PYTHONPATH=/app/src
+
 # Copy the application code
 COPY . .
 # Run the server using gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--timeout", "3600", "--error-logfile", "-", "server:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--timeout", "3600", "--error-logfile", "-", "echodhamma.server:app"]
