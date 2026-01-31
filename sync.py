@@ -24,6 +24,7 @@ from metrics import (
     success_counter,
     sync_run_counter,
 )
+from notifier import Notifier
 from rate_limiter import RateLimiter
 from rss_generator import RSSGenerator
 from s3_manager import S3Manager
@@ -646,6 +647,14 @@ class PodcastSync:
         self.s3.upload_file(rss_file, rss_file, "application/xml")
         if os.path.exists(rss_file):
             os.remove(rss_file)
+
+        # Notify PubSubHubbub and Podping
+        rss_url = f"{self.base_url}/{rss_file}"
+        try:
+            Notifier.notify_all(rss_url)
+        except Exception as e:
+            logger.warning(f"[{self.thero_name}] Notification failed: {e}")
+
         logger.info(f"[{self.thero_name}] RSS refresh complete.")
 
     def align_all_chapters(self):

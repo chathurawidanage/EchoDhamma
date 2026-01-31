@@ -1,6 +1,7 @@
 import re
 import xml.etree.ElementTree as ET
 from xml.sax.saxutils import unescape
+from email.utils import formatdate
 
 
 class RSSGenerator:
@@ -23,6 +24,12 @@ class RSSGenerator:
         add_tag(channel, "description", podcast_config["description"])
         add_tag(channel, "link", podcast_config["link"])
         add_tag(channel, "language", podcast_config["language"])
+        add_tag(channel, "lastBuildDate", formatdate())
+        add_tag(
+            channel,
+            "{https://podcastindex.org/namespace/1.0}podping",
+            attrib={"usesPodping": "true"},
+        )
         add_tag(
             channel,
             "{http://www.itunes.com/dtds/podcast-1.0.dtd}author",
