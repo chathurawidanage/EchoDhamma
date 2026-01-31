@@ -110,7 +110,7 @@ class PodcastSync:
         except ValueError:
             return 0
 
-    def download_and_process(self, video_url):
+    def _download_and_process(self, video_url):
         ydl_opts = {
             "format": "bestaudio/best",
             "outtmpl": "%(id)s_raw.%(ext)s",
@@ -298,7 +298,18 @@ class PodcastSync:
         # Check title match status (default True)
         is_match = metadata.get("title_match", True)
 
-        return is_friendly is not False and is_match is not False
+        is_chapters_ready = not ai_resp.get("chapters") or (
+            ai_resp.get("chapters") and ai_resp.get("aligned_chapters")
+        )
+
+        is_in_block_list = metadata.get("id") in self.blocklist
+
+        return (
+            is_friendly is not False
+            and is_match is not False
+            and is_chapters_ready is not False
+            and is_in_block_list is not True
+        )
 
     def _get_ai_metadata(self, video_id, video_url):
         # Check cache first
@@ -452,7 +463,7 @@ class PodcastSync:
 
         return formatted_chapters
 
-    def _process_video_task(self, item):
+    def _process_video(self, item):
         vid_id = item["id"]
 
         # Skip if we have a valid completion record
@@ -462,12 +473,10 @@ class PodcastSync:
         try:
             # Increment attempt counter for each video processed
             attempt_counter.labels(thero=self.thero_id).inc()
-            metadata = self.download_and_process(item["url"])
+            metadata = self._download_and_process(item["url"])
             self.s3.save_metadata(metadata)
             self.rate_limiter.record_success()
             success_counter.labels(thero=self.thero_id).inc()
-
-            return self._is_valid_episode(metadata)
         except Exception as e:
             logger.error(
                 f"[{self.thero_name}] Error during download_and_process for {vid_id}: {e}",
@@ -479,7 +488,6 @@ class PodcastSync:
                 sentry_sdk.capture_exception(e)
 
             failure_counter.labels(thero=self.thero_id).inc()
-            return False
 
     def sync(self):
         sync_run_counter.labels(thero=self.thero_id).inc()
@@ -534,11 +542,10 @@ class PodcastSync:
                     )
 
         # Process videos sequentially
-        processed_videos = False
         for item in video_items:
             if not self._is_sync_allowed():
                 break
-            processed_videos = processed_videos or self._process_video_task(item)
+            self._process_video(item)
 
         logger.info(f"[{self.thero_name}] Sync complete.")
 
@@ -552,14 +559,14 @@ class PodcastSync:
 
         def process_metadata_item(key):
             res = self.s3.get_json(key)
-            if res:
-                # Regenerate description from current template to ensure consistency
+            if res and self._is_valid_episode(res):
                 try:
                     original_title = res.get("original_title") or res.get("title")
                     description = ""
 
-                    # Append AI description if available
                     ai_data = res.get("ai_response")
+
+                    # Append AI description if available
                     if ai_data and ai_data.get("description"):
                         description += ai_data["description"]
 
@@ -596,19 +603,14 @@ class PodcastSync:
                     )
 
                     res["description"] = description
+                    return res
                 except Exception as e:
                     logger.error(
                         f"[{self.thero_name}] Error regenerating description for {key}: {e}",
                         exc_info=True,
                     )
-
-                if res.get("id") in self.blocklist:
-                    logger.info(
-                        f"[{self.thero_name}] Skipping blocked video in RSS: {res.get('id')}"
-                    )
                     return None
-
-                return res
+            return None
 
         with ThreadPoolExecutor(max_workers=self.s3.max_concurrency) as executor:
             items = [
@@ -632,13 +634,7 @@ class PodcastSync:
             reverse=True,
         )
 
-        # Filter out non-podcast friendly items if AI is enabled and flagged
-        original_count = len(items)
-        valid_items = []
-        for item in items:
-            if self._is_valid_episode(item):
-                valid_items.append(item)
-        items = valid_items
+        original_count = len(metadata_keys)
         if len(items) < original_count:
             count = original_count - len(items)
             logger.info(

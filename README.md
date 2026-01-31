@@ -45,24 +45,17 @@ Dhamma talks by **Ven. Watagoda Maggavihari Thero** (පූජ්‍ය වට�
 ## Architecture
 
 ```text
-podcast/
-├── server.py           # Flask HTTP API server
-├── sync.py             # Core synchronization logic (PodcastSync class)
-├── ai_manager.py       # Google Gemini AI integration for metadata generation
-├── rate_limiter.py     # Rate limiting logic (periodic and daily quotas)
-├── rss_generator.py    # RSS feed generation
-├── s3_manager.py       # S3/MinIO storage operations
-├── audio_processor.py  # Audio extraction from YouTube videos
-├── title_formatter.py  # AI title validation and formatting
-├── title_matcher.py    # Thero name matching in video content
-├── metrics.py          # Prometheus metrics definitions
-├── prompt_service.py   # AI prompt construction and schema generation
-├── prompts/            # Markdown prompt templates and schemas
+EchoDhamma/
+├── src/
+│   └── echodhamma/
+│       ├── core/           # Core logic (sync.py, rate_limiter.py, metrics.py)
+│       ├── services/       # Service modules (ai_manager, audio_processor, etc.)
+│       ├── utils/          # Utilities (logger, title_matcher, etc.)
+│       ├── server.py       # Flask HTTP API server
+│       ├── theros/         # Thero configuration files
+│       └── prompts/        # Markdown prompt templates and schemas
 ├── requirements.txt    # Python dependencies
-├── Dockerfile          # Docker build configuration
-└── theros/             # Thero configuration files
-    ├── bambalapitiye_gnanaloka_thero.json
-    └── watagoda_maggavihari_thero.json
+└── Dockerfile          # Docker build configuration
 ```
 
 ## Configuration
@@ -178,7 +171,7 @@ The `/metrics` endpoint exposes the following Prometheus counters (labeled by `t
 
 ## AI Prompt Guidelines
 
-The AI is instructed (via `prompt.md`) to follow strict guidelines:
+The AI is instructed (via `src/echodhamma/prompts/base.md`) to follow strict guidelines:
 
 - **Zero-Hallucination Mode**: Only summarize factual points from the video.
 - **Strict Objectivity**: No concluding blessings or aspirational statements.

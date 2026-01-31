@@ -4,6 +4,7 @@ from google import genai
 from google.genai import types
 from dotenv import load_dotenv
 import logging
+from echodhamma.services.prompt_service import PromptService
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +36,6 @@ class AIManager:
         self.model_name = os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
 
         # Initialize Prompt Service
-        from echodhamma.services.prompt_service import PromptService
 
         self.prompt_service = PromptService()
 
