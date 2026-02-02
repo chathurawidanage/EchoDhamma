@@ -44,6 +44,7 @@ Analyze the provided YouTube video and return a structured JSON response contain
          3. The speaker shifts from **telling a story** to **explaining the Dhamma meaning** of that story.
          4. A specific **Sutta or Gatha** is introduced and analyzed.
          5. **Q&A**: Every distinct question gets its own chapter.
+         6. **Puññānumodanā & Ceremonial Markers**: Any dedicated section for sharing merit, acknowledging sponsors/organizers (Dayakas), or formal concluding blessings.
       * **Avoid Splitting When**:
          1. The speaker is merely giving small examples to support the *same* point.
          2. The speaker digresses briefly (less than 1 minute) but returns to the main topic.
