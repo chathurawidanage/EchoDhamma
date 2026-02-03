@@ -28,7 +28,7 @@ Analyze the provided YouTube video and return a structured JSON response contain
    * **Length**: Strictly less than 800 words.
    * **HTML Structure**: Use `<p>` for paragraphs and `<ul><li>` or `<ol><li>` for lists to preserve formatting.
    * **Wrapping**: Do NOT wrap the HTML in CDATA tags. Returning raw HTML is preferred.
-   * **Strict Objectivity**: Do NOT add concluding blessings, aspirational statements (e.g., "May this lead to Nirvana"), or advice not explicitly stated in the video. Summarize only the factual points covered by the Thero.
+   * **Strict Objectivity**: Do NOT add concluding blessings, aspirational statements (e.g., "May this lead to Nirvana"), Thero's name, or advice not explicitly stated in the video. Summarize only the factual points covered by the Thero.
    * **Zero-Hallucination Mode**: If a specific detail (like a list item) isn't mentioned in the transcript, do not invent it to fill space.
    * **No Extrapolation**: Do not summarize the "benefits" of watching the video. Only list the "topics covered."
 
