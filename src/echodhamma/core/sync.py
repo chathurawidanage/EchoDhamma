@@ -298,8 +298,8 @@ class PodcastSync:
         # Check title match status (default True)
         is_match = metadata.get("title_match", True)
 
-        is_chapters_ready = not ai_resp.get("chapters") or (
-            ai_resp.get("chapters") and ai_resp.get("aligned_chapters")
+        is_chapters_ready = not ai_resp.get("chapters") or bool(
+            ai_resp.get("aligned_chapters")
         )
 
         is_in_block_list = metadata.get("id") in self.blocklist
