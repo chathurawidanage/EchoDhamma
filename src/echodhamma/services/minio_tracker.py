@@ -102,7 +102,7 @@ class MinioTracker:
             )
             if response.status_code >= 200 and response.status_code < 300:
                 logger.info(
-                    f"✅ Unique Download Logged: {file_key} (Status: {response.status_code})"
+                    f"✅ Unique Download Logged: {file_key} (Status: {response.status_code}) Body: {response.text}"
                 )
             else:
                 logger.error(
@@ -167,7 +167,10 @@ class MinioTracker:
                     "url": f"/podcast/{file_key}",
                     "name": "Podcast Download",
                     "data": {"file_name": file_key, "bucket": bucket_name},
-                    "hostname": "no.op",
+                    "hostname": "minio.local",
+                    "language": "en-US",
+                    "screen": "1920x1080",
+                    "title": file_key,
                 },
             }
 
