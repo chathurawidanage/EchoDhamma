@@ -53,9 +53,6 @@ class MinioTracker:
                         bucket_name = os.getenv(bucket_env)
                         if bucket_name:
                             mapping[bucket_name] = website_id
-                            logger.info(
-                                f"Loaded Umami mapping: {bucket_name} -> {website_id}"
-                            )
                         else:
                             logger.warning(
                                 f"Bucket env var {bucket_env} not set for {file_path}"
@@ -100,11 +97,7 @@ class MinioTracker:
             response = requests.post(
                 self.umami_url, json=payload, headers=headers, timeout=5
             )
-            if response.status_code >= 200 and response.status_code < 300:
-                logger.info(
-                    f"✅ Unique Download Logged: {file_key} (Status: {response.status_code}) Body: {response.text}"
-                )
-            else:
+            if not (200 <= response.status_code < 300):
                 logger.error(
                     f"❌ Umami Failed: {response.status_code} - {response.text}"
                 )
@@ -147,9 +140,6 @@ class MinioTracker:
 
             # 2. DEDUPLICATION LOGIC
             if self.is_duplicate(client_ip, file_key):
-                logger.info(
-                    f"Skipping duplicate chunk/request: {file_key} from {client_ip}"
-                )
                 continue
 
             if bucket_name not in self.bucket_map:
@@ -177,11 +167,9 @@ class MinioTracker:
 
             headers = {
                 "User-Agent": user_agent,
-                "X-Forwarded-For": client_ip,
+                "CF-Connecting-IP": client_ip,
                 "Content-Type": "application/json",
             }
-
-            logger.debug(f"Sending to Umami with headers: {headers}")
 
             try:
                 self.executor.submit(

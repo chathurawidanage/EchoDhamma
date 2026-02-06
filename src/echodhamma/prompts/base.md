@@ -16,7 +16,7 @@ Analyze the provided YouTube video and return a structured JSON response contain
    * Set to `false` only if visual aids are **essential** to understanding (e.g., complex diagrams where the speaker refers to "this" or "that" without naming the concept).
 
 3. **Title Generation**:
-   * **topic_summary**: Generate a concise, descriptive topic (3-10 words) based on the content or explicit topic statements in the description.
+   * **topic_summary**: Generate a concise, descriptive topic (3-10 words) based on the content.
 
 4. **Podcast Description (Sinhala)**:
    * **Language**: Sinhala.
