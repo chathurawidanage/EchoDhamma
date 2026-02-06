@@ -115,7 +115,7 @@ class FeedComposer:
                 )
 
                 res["display_title"] = display_title
-                description += f"{hierarchical_title}\n\n"
+                description += f"<b>{hierarchical_title}</b><br/><br/>"
 
             # Append AI description
             if ai_data and ai_data.get("description"):
