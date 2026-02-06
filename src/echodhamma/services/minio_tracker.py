@@ -105,6 +105,7 @@ class MinioTracker:
 
     def process_event(self, data):
         """Process Minio event data."""
+        logger.info(f"Received Minio event: {data}")
         if not data or "Records" not in data:
             return {"status": "ignored"}
 
