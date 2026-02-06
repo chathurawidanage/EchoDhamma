@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 from concurrent.futures import ThreadPoolExecutor
 from echodhamma.core.sync import (
@@ -26,9 +26,14 @@ sentry_sdk.init(
 app = Flask(__name__)
 
 # Single-worker executor ensures serialized execution of sync tasks
-# This prevents race conditions on shared state and temporary files
 executor = ThreadPoolExecutor(max_workers=1)
+
 _current_task = None  # Track the current running task
+
+# --- MINIO TRACKER ---
+from echodhamma.services.minio_tracker import MinioTracker
+
+minio_tracker = MinioTracker()
 
 
 def _run_sync():
@@ -98,6 +103,12 @@ def trigger_rss_sync():
         jsonify({"status": "accepted", "message": "RSS update started in background"}),
         202,
     )
+
+
+@app.route("/minio-event", methods=["POST"])
+def handle_minio_event():
+    result = minio_tracker.process_event(request.json)
+    return jsonify(result), 200
 
 
 @app.route("/health", methods=["GET"])
