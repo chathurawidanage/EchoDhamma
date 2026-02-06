@@ -17,6 +17,9 @@
         "max_ai_calls_per_day": 10
     },
     "rss_filename": "podcast.xml",
+    "umami": {
+        "website_id": "25970dec-065e-4740-ba91-7394ad1f613a"
+    },
     "s3": {
         "endpoint_env": "GNANALOKA_THERO_S3_ENDPOINT",
         "bucket_env": "GNANALOKA_THERO_S3_BUCKET",

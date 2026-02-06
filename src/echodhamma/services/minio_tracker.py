@@ -3,7 +3,10 @@ import time
 import requests
 import logging
 import sentry_sdk
+import glob
 from concurrent.futures import ThreadPoolExecutor
+
+from echodhamma.utils.title_matcher import load_thero_data
 
 logger = logging.getLogger(__name__)
 
@@ -13,11 +16,56 @@ class MinioTracker:
         self.umami_url = os.getenv(
             "UMAMI_URL", "https://your-umami-instance.com/api/send"
         )
-        self.umami_website_id = os.getenv("UMAMI_WEBSITE_ID", "your-website-uuid")
         self.dedupe_window = int(os.getenv("DEDUPE_WINDOW", 3600))  # 1 hour in seconds
         self.download_cache = {}
         # Separate executor for lightweight tracking tasks
         self.executor = ThreadPoolExecutor(max_workers=4)
+
+        # Load bucket -> website_id mapping
+        self.bucket_map = self._load_bucket_map()
+
+    def _load_bucket_map(self):
+        """Loads thero configs to map bucket names to Umami website IDs."""
+        mapping = {}
+        try:
+            theros_dir = os.path.join(
+                os.path.dirname(os.path.dirname(__file__)), "theros"
+            )
+            config_files = glob.glob(os.path.join(theros_dir, "*_thero.json"))
+
+            for file_path in config_files:
+                try:
+                    data = load_thero_data(file_path)
+
+                    # Check if enabled and has necessary config
+                    if not data.get("enabled", True):
+                        continue
+
+                    s3_config = data.get("s3", {})
+                    umami_config = data.get("umami", {})
+
+                    bucket_env = s3_config.get("bucket_env")
+                    website_id = umami_config.get("website_id")
+
+                    if bucket_env and website_id:
+                        bucket_name = os.getenv(bucket_env)
+                        if bucket_name:
+                            mapping[bucket_name] = website_id
+                            logger.info(
+                                f"Loaded Umami mapping: {bucket_name} -> {website_id}"
+                            )
+                        else:
+                            logger.warning(
+                                f"Bucket env var {bucket_env} not set for {file_path}"
+                            )
+
+                except Exception as e:
+                    logger.error(f"Error loading thero config {file_path}: {e}")
+
+        except Exception as e:
+            logger.error(f"Error initializing bucket map: {e}")
+
+        return mapping
 
     def is_duplicate(self, ip, file_key):
         """Check if this IP has downloaded this file recently."""
@@ -92,11 +140,19 @@ class MinioTracker:
                 )
                 continue
 
+            if bucket_name not in self.bucket_map:
+                logger.warning(
+                    f"Ignored event from unknown or unmapped bucket: {bucket_name}"
+                )
+                continue
+
+            website_id = self.bucket_map[bucket_name]
+
             # 3. Send to Umami
             payload = {
                 "type": "event",
                 "payload": {
-                    "website": self.umami_website_id,
+                    "website": website_id,
                     "url": f"/podcast/{file_key}",
                     "event_name": "Podcast Download",
                     "event_data": {"file_name": file_key, "bucket": bucket_name},

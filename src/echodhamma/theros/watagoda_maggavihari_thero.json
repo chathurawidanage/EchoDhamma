@@ -106,6 +106,9 @@
     "youtube_channel_urls": [
         "https://www.youtube.com/channel/UCFhy_YsPcufmBl4AqkvaUXA/videos"
     ],
+    "umami": {
+        "website_id": "7b8506b4-423f-4543-ae0a-ed46ba04cadd"
+    },
     "ai_config": {
         "enabled": true,
         "summarize": true,
