@@ -139,10 +139,7 @@ class MinioTracker:
             request_params = record.get("requestParameters", {})
             client_ip = request_params.get("sourceIPAddress", "0.0.0.0")
             # Default to a generic browser UA if missing to satisfy Umami
-            user_agent = request_params.get(
-                "userAgent",
-                "Mozilla/5.0 (compatible; EchoDhammaBot/1.0; +http://echodhamma.com)",
-            )
+            user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/119.0.0.0"
 
             # 1. Only track MP3s
             if not file_key.endswith(".mp3"):
