@@ -138,7 +138,11 @@ class MinioTracker:
             # Get request parameters safely
             request_params = record.get("requestParameters", {})
             client_ip = request_params.get("sourceIPAddress", "0.0.0.0")
-            user_agent = request_params.get("userAgent", "Unknown")
+            # Default to a generic browser UA if missing to satisfy Umami
+            user_agent = request_params.get(
+                "userAgent",
+                "Mozilla/5.0 (compatible; EchoDhammaBot/1.0; +http://echodhamma.com)",
+            )
 
             # 1. Only track MP3s
             if not file_key.endswith(".mp3"):
@@ -179,6 +183,8 @@ class MinioTracker:
                 "X-Forwarded-For": client_ip,
                 "Content-Type": "application/json",
             }
+
+            logger.debug(f"Sending to Umami with headers: {headers}")
 
             try:
                 self.executor.submit(
