@@ -5,6 +5,96 @@
     "blocklist": [
         "ePgY335Vk5M"
     ],
+    "known_series": [
+        {
+            "name": "අධිචිත්ත සික්ඛා",
+            "playlist_ids": [
+                "PLDkufrwzs8aUn-nwvOXn9gtDiBwEhBTGm"
+            ],
+            "sub_series": []
+        },
+        {
+            "name": "සූත්‍ර දේශනා",
+            "playlist_ids": [
+                "PLDkufrwzs8aUNrdxmlbQwyUFAkH4XHNfd"
+            ],
+            "sub_series": []
+        },
+        {
+            "name": "බුදුගුණ මහිම",
+            "playlist_ids": [
+                "PLDkufrwzs8aWSx4CC6nOKFP40ThodUIvF"
+            ],
+            "sub_series": []
+        },
+        {
+            "name": "දස පාරමිතා",
+            "playlist_ids": [
+                "PLDkufrwzs8aU_kIaiLf4DkKHPTqtr_ygv"
+            ],
+            "sub_series": []
+        },
+        {
+            "name": "ථේරවාද බුදුදහමේ සිද්ධාන්ත",
+            "playlist_ids": [
+                "PLDkufrwzs8aUhkAZ3zoOhWA9K9oOcf-P"
+            ],
+            "sub_series": [
+                {
+                    "name": "නාම කාණ්ඩය",
+                    "sub_series": [
+                        {
+                            "name": "නාම ධර්ම",
+                            "sub_series": [],
+                            "playlist_ids": [
+                                "PLDkufrwzs8aUiQzDg2l9HCn2Kr6L_Fr37"
+                            ]
+                        },
+                        {
+                            "name": "නාමය හැඳින්වීම",
+                            "sub_series": [],
+                            "playlist_ids": [
+                                "PLDkufrwzs8aWpJAE51qs-R7Vza7dK58fe"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "පරමාර්ථ",
+                    "sub_series": [],
+                    "playlist_ids": [
+                        "PLDkufrwzs8aU5e1hVVb7je6xt5d2FmPI6"
+                    ]
+                },
+                {
+                    "name": "රූප කාණ්ඩය",
+                    "sub_series": [
+                        {
+                            "name": "රූපය පිළිබඳ නිකායාන්තරික මත",
+                            "sub_series": [],
+                            "playlist_ids": [
+                                "PLDkufrwzs8aX4ydNBfnGBRrj0HDT1V7Zu"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "වෝහාර දේසනා",
+            "playlist_ids": [
+                "PLDkufrwzs8aVpDRm2EX4O8UUES7LdOlRx"
+            ],
+            "sub_series": []
+        },
+        {
+            "name": "අභිධර්මයේ මූලික සිද්ධාන්ත",
+            "playlist_ids": [
+                "PLDkufrwzs8aWbodOacrOhQVkad0oAA8z8"
+            ],
+            "sub_series": []
+        }
+    ],
     "youtube_channel_urls": [
         "https://www.youtube.com/channel/UCFhy_YsPcufmBl4AqkvaUXA/videos"
     ],

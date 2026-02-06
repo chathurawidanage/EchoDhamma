@@ -32,8 +32,12 @@ from echodhamma.services.notifier import Notifier
 from echodhamma.core.rate_limiter import RateLimiter
 from echodhamma.services.rss_generator import RSSGenerator
 from echodhamma.services.s3_manager import S3Manager
-from echodhamma.utils.title_formatter import get_safe_title
+from echodhamma.utils.title_formatter import (
+    format_display_title,
+    format_hierarchical_title,
+)
 from echodhamma.utils.title_matcher import is_thero_in_content, load_thero_data
+from echodhamma.utils.title_extractor import extract_series_and_episode
 from echodhamma.services.transcript_service import get_transcript_text
 
 logger = logging.getLogger(__name__)
@@ -171,13 +175,6 @@ class PodcastSync:
                     metadata["ai_response"] = self._get_ai_metadata(
                         metadata["id"], video_url
                     )
-
-                    # Common processing for both cached and new responses
-                    if metadata["ai_response"]:
-                        # Validate and format title
-                        metadata["ai_response"]["title"] = get_safe_title(
-                            metadata["title"], metadata["ai_response"]
-                        )
 
                 mp3_file, img_file = (
                     f"{metadata['id']}.mp3",
@@ -379,7 +376,7 @@ class PodcastSync:
         if not isinstance(title_comps, dict):
             raise AIGenerationError("title_components is not a dict")
 
-        tc_keys = ["series_name", "episode_number", "topic_summary"]
+        tc_keys = ["topic_summary"]
         if not all(k in title_comps for k in tc_keys):
             missing_tc = [k for k in tc_keys if k not in title_comps]
             raise AIGenerationError(f"title_components missing keys: {missing_tc}")
@@ -533,6 +530,7 @@ class PodcastSync:
                                     "url": entry.get("url")
                                     or f"https://www.youtube.com/watch?v={entry['id']}",
                                     "title": entry.get("title"),
+                                    "upload_date": entry.get("upload_date"),
                                 }
                             )
                 except Exception as e:
@@ -540,6 +538,9 @@ class PodcastSync:
                         f"[{self.thero_name}] Error fetching channel: {e}",
                         exc_info=True,
                     )
+
+        # Sort by upload date (oldest first)
+        video_items.sort(key=lambda x: x.get("upload_date") or "99999999")
 
         # Process videos sequentially
         for item in video_items:
@@ -549,9 +550,63 @@ class PodcastSync:
 
         logger.info(f"[{self.thero_name}] Sync complete.")
 
+    def _index_playlists(self):
+        """
+        Fetches video IDs from configured playlists and builds a map:
+        { video_id: series_path_list }
+        """
+        logger.info(f"[{self.thero_name}] Indexing playlists for series association...")
+        video_series_map = {}
+
+        known_series = self.config.get("known_series", [])
+
+        # Recursive helper to find playlists in nested structure
+        def find_playlists_recursive(series_list, parent_path=[]):
+            for series in series_list:
+                current_path = parent_path + [series["name"]]
+
+                # If this series has playlists, fetch them
+                playlist_ids = series.get("playlist_ids", [])
+                if playlist_ids:
+                    # Fetch videos for these playlists
+                    for pl_id in playlist_ids:
+                        pl_url = f"https://www.youtube.com/playlist?list={pl_id}"
+                        try:
+                            with yt_dlp.YoutubeDL(
+                                {
+                                    "extract_flat": True,
+                                    "quiet": True,
+                                    "no_warnings": True,
+                                }
+                            ) as ydl:
+                                info = ydl.extract_info(pl_url, download=False)
+                                entries = info.get("entries", [])
+                                for entry in entries:
+                                    vid_id = entry.get("id")
+                                    if vid_id:
+                                        # Map video ID to this series path
+                                        video_series_map[vid_id] = current_path
+                        except Exception as e:
+                            logger.error(
+                                f"[{self.thero_name}] Failed to index playlist {pl_id}: {e}"
+                            )
+
+                # Recurse
+                find_playlists_recursive(series.get("sub_series", []), current_path)
+
+        find_playlists_recursive(known_series)
+        logger.info(
+            f"[{self.thero_name}] Indexed {len(video_series_map)} videos from playlists."
+        )
+        return video_series_map
+
     def refresh_rss(self):
         # Refresh RSS
         logger.info(f"[{self.thero_name}] Refreshing RSS feed...")
+
+        # Build playlist map
+        video_series_map = self._index_playlists()
+
         metadata_keys = self.s3.list_metadata_files()
         logger.info(
             f"[{self.thero_name}] Found {len(metadata_keys)} metadata files in S3."
@@ -562,9 +617,53 @@ class PodcastSync:
             if res and self._is_valid_episode(res):
                 try:
                     original_title = res.get("original_title") or res.get("title")
+                    video_id = res.get("id")
                     description = ""
 
                     ai_data = res.get("ai_response")
+
+                    # Dynamic Title Generation
+                    if ai_data and ai_data.get("title_components"):
+                        known_series = self.config.get("known_series", [])
+
+                        # Check for forced series match from playlist
+                        forced_series_path = video_series_map.get(video_id)
+
+                        extracted = extract_series_and_episode(
+                            original_title,
+                            known_series,
+                            forced_series_path=forced_series_path,
+                        )
+
+                        # 1. Short Title for Feed
+                        display_title = format_display_title(
+                            original_title,
+                            series_path=extracted.get("series_match_path"),
+                            episode_number=str(extracted.get("episode_number"))
+                            if extracted.get("episode_number") is not None
+                            else None,
+                            topic_summary=ai_data["title_components"].get(
+                                "topic_summary"
+                            ),
+                        )
+
+                        # 2. Full Title for Description
+                        hierarchical_title = format_hierarchical_title(
+                            original_title,
+                            series_name=extracted.get("series_name"),
+                            episode_number=str(extracted.get("episode_number"))
+                            if extracted.get("episode_number") is not None
+                            else None,
+                            topic_summary=ai_data["title_components"].get(
+                                "topic_summary"
+                            ),
+                        )
+
+                        # Set dedicated display_title for RSS generation (in-memory only)
+                        res["display_title"] = display_title
+
+                        # Prepend full title to description
+                        description += f"{hierarchical_title}\n\n"
 
                     # Append AI description if available
                     if ai_data and ai_data.get("description"):

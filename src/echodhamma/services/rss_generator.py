@@ -79,9 +79,8 @@ class RSSGenerator:
             if not audio_url:
                 continue
             rss_item = add_tag(channel, "item")
-            # Use AI-generated title if available, otherwise fall back to original
-            ai_response = item.get("ai_response") or {}
-            title = ai_response.get("title") or item.get("title", "No Title")
+            # Use dedicated display_title if available, otherwise fall back to title or original
+            title = item.get("display_title") or item.get("title") or "No Title"
             add_tag(rss_item, "title", title)
 
             desc = item.get("description", "")

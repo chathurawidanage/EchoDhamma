@@ -33,11 +33,9 @@ class PromptService:
                 "title_components": {
                     "type": "object",
                     "properties": {
-                        "series_name": {"type": "string", "nullable": True},
-                        "episode_number": {"type": "string", "nullable": True},
                         "topic_summary": {"type": "string"},
                     },
-                    "required": ["series_name", "episode_number", "topic_summary"],
+                    "required": ["topic_summary"],
                 },
                 "description": {"type": "string"},
                 "chapters": {
