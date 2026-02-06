@@ -165,9 +165,9 @@ class MinioTracker:
                 "payload": {
                     "website": website_id,
                     "url": f"/podcast/{file_key}",
-                    "event_name": "Podcast Download",
-                    "event_data": {"file_name": file_key, "bucket": bucket_name},
-                    "hostname": "minio.local",
+                    "name": "Podcast Download",
+                    "data": {"file_name": file_key, "bucket": bucket_name},
+                    "hostname": "no.op",
                 },
             }
 
