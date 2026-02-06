@@ -18,5 +18,9 @@ ENV PYTHONPATH=/app/src
 
 # Copy the application code
 COPY . .
-# Run the server using gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--timeout", "3600", "--error-logfile", "-", "echodhamma.server:app"]
+# Copy and set up entrypoint
+COPY entrypoint.sh .
+RUN chmod +x entrypoint.sh
+
+# Run the server
+CMD ["./entrypoint.sh"]
