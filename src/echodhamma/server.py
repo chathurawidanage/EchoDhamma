@@ -11,6 +11,7 @@ import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
 import logging
 from echodhamma.utils.logger import setup_logging
+from echodhamma.services.minio_tracker import MinioTracker
 
 # Configure logging for the application
 setup_logging()
@@ -29,9 +30,6 @@ app = Flask(__name__)
 executor = ThreadPoolExecutor(max_workers=1)
 
 _current_task = None  # Track the current running task
-
-# --- MINIO TRACKER ---
-from echodhamma.services.minio_tracker import MinioTracker
 
 minio_tracker = MinioTracker()
 

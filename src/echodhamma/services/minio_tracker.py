@@ -16,7 +16,7 @@ class MinioTracker:
         self.umami_url = os.getenv(
             "UMAMI_URL", "https://your-umami-instance.com/api/send"
         )
-        self.dedupe_window = int(os.getenv("DEDUPE_WINDOW", 3600))  # 1 hour in seconds
+        self.dedupe_window = int(os.getenv("DEDUPE_WINDOW", 10800))  # 3 hour in seconds
         self.download_cache = {}
         # Separate executor for lightweight tracking tasks
         self.executor = ThreadPoolExecutor(max_workers=4)
@@ -105,7 +105,6 @@ class MinioTracker:
 
     def process_event(self, data):
         """Process Minio event data."""
-        logger.info(f"Received Minio event: {data}")
         if not data or "Records" not in data:
             return {"status": "ignored"}
 
