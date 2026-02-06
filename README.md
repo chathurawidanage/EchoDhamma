@@ -30,12 +30,18 @@ Dhamma talks by **Ven. Watagoda Maggavihari Thero** (පූජ්‍ය වට�
 - **Multi-Thero Support**: Configure and manage multiple independent podcast feeds, each with its own YouTube channel, S3 bucket, and settings via JSON configuration files in the `theros/` directory.
 - **AI-Powered Metadata Generation**: Uses Google Gemini (via the `google-genai` SDK) to:
   - Generate optimized, Sinhala podcast descriptions from video content.
-  - Extract and structure title components (series name, episode number, topic summary).
+  - Extract `topic_summary` for title generation.
   - Determine if a video is "podcast-friendly" (e.g., doesn't rely heavily on visuals).
-- **Title Validation**: Safeguards against AI hallucinations by validating AI-generated `series_name` and `episode_number` against the original video title using fuzzy matching (`thefuzz`).
-- **Content Filtering**: Uses fuzzy matching (`title_matcher.py`) to verify that a video's content matches the expected Thero before including it in the feed.
+  - **Conditional Chapters**: Optionally generate timestamped chapters for episodes.
+- **Enhanced Title Processing**:
+  - **Concise Titles**: Optimizes titles for mobile displays while preserving full hierarchical details in the description.
+- **Series Management**:
+  - **Playlist-Based Association**: Associates videos with series based on YouTube playlist membership for accurate categorization.
+  - **Fuzzy Matching**: Uses fuzzy matching (`title_matcher.py`) to verify that a video's content matches the expected Thero before including it in the feed.
 - **S3 Integration**: Stores audio files, thumbnails, metadata JSON, and the `podcast.xml` RSS feed in S3/MinIO.
 - **Smart Sync**: Skips videos that have already been processed to save bandwidth and time.
+- **Whitelist Support**: Explicitly allow specific videos or playlists to bypass title matching checks.
+- **Real-Time Notifications**: Integrates with **Podcast Index** and **PubSubHubhub** to notify directories immediately when the feed is updated.
 - **Rate Limiting**: Configurable daily sync limits per Thero to avoid overwhelming external services (YouTube, AI API). State is persisted to S3.
 - **Prometheus Metrics**: Exposes metrics at `/metrics` for monitoring sync attempts, successes, failures, skipped videos, AI errors, and rate limits.
 - **HTTP API**: Includes a Flask server with endpoints to trigger synchronization and RSS regeneration via webhooks or cron jobs.
@@ -72,6 +78,7 @@ Each Thero has its own JSON configuration file. Key fields include:
 | `youtube_channel_urls` | List of YouTube channel URLs to fetch videos from |
 | `ai_config.enabled` | Enable AI metadata generation |
 | `ai_config.summarize` | Generate AI descriptions |
+| `ai_config.chapters` | Enable/Disable AI-generated chapters |
 | `ai_config.check_podcast_friendly` | Use AI to determine podcast compatibility |
 | `sync_config.max_videos_per_day` | Daily limit for video processing |
 | `sync_config.max_ai_calls_per_day` | Daily limit for AI API calls (separate from video limit) |
@@ -79,6 +86,8 @@ Each Thero has its own JSON configuration file. Key fields include:
 | `s3.*_env` | Environment variable names for S3 credentials |
 | `podcast.*` | Podcast metadata (title, description, author, etc.) |
 | `matcher.english_tokens` / `matcher.sinhala_tokens` | Tokens for fuzzy title matching |
+| `whitelisted` | List of YouTube Video or Playlist IDs to bypass title checks |
+| `known_series` | Map YouTube Playlist IDs to specific Series names |
 | `blocklist` | List of video IDs to exclude from the RSS feed |
 
 ### Environment Variables (`.env`)
