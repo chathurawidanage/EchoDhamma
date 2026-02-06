@@ -21,7 +21,7 @@ class VideoProcessor:
         self.thero_id = config.get("id", "unknown")
         self.base_url = f"{self.s3.endpoint}/{self.s3.bucket}"
 
-    def process(self, video_url):
+    def process(self, video_url, is_whitelisted=False):
         raw_file = None
         mp3_file = None
         img_file = None
@@ -47,10 +47,15 @@ class VideoProcessor:
             metadata["original_url"] = video_url
             metadata["pub_date"] = get_pub_date(info)
             metadata["duration"] = info.get("duration", 0)
+            metadata["whitelisted"] = is_whitelisted
 
             yt_description = info.get("description", "")
-            if "matcher" in self.config and not is_thero_in_content(
-                metadata["title"], yt_description, self.config
+            if (
+                not is_whitelisted
+                and "matcher" in self.config
+                and not is_thero_in_content(
+                    metadata["title"], yt_description, self.config
+                )
             ):
                 logger.info(
                     f"[{self.thero_name}] Skipping {metadata['id']}: Title mismatch."

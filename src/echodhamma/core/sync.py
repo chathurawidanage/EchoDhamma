@@ -44,6 +44,7 @@ class PodcastSync:
         self.thero_name = thero_config.get("name", self.thero_id)
         self.podcast_config = thero_config["podcast"]
         self.ai_config = thero_config.get("ai_config", {"enabled": False})
+        self.whitelist_config = thero_config.get("whitelist", [])
         self.sync_config = thero_config.get(
             "sync_config", {"max_videos_per_day": DEFAULT_MAX_VIDEOS_PER_DAY}
         )
@@ -122,6 +123,18 @@ class PodcastSync:
             and is_in_block_list is not True
         )
 
+    def _get_expanded_whitelist(self):
+        whitelisted_ids = set()
+        for item in self.whitelist_config:
+            # Simple heuristic: Video IDs are 11 chars. Playlists are usually much longer (24-34+ chars)
+            if len(item) > 12:
+                logger.info(f"[{self.thero_name}] Expanding whitelist playlist: {item}")
+                ids = self.yt_client.index_playlist(item)
+                whitelisted_ids.update(ids)
+            else:
+                whitelisted_ids.add(item)
+        return whitelisted_ids
+
     def sync(self):
         sync_run_counter.labels(thero=self.thero_id).inc()
         logger.info(f"[{self.thero_name}] Starting sync...")
@@ -139,6 +152,8 @@ class PodcastSync:
         video_items = self.yt_client.get_channel_videos(urls)
         video_items.sort(key=lambda x: x.get("upload_date") or "99999999")
 
+        whitelisted_ids = self._get_expanded_whitelist()
+
         for item in video_items:
             if not self._is_sync_allowed():
                 break
@@ -148,7 +163,10 @@ class PodcastSync:
                 continue
 
             try:
-                metadata = self.video_processor.process(item["url"])
+                is_whitelisted = vid_id in whitelisted_ids
+                metadata = self.video_processor.process(
+                    item["url"], is_whitelisted=is_whitelisted
+                )
 
                 # Save metadata regardless of outcome to avoid re-processing
                 self.s3.save_metadata(metadata)
