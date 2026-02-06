@@ -167,7 +167,7 @@ class MinioTracker:
 
             headers = {
                 "User-Agent": user_agent,
-                "CF-Connecting-IP": client_ip,
+                "X-Forwarded-For": client_ip,
                 "Content-Type": "application/json",
             }
 
