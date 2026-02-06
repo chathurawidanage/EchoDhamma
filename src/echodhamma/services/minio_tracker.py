@@ -95,10 +95,19 @@ class MinioTracker:
     def _log_download_async(self, payload, headers, file_key):
         """Helper to send Umami request in background."""
         try:
-            requests.post(self.umami_url, json=payload, headers=headers, timeout=5)
-            logger.info(f"✅ Unique Download Logged: {file_key}")
+            response = requests.post(
+                self.umami_url, json=payload, headers=headers, timeout=5
+            )
+            if response.status_code >= 200 and response.status_code < 300:
+                logger.info(
+                    f"✅ Unique Download Logged: {file_key} (Status: {response.status_code})"
+                )
+            else:
+                logger.error(
+                    f"❌ Umami Failed: {response.status_code} - {response.text}"
+                )
         except Exception as e:
-            logger.error(f"❌ Umami Error: {e}")
+            logger.error(f"❌ Umami Exception: {e}")
             with sentry_sdk.new_scope() as scope:
                 scope.set_tag("task", "minio_event_hook")
                 sentry_sdk.capture_exception(e)
