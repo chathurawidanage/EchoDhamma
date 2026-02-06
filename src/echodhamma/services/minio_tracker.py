@@ -13,9 +13,11 @@ logger = logging.getLogger(__name__)
 
 class MinioTracker:
     def __init__(self):
-        self.umami_url = os.getenv(
-            "UMAMI_URL", "https://your-umami-instance.com/api/send"
-        )
+        umami_base = os.getenv("UMAMI_URL", "https://your-umami-instance.com")
+        if umami_base.endswith("/api/send"):
+            self.umami_url = umami_base
+        else:
+            self.umami_url = f"{umami_base.rstrip('/')}/api/send"
         self.dedupe_window = int(os.getenv("DEDUPE_WINDOW", 10800))  # 3 hour in seconds
         self.download_cache = {}
         # Separate executor for lightweight tracking tasks
