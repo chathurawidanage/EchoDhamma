@@ -1,6 +1,6 @@
 def format_hierarchical_title(
     original_title: str,
-    series_name: str = None,
+    series_path: list = None,
     episode_number: str = None,
     topic_summary: str = None,
 ) -> str:
@@ -8,19 +8,28 @@ def format_hierarchical_title(
     if not topic_summary:
         return original_title
 
-    if series_name and episode_number is not None:
-        try:
-            # Zero-pad to 3 digits if numeric for better UX/sorting
-            ep_num = int(episode_number)
-            episode_display = f"{ep_num:03d}"
-        except ValueError:
-            episode_display = episode_number
+    parts = []
 
-        return f"[{series_name} | {episode_display}] {topic_summary}"
-    elif series_name:
-        return f"[{series_name}] {topic_summary}"
+    # helper for episode
+    ep_str = ""
+    if episode_number is not None:
+        try:
+            ep_num = int(episode_number)
+            ep_str = f"{ep_num:03d}"
+        except ValueError:
+            ep_str = str(episode_number)
+
+    # 1. Series Path with arrows
+    if series_path:
+        parts.extend(series_path)
+
+    # 2. Episode + Topic
+    if ep_str:
+        parts.append(f"{ep_str} {topic_summary}")
     else:
-        return topic_summary
+        parts.append(topic_summary)
+
+    return " › ".join(parts)
 
 
 def format_display_title(
@@ -32,22 +41,30 @@ def format_display_title(
     if not topic_summary:
         return original_title
 
-    # 1. Episode Part
-    episode_part = ""
+    # Prepare Episode
+    ep_str = ""
     if episode_number is not None:
         try:
             ep_num = int(episode_number)
-            episode_display = f"{ep_num:03d}"
+            ep_str = f"{ep_num:03d}"
         except ValueError:
-            episode_display = episode_number
-        episode_part = f"{episode_display} - "
+            ep_str = str(episode_number)
 
-    # 2. Series Part (Leaf only)
-    series_part = ""
+    # Prepare Series (Leaf)
+    leaf_series = ""
     if series_path and len(series_path) > 0:
-        # Use the last item in the path (leaf)
         leaf_series = series_path[-1]
-        series_part = f"{leaf_series} | "
 
-    # Combine: "094 - Nama Dhamma | Topic"
-    return f"{episode_part}{series_part}{topic_summary}"
+    # Construct Prefix: [Series | Ep] or [Series] or [Ep]
+    prefix = ""
+    if leaf_series and ep_str:
+        prefix = f"[{leaf_series} | {ep_str}]"
+    elif leaf_series:
+        prefix = f"[{leaf_series}]"
+    elif ep_str:
+        prefix = f"[{ep_str}]"
+
+    if prefix:
+        return f"{prefix} {topic_summary}"
+
+    return topic_summary

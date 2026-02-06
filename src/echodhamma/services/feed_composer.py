@@ -107,7 +107,7 @@ class FeedComposer:
                 # 2. Full Title for Description
                 hierarchical_title = format_hierarchical_title(
                     original_title,
-                    series_name=extracted.get("series_name"),
+                    series_path=extracted.get("series_match_path"),
                     episode_number=str(extracted.get("episode_number"))
                     if extracted.get("episode_number") is not None
                     else None,
