@@ -22,7 +22,11 @@ from echodhamma.services.notifier import Notifier
 from echodhamma.core.rate_limiter import RateLimiter
 from echodhamma.services.rss_generator import RSSGenerator
 from echodhamma.services.s3_manager import S3Manager
-from echodhamma.services.transcript_service import get_transcript_text
+from echodhamma.services.transcript_service import (
+    get_transcript_text,
+    TranscriptsDisabledError,
+)
+
 
 from echodhamma.services.youtube_client import YouTubeClient
 from echodhamma.services.video_processor import VideoProcessor
@@ -313,6 +317,19 @@ class PodcastSync:
                         f"transcripts/{video_id}.txt",
                         "text/plain",
                     )
+            except TranscriptsDisabledError:
+                logger.warning(
+                    f"[{self.thero_name}] Subtitles disabled for {video_id}. Creating missing marker."
+                )
+                missing_file = f"{video_id}_transcript.missing"
+                with open(missing_file, "w", encoding="utf-8") as f:
+                    f.write(video_id)
+                try:
+                    self.s3.upload_file(missing_file, missing_file, "text/plain")
+                finally:
+                    if os.path.exists(missing_file):
+                        os.remove(missing_file)
+                return
             except Exception as e:
                 logger.warning(
                     f"[{self.thero_name}] Warning: Failed to fetch/upload transcript: {e}"

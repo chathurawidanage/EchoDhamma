@@ -28,10 +28,17 @@ def format_timestamp(seconds):
     return f"{int(h):02d}:{int(m):02d}:{int(s):02d}"
 
 
+class TranscriptsDisabledError(Exception):
+    """Raised when subtitles are disabled for a video."""
+
+    pass
+
+
 def get_transcript_text(url):
     """
     Fetches the transcript for a given YouTube URL and returns it as a formatted string.
     Returns None if retrieval fails.
+    Raises TranscriptsDisabledError if subtitles are disabled.
     """
     video_id = get_video_id(url)
     if not video_id:
@@ -61,5 +68,10 @@ def get_transcript_text(url):
         return "\n".join(output_lines)
 
     except Exception as e:
+        error_msg = str(e)
+        if "Subtitles are disabled for this video" in error_msg:
+            raise TranscriptsDisabledError(
+                f"Subtitles are disabled for video {video_id}"
+            )
         logger.error(f"Error fetching transcript: {e}")
         return None
