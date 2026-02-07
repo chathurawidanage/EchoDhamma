@@ -110,6 +110,10 @@ class PodcastSync:
         return True
 
     def _is_valid_episode(self, metadata):
+        video_id = metadata.get("id")
+        if self.s3.file_exists(f"{video_id}_transcript.missing"):
+            return False
+
         ai_resp = metadata.get("ai_response") or {}
         is_friendly = ai_resp.get("podcast_friendly", True)
         is_match = metadata.get("title_match", True)
@@ -303,20 +307,34 @@ class PodcastSync:
     def _perform_alignment(self, metadata, ai_resp):
         transcript_path = None
         video_id = metadata["id"]
+        if self.s3.file_exists(f"{video_id}_transcript.missing"):
+            logger.warning(
+                f"[{self.thero_name}] Transcript missing marker found for {video_id}. Skipping alignment."
+            )
+            return
+
         try:
+            s3_transcript_key = f"transcripts/{video_id}.txt"
             try:
-                transcript_text = get_transcript_text(metadata["original_url"])
-
-                if transcript_text:
-                    transcript_path = f"{video_id}_transcript.txt"
-                    with open(transcript_path, "w", encoding="utf-8") as f:
-                        f.write(transcript_text)
-
-                    self.s3.upload_file(
-                        transcript_path,
-                        f"transcripts/{video_id}.txt",
-                        "text/plain",
+                if self.s3.file_exists(s3_transcript_key):
+                    logger.info(
+                        f"[{self.thero_name}] Transcript found in S3 for {video_id}. Using cached version."
                     )
+                    transcript_path = f"{video_id}_transcript.txt"
+                    self.s3.download_file(s3_transcript_key, transcript_path)
+                else:
+                    transcript_text = get_transcript_text(metadata["original_url"])
+
+                    if transcript_text:
+                        transcript_path = f"{video_id}_transcript.txt"
+                        with open(transcript_path, "w", encoding="utf-8") as f:
+                            f.write(transcript_text)
+
+                        self.s3.upload_file(
+                            transcript_path,
+                            s3_transcript_key,
+                            "text/plain",
+                        )
             except TranscriptsDisabledError:
                 logger.warning(
                     f"[{self.thero_name}] Subtitles disabled for {video_id}. Creating missing marker."

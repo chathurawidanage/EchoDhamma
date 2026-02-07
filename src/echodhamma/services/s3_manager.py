@@ -99,3 +99,10 @@ class S3Manager:
         self.upload_file(local_temp, key, "application/json")
         if os.path.exists(local_temp):
             os.remove(local_temp)
+
+    def download_file(self, key, local_path):
+        try:
+            self.client.download_file(self.bucket, key, local_path)
+        except ClientError as e:
+            self.logger.error(f"Error downloading {key}: {e}")
+            raise
