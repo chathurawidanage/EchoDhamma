@@ -54,7 +54,10 @@ class AIManager:
             # Construct content with video file data and prompt text as separate parts
             content = types.Content(
                 parts=[
-                    types.Part(file_data=types.FileData(file_uri=video_url)),
+                    types.Part(
+                        file_data=types.FileData(file_uri=video_url),
+                        video_metadata=types.VideoMetadata(fps=0.1),
+                    ),
                     types.Part(text=prompt_text),
                 ]
             )
