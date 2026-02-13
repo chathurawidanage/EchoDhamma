@@ -16,8 +16,8 @@ class S3Manager:
         self.endpoint = endpoint
         # Use a more robust config for proxied S3 backends
         self.transfer_config = TransferConfig(
-            multipart_threshold=100 * 1024 * 1024,  # 100MB threshold
-            multipart_chunksize=100 * 1024 * 1024,  # 100MB chunks
+            multipart_threshold=15 * 1024 * 1024,  # 15MB threshold
+            multipart_chunksize=15 * 1024 * 1024,  # 15MB chunks
             max_concurrency=10,
             use_threads=True,
         )
