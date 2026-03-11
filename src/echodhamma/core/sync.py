@@ -24,8 +24,8 @@ from echodhamma.services.rss_generator import RSSGenerator
 from echodhamma.services.s3_manager import S3Manager
 from echodhamma.services.transcript_service import (
     get_transcript_text,
-    TranscriptsDisabledError,
 )
+from youtube_transcript_api import TranscriptsDisabled, NoTranscriptFound
 
 
 from echodhamma.services.youtube_client import YouTubeClient
@@ -335,9 +335,9 @@ class PodcastSync:
                             s3_transcript_key,
                             "text/plain",
                         )
-            except TranscriptsDisabledError:
+            except (TranscriptsDisabled, NoTranscriptFound):
                 logger.warning(
-                    f"[{self.thero_name}] Subtitles disabled for {video_id}. Creating missing marker."
+                    f"[{self.thero_name}] Subtitles disabled/missing for {video_id}. Creating missing marker."
                 )
                 missing_file = f"{video_id}_transcript.missing"
                 with open(missing_file, "w", encoding="utf-8") as f:
