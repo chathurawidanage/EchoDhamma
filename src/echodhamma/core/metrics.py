@@ -37,3 +37,9 @@ filtered_items_counter = Counter(
     "Total number of items filtered out from RSS feed",
     ["thero"],
 )
+
+ai_api_call_counter = Counter(
+    "ai_api_call_total",
+    "Total number of AI API calls made",
+    ["reason"],
+)

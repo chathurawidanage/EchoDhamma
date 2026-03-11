@@ -5,6 +5,7 @@ from google.genai import types
 from dotenv import load_dotenv
 import logging
 from echodhamma.services.prompt_service import PromptService
+from echodhamma.core.metrics import ai_api_call_counter
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +65,8 @@ class AIManager:
 
             # Retrieve schema to enforce strict JSON output
             schema = self.prompt_service.get_base_schema()
+
+            ai_api_call_counter.labels(reason="metadata_generation").inc()
 
             response = self.client.models.generate_content(
                 model=self.model_name,
@@ -129,6 +132,8 @@ class AIManager:
 
             # Get schema
             schema = self.prompt_service.get_alignment_schema()
+
+            ai_api_call_counter.labels(reason="chapter_alignment").inc()
 
             response = self.client.models.generate_content(
                 model=self.model_name,
