@@ -63,14 +63,6 @@ class PodcastSync:
         self.base_url = f"{self.s3.endpoint}/{self.s3.bucket}"
 
         self.audio = AudioProcessor(self.thero_name)
-        self.ai_manager = AIManager(self.s3) if self.ai_config.get("enabled") else None
-        self.yt_client = YouTubeClient()
-
-        self.video_processor = VideoProcessor(
-            self.yt_client, self.s3, self.audio, self.ai_manager, self.config
-        )
-        self.feed_composer = FeedComposer(self.config)
-
         self.state_file = "sync_state.json"
         self.rate_limiter = RateLimiter(
             self.s3,
@@ -78,6 +70,13 @@ class PodcastSync:
             self.sync_config.get("max_videos_per_day", DEFAULT_MAX_VIDEOS_PER_DAY),
             self.sync_config.get("max_ai_calls_per_day", DEFAULT_MAX_AI_CALLS_PER_DAY),
         )
+        self.ai_manager = AIManager(self.s3, self.rate_limiter) if self.ai_config.get("enabled") else None
+        self.yt_client = YouTubeClient()
+
+        self.video_processor = VideoProcessor(
+            self.yt_client, self.s3, self.audio, self.ai_manager, self.config
+        )
+        self.feed_composer = FeedComposer(self.config)
 
     def _is_sync_allowed(self) -> bool:
         if not self.rate_limiter.can_sync_daily():
@@ -364,8 +363,6 @@ class PodcastSync:
                     logger.warning(
                         f"[{self.thero_name}] Warning: Failed to align chapters for {video_id}: {e}"
                     )
-                finally:
-                    self.rate_limiter.record_ai_call()
 
                 if aligned_chapters:
                     ai_resp["aligned_chapters"] = aligned_chapters

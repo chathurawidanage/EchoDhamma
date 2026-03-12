@@ -25,8 +25,9 @@ class AIRateLimitError(AIGenerationError):
 
 
 class AIManager:
-    def __init__(self, s3_manager=None):
+    def __init__(self, s3_manager=None, rate_limiter=None):
         self.s3_manager = s3_manager
+        self.rate_limiter = rate_limiter
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
             logger.warning("GEMINI_API_KEY not found in environment variables.")
@@ -67,6 +68,8 @@ class AIManager:
             schema = self.prompt_service.get_base_schema()
 
             ai_api_call_counter.labels(reason="metadata_generation").inc()
+            if self.rate_limiter:
+                self.rate_limiter.record_ai_call()
 
             response = self.client.models.generate_content(
                 model=self.model_name,
@@ -134,6 +137,8 @@ class AIManager:
             schema = self.prompt_service.get_alignment_schema()
 
             ai_api_call_counter.labels(reason="chapter_alignment").inc()
+            if self.rate_limiter:
+                self.rate_limiter.record_ai_call()
 
             response = self.client.models.generate_content(
                 model=self.model_name,
