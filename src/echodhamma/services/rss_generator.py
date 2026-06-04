@@ -134,6 +134,21 @@ class RSSGenerator:
                     },
                 )
 
+            if item.get("original_url"):
+                alt_enc = add_tag(
+                    rss_item,
+                    "{https://podcastindex.org/namespace/1.0}alternateEnclosure",
+                    attrib={
+                        "type": "text/html",
+                        "title": "YouTube",
+                    },
+                )
+                add_tag(
+                    alt_enc,
+                    "{https://podcastindex.org/namespace/1.0}source",
+                    attrib={"uri": item["original_url"]},
+                )
+
         tree = ET.ElementTree(root)
         tree.write(local_filename, encoding="UTF-8", xml_declaration=True)
 
