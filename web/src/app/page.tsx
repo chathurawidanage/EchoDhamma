@@ -1,0 +1,92 @@
+import Link from 'next/link';
+import { getTheros } from '@/utils/theros.server';
+import { getTheroS3BaseUrl } from '@/utils/theros';
+import { BookIcon } from '@/components/Icons';
+import styles from './page.module.css';
+
+export default function HomePage() {
+  const theros = getTheros();
+
+  return (
+    <div className={styles.container}>
+      <main className={styles.main}>
+        <section className={styles.heroSection}>
+          <div className={styles.heroGlow}></div>
+          <div className={styles.heroContent}>
+            <h1>උතුම් ශ්‍රී සද්ධර්මය ශ්‍රවණය කරන්න, කියවන්න</h1>
+            <p>
+              ථෙරවාදී බුදු දහමේ නිර්මල ඉගැන්වීම් සුරක්ෂිත කරමින් ලොව පුරා බෙදා හැරීම සඳහා සකස් කරන ලද ධර්ම දේශනා පෝඩ්කාස්ට් (Podcasts) සහ දහම් පොත් (Ebooks) එකතුව.
+            </p>
+          </div>
+        </section>
+
+        <section className={styles.section}>
+          <h3 className={styles.sectionTitle}>ධර්ම දේශනා පෝඩ්කාස්ට් (Podcasts)</h3>
+          <div className={styles.theroGrid}>
+            {theros.map((thero) => (
+              <Link 
+                key={thero.id} 
+                href={`/podcast/${thero.id}`}
+                className={`${styles.theroCard} glass glow-hover`}
+                id={`thero-card-${thero.id}`}
+              >
+                <div className={styles.theroCardHeader}>
+                  <div className={styles.avatarPlaceholder}>
+                    {thero.podcast.image_url ? (
+                      <img 
+                        src={thero.podcast.image_url.startsWith('http') ? thero.podcast.image_url : `${getTheroS3BaseUrl(thero)}/${thero.podcast.image_url}`} 
+                        alt={thero.name}
+                        className={styles.avatarImg}
+                      />
+                    ) : (
+                      thero.name.split(' ').filter(n => !n.startsWith('Ven.') && !n.startsWith('Thero') && !n.startsWith('අති') && !n.startsWith('පූජ්‍ය')).map(n => n[0]).join('') || 'Ven'
+                    )}
+                  </div>
+                  <div>
+                    <h4 className={styles.theroName}>{thero.name}</h4>
+                    <span className={styles.badge}>Podcast Active</span>
+                  </div>
+                </div>
+                <div className={styles.theroCardBody}>
+                  <h5 className={styles.podcastTitle}>{thero.podcast.title}</h5>
+                  <p className={styles.podcastDesc}>{thero.podcast.description}</p>
+                </div>
+                <div className={styles.theroCardFooter}>
+                  <span>දේශනා ශ්‍රවණය කරන්න →</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        <section className={styles.section}>
+          <h3 className={styles.sectionTitle}>දහම් පොත්පත් (Ebooks)</h3>
+          <div className={styles.ebookContainer}>
+            <Link 
+              href="/ebooks" 
+              className={`${styles.ebookCard} glass glow-hover`}
+              id="ebooks-library-card"
+            >
+              <div className={styles.ebookCardContent}>
+                <div className={styles.ebookIcon}>
+                  <BookIcon size={32} />
+                </div>
+                <div>
+                  <h4>දහම් පොත් එකතුව (Ebook Library)</h4>
+                  <p>අති පූජ්‍ය රේරුකානේ චන්දවිමල මහා නාහිමියන්ගේ ධර්ම ග්‍රන්ථ ඇතුළු අනෙකුත් දහම් පොත් කියවීමට සහ භාගත (Download) කර ගැනීමට පිවිසෙන්න.</p>
+                </div>
+              </div>
+              <div className={styles.ebookCardAction}>
+                <span>ග්‍රන්ථ එකතුවට පිවිසෙන්න →</span>
+              </div>
+            </Link>
+          </div>
+        </section>
+      </main>
+
+      <footer className={styles.footer}>
+        <p>© {new Date().getFullYear()} EchoDhamma. May all beings be well and happy.</p>
+      </footer>
+    </div>
+  );
+}

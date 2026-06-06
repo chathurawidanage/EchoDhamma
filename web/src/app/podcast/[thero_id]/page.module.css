@@ -1,0 +1,193 @@
+.container {
+  padding: 3rem 2rem;
+  width: 100%;
+  max-width: var(--max-content-width);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+}
+
+.backLink {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: var(--transition-fast);
+}
+
+.backLink:hover {
+  color: var(--accent-gold);
+  transform: translateX(-4px);
+}
+
+.profileSection {
+  display: flex;
+  gap: 2.5rem;
+  padding: 2.5rem;
+  background-color: var(--bg-secondary);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--border-light);
+  align-items: flex-start;
+  position: relative;
+  overflow: hidden;
+}
+
+.avatar {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+  border: 2px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--accent-gold);
+  flex-shrink: 0;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  overflow: hidden;
+  position: relative;
+}
+
+.avatarImg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.profileInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.theroName {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.podcastTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--accent-gold);
+}
+
+.podcastDesc {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.platformRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.platformBtn {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 0.5rem 1rem;
+  border-radius: var(--border-radius-sm);
+  transition: var(--transition-smooth);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid var(--border-light);
+}
+
+.youtube {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+.youtube:hover {
+  background-color: #ef4444;
+  color: #ffffff;
+}
+
+.spotify {
+  background-color: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+}
+.spotify:hover {
+  background-color: #22c55e;
+  color: #ffffff;
+}
+
+.apple {
+  background-color: rgba(168, 85, 247, 0.1);
+  color: #a855f7;
+}
+.apple:hover {
+  background-color: #a855f7;
+  color: #ffffff;
+}
+
+.amazon {
+  background-color: rgba(6, 182, 212, 0.1);
+  color: #06b6d4;
+}
+.amazon:hover {
+  background-color: #06b6d4;
+  color: #ffffff;
+}
+
+.rss {
+  background-color: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+}
+.rss:hover {
+  background-color: #f59e0b;
+  color: #ffffff;
+}
+
+.episodesSection {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.sectionTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  border-left: 4px solid var(--accent-gold);
+  padding-left: 0.75rem;
+  color: var(--text-primary);
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 1.5rem 1rem;
+    gap: 2rem;
+  }
+  
+  .profileSection {
+    flex-direction: column;
+    align-items: center;
+    padding: 1.5rem;
+    text-align: center;
+  }
+  
+  .avatar {
+    width: 80px;
+    height: 80px;
+    font-size: 1.5rem;
+  }
+  
+  .platformRow {
+    justify-content: center;
+  }
+}

@@ -2,6 +2,7 @@
     "id": "watagoda_maggavihari_thero",
     "enabled": true,
     "name": "Ven. Watagoda Maggavihari Thero",
+    "rss": "https://files.widanage.com/maggavihari-thero-podcast/podcast.xml",
     "blocklist": [
         "ePgY335Vk5M",
         "-_4dRyTls10",

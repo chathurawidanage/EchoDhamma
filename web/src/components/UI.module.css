@@ -1,0 +1,121 @@
+/* --- Card Component Styles --- */
+.card {
+  border-radius: var(--border-radius-lg);
+  padding: 1.5rem;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-light);
+  transition: var(--transition-smooth);
+}
+
+.glow:hover {
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.7), 0 0 20px var(--accent-gold-glow);
+  border-color: var(--border-focus);
+  transform: translateY(-4px);
+}
+
+/* --- Button Component Styles --- */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: var(--border-radius-md);
+  font-weight: 600;
+  transition: var(--transition-smooth);
+  font-family: var(--font-sans);
+}
+
+.button:active {
+  transform: scale(0.96);
+}
+
+/* Variants */
+.primary {
+  background: var(--accent-gold);
+  color: #ffffff;
+  box-shadow: 0 4px 14px 0 rgba(217, 119, 6, 0.3);
+}
+
+.primary:hover {
+  background: var(--accent-gold-hover);
+  box-shadow: 0 6px 20px 0 rgba(217, 119, 6, 0.4);
+}
+
+.secondary {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-light);
+}
+
+.secondary:hover {
+  background: var(--bg-secondary);
+  border-color: var(--text-muted);
+}
+
+.outline {
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-light);
+}
+
+.outline:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+}
+
+.ghost {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.ghost:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+/* Sizes */
+.sm {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.8rem;
+}
+
+.md {
+  padding: 0.6rem 1.2rem;
+  font-size: 0.95rem;
+}
+
+.lg {
+  padding: 0.8rem 1.6rem;
+  font-size: 1.1rem;
+}
+
+/* --- Badge Component Styles --- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 9999px;
+  line-height: 1;
+  width: fit-content;
+}
+
+.gold {
+  background-color: var(--accent-gold-glow);
+  color: var(--accent-gold);
+  border: 1px solid var(--accent-gold);
+}
+
+.secondary {
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-light);
+}
+
+.outline {
+  background-color: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-light);
+}

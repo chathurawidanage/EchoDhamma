@@ -1,0 +1,25 @@
+.layoutShell {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  position: relative;
+  background-color: var(--bg-primary);
+}
+
+.contentWrapper {
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  position: relative;
+  padding-bottom: calc(var(--player-height) + 1.5rem);
+}
+
+@media (max-width: 1024px) {
+  .contentWrapper {
+    margin-left: 0;
+    padding-top: var(--header-height);
+  }
+}
