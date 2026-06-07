@@ -10,7 +10,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "EchoDhamma",
-  description: "ථෙරවාදී බුදු දහමේ නිර්මල ඉගැන්වීම් ශ්‍රවණය කිරීමට සහ කියවීමට ඇති දහම් පෝඩ්කාස්ට් සහ පොත්පත් එකතුව.",
+  description: "වර්තමාන ඩිජිටල් ලෝකය තුළ බුදු දහම සම්බන්ධ යූටියුබ් වීඩියෝ සහ පී.ඩී.එෆ් පොත්පත් බහුලව පැවතිය ද, කාර්යබහුල ධර්මකාමී ඔබට ඒවා ශ්‍රවණය කිරීමට පහසු Audio Podcasts සහ කියවීමට පහසු Ebooks ලෙස EchoDhamma මඟින් ලබාදේ.",
   keywords: ["EchoDhamma", "Buddhism", "Dhamma", "Sutta", "Theravada", "Podcast", "Ebook", "Sinhala Dhamma Deshana", "බුදු දහම", "ධර්ම දේශනා"],
 };
 

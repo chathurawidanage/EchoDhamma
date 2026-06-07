@@ -13,9 +13,9 @@ export default function HomePage() {
         <section className={styles.heroSection}>
           <div className={styles.heroGlow}></div>
           <div className={styles.heroContent}>
-            <h1>උතුම් ශ්‍රී සද්ධර්මය ශ්‍රවණය කරන්න, කියවන්න</h1>
-            <p>
-              ථෙරවාදී බුදු දහමේ නිර්මල ඉගැන්වීම් සුරක්ෂිත කරමින් ලොව පුරා බෙදා හැරීම සඳහා සකස් කරන ලද ධර්ම දේශනා පෝඩ්කාස්ට් (Podcasts) සහ දහම් පොත් (Ebooks) එකතුව.
+            <h1>EchoDhamma — නිර්මල ශ්‍රී සද්ධර්මය ප්‍රතිධ්වනිය</h1>
+            <p className={styles.heroLead}>
+              EchoDhamma තුළින් අප සිදු කරන්නේ පවතින ධර්ම මූලාශ්‍ර, පහසුවෙන් ශ්‍රවණය කළ හැකි Audio Podcasts ලෙස සහ ජංගම දුරකථන හෝ ඊ-රීඩර්ස් (E-readers) මඟින් පහසුවෙන් කියවිය හැකි EPUB / Ebooks ආකෘති වෙත උසස් ප්‍රමිතියෙන් යුතුව පරිවර්තනය (Re-encode) කර ක්‍රමවත්ව පෙළගැස්වීමයි.
             </p>
           </div>
         </section>
@@ -24,8 +24,8 @@ export default function HomePage() {
           <h3 className={styles.sectionTitle}>ධර්ම දේශනා පෝඩ්කාස්ට් (Podcasts)</h3>
           <div className={styles.theroGrid}>
             {theros.map((thero) => (
-              <Link 
-                key={thero.id} 
+              <Link
+                key={thero.id}
                 href={`/podcast/${thero.id}`}
                 className={`${styles.theroCard} glass glow-hover`}
                 id={`thero-card-${thero.id}`}
@@ -33,8 +33,8 @@ export default function HomePage() {
                 <div className={styles.theroCardHeader}>
                   <div className={styles.avatarPlaceholder}>
                     {thero.podcast.image_url ? (
-                      <img 
-                        src={thero.podcast.image_url.startsWith('http') ? thero.podcast.image_url : `${getTheroS3BaseUrl(thero)}/${thero.podcast.image_url}`} 
+                      <img
+                        src={thero.podcast.image_url.startsWith('http') ? thero.podcast.image_url : `${getTheroS3BaseUrl(thero)}/${thero.podcast.image_url}`}
                         alt={thero.name_sinhala || thero.name}
                         className={styles.avatarImg}
                       />
@@ -49,7 +49,6 @@ export default function HomePage() {
                         <span className={styles.englishNameSub}>{thero.name}</span>
                       )}
                     </h4>
-                    <span className={styles.badge}>Podcast Active</span>
                   </div>
                 </div>
                 <div className={styles.theroCardBody}>
@@ -66,8 +65,8 @@ export default function HomePage() {
         <section className={styles.section}>
           <h3 className={styles.sectionTitle}>දහම් පොත්පත් (Ebooks)</h3>
           <div className={styles.ebookContainer}>
-            <Link 
-              href="/ebooks" 
+            <Link
+              href="/ebooks"
               className={`${styles.ebookCard} glass glow-hover`}
               id="ebooks-library-card"
             >

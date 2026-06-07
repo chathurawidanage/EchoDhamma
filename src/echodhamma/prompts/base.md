@@ -14,6 +14,7 @@ Analyze the provided YouTube video and return a structured JSON response contain
 2. **Podcast Compatibility (`podcast_friendly`)**:
    * Set to `true` if the content is purely verbal or if the whiteboard/smartboard usage is **supplementary** (i.e., the listener can follow the logic easily without seeing the board).
    * Set to `false` only if visual aids are **essential** to understanding (e.g., complex diagrams where the speaker refers to "this" or "that" without naming the concept).
+   * Set to `false` if the content is predominantly musical (e.g., songs, chants, or background tracks) rather than a spoken-word explanation, lecture, or discussion.
 
 3. **Title Generation**:
    * **topic_summary**: Generate a concise, descriptive topic (3-10 words) based on the content.

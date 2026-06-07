@@ -54,10 +54,20 @@
   -webkit-text-fill-color: transparent;
 }
 
-.heroContent p {
+.heroLead {
+  color: var(--text-primary);
+  font-size: 1.15rem;
+  line-height: 1.65;
+  margin-bottom: 1.25rem;
+}
+
+.heroSub {
   color: var(--text-secondary);
-  font-size: 1.1rem;
+  font-size: 1rem;
   line-height: 1.6;
+  border-left: 3px solid var(--accent-gold);
+  padding-left: 1.25rem;
+  margin-top: 1.25rem;
 }
 
 .section {
