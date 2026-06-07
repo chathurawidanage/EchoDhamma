@@ -25,6 +25,14 @@ interface EpisodeDetailViewProps {
   transcript: string | null;
 }
 
+function getYouTubeEmbedUrl(url?: string): string | null {
+  if (!url) return null;
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  const videoId = (match && match[2].length === 11) ? match[2] : null;
+  return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+}
+
 export default function EpisodeDetailView({
   episode,
   thero,
@@ -42,6 +50,7 @@ export default function EpisodeDetailView({
 
   const isCurrentEpisode = currentTrack?.id === episode.id;
   const currentTime = isCurrentEpisode ? globalTime : 0;
+  const youtubeEmbedUrl = getYouTubeEmbedUrl(episode.youtube_url);
 
   const handlePlayEpisode = () => {
     const artworkUrl = episode.image_url || `${getTheroS3BaseUrl(thero)}/${thero.podcast.image_url}`;
@@ -226,6 +235,20 @@ export default function EpisodeDetailView({
 
       <div className={styles.detailsGrid}>
         <div className={styles.leftCol}>
+          {youtubeEmbedUrl && (
+            <div className={`${styles.card} ${styles.videoCard} glass`}>
+              <h4 className={`${styles.sectionHeading} ${styles.videoCardHeading}`}>දේශනාවේ වීඩියෝව (Watch Video)</h4>
+              <div className={styles.videoContainer}>
+                <iframe
+                  src={youtubeEmbedUrl}
+                  title={`${episode.display_title || episode.title} - YouTube`}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                ></iframe>
+              </div>
+            </div>
+          )}
+
           <div className={`${styles.card} glass`}>
             <h4 className={styles.sectionHeading}>දේශනාවේ විස්තරය (Episode Summary)</h4>
             <div 

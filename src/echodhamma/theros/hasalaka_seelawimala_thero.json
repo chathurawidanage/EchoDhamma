@@ -1,0 +1,57 @@
+{
+    "id": "hasalaka_seelawimala_thero",
+    "enabled": true,
+    "name": "Ven. Hasalaka Seelawimala Thero",
+    "rss": "https://files.widanage.com/hasala-seelawimala-thero-podcast/podcast.xml",
+    "blocklist": [],
+    "whitelisted": [],
+    "known_series": [],
+    "youtube_channel_urls": [
+        "https://www.youtube.com/channel/UCtmTjmQNsvvkCULd-z_1kow/videos",
+        "https://www.youtube.com/channel/UCfQqHQ0uiF7OHo6peS-8Rsw/videos"
+    ],
+    "umami": {
+        "website_id": "d3e03cc8-88df-40e7-9cc6-dc15a9e5f03d"
+    },
+    "ai_config": {
+        "enabled": true,
+        "summarize": true,
+        "chapters": true,
+        "check_podcast_friendly": true,
+        "gemini_api_key": "HASALAKA_THERO_GEMINI_API_KEY"
+    },
+    "sync_config": {
+        "max_videos_per_day": 999,
+        "max_ai_calls_per_day": 18
+    },
+    "rss_filename": "podcast.xml",
+    "s3": {
+        "endpoint_env": "HASALAKA_THERO_S3_ENDPOINT",
+        "bucket_env": "HASALAKA_THERO_S3_BUCKET",
+        "access_key_env": "HASALAKA_THERO_S3_ACCESS_KEY",
+        "secret_key_env": "HASALAKA_THERO_S3_SECRET_KEY"
+    },
+    "matcher": {
+        "sinhala_tokens": [
+            "හසලක",
+            "සීලවිමල"
+        ],
+        "english_tokens": [
+            "Hasalaka",
+            "Seelawimala",
+            "Seelavimala"
+        ]
+    },
+    "podcast": {
+        "title": "පූජ්‍ය හසලක සීලවිමල හිමි (Ven. Hasalaka Seelawimala Thero)",
+        "description": "පූජ්‍ය හසලක සීලවිමල ස්වාමීන් වහන්සේගේ ධර්ම දේශනා ඇතුළත් පෝඩ්කාස්ට් වැඩසටහන වෙත ඔබව මෙත් සිතින් පිළිගනිමු. මෙම ධර්ම දේශනාවන් අප වෙත සමීප කිරීමට උපකාරී වූ ප්‍රඥා TV සහ බෞද්ධයා මාධ්‍ය ජාලයන්ටත්, මෙහි පිරිවැය දරමින් උදාර ධර්ම දායකත්වය දැක්වූ සැදැහැවත් අනුග්‍රාහක භවතුන්ටත් අපගේ පුණ්‍යානුමෝදනාවන් පිරිනමමු.",
+        "author": "පූජ්‍ය හසලක සීලවිමල හිමි (Ven. Hasalaka Seelawimala Thero)",
+        "language": "si",
+        "category": "Religion & Spirituality",
+        "subcategory": "Buddhism",
+        "image_url": "hasalaka_seelawimala_thero.jpg",
+        "explicit": "no",
+        "email": "dhammadhana@widanage.com",
+        "description_template": "<p>පූජ්‍ය හසලක සීලවිමල ස්වාමීන් වහන්සේ (Ven. Hasalaka Seelawimala Thero) විසින් නිර්මල සද්ධර්මය ඇසුරෙන් පවත්වන ලද මෙම දේශනාව (Sinhala Dhamma Deshana) වීඩියෝවක් ලෙස නැරඹීමට කැමති නම්, පහත ඇති YouTube සබැඳිය (Link) වෙත පිවිසෙන්න.</p><p><a href=\"{original_url}\">{original_title}</a></p>"
+    }
+}

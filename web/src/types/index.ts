@@ -76,7 +76,9 @@ export interface Episode {
   image_url?: string;
   chapters?: ChapterData;
   has_transcript?: boolean;
+  youtube_url?: string;
 }
+
 
 export interface Ebook {
   id: string;

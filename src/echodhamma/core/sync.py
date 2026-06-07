@@ -70,7 +70,17 @@ class PodcastSync:
             self.sync_config.get("max_videos_per_day", DEFAULT_MAX_VIDEOS_PER_DAY),
             self.sync_config.get("max_ai_calls_per_day", DEFAULT_MAX_AI_CALLS_PER_DAY),
         )
-        self.ai_manager = AIManager(self.s3, self.rate_limiter) if self.ai_config.get("enabled") else None
+        api_key = None
+        if self.ai_config.get("enabled"):
+            api_key_var = self.ai_config.get("gemini_api_key")
+            if api_key_var:
+                api_key = os.getenv(api_key_var)
+
+        self.ai_manager = (
+            AIManager(self.s3, self.rate_limiter, api_key=api_key)
+            if self.ai_config.get("enabled")
+            else None
+        )
         self.yt_client = YouTubeClient()
 
         self.video_processor = VideoProcessor(

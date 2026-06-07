@@ -1,5 +1,20 @@
 import { XMLParser } from 'fast-xml-parser';
 import { Episode } from '../types';
+import https from 'https';
+
+function fetchUrlNative(url: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    https.get(url, (res) => {
+      if (res.statusCode && (res.statusCode < 200 || res.statusCode >= 300)) {
+        reject(new Error(`Status Code: ${res.statusCode}`));
+        return;
+      }
+      const data: any[] = [];
+      res.on('data', (chunk) => data.push(chunk));
+      res.on('end', () => resolve(Buffer.concat(data).toString('utf8')));
+    }).on('error', (err) => reject(err));
+  });
+}
 
 /**
  * Parses podcast RSS XML string into a structured array of Episode objects.
@@ -62,6 +77,27 @@ export function parsePodcastFeed(xmlText: string): Episode[] {
       description = description.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1');
     }
 
+    // Extract alternate enclosure YouTube URL if present
+    let youtubeUrl = '';
+    const rawAltEnc = item['podcast:alternateEnclosure'];
+    if (rawAltEnc) {
+      const altEncs = Array.isArray(rawAltEnc) ? rawAltEnc : [rawAltEnc];
+      for (const enc of altEncs) {
+        const rawSource = enc['podcast:source'];
+        if (rawSource) {
+          const sources = Array.isArray(rawSource) ? rawSource : [rawSource];
+          for (const src of sources) {
+            const uri = src['@_uri'] || '';
+            if (typeof uri === 'string' && (uri.includes('youtube.com') || uri.includes('youtu.be'))) {
+              youtubeUrl = uri;
+              break;
+            }
+          }
+        }
+        if (youtubeUrl) break;
+      }
+    }
+
     const episode: Episode = {
       id,
       title: item.title || 'No Title',
@@ -73,29 +109,50 @@ export function parsePodcastFeed(xmlText: string): Episode[] {
       pub_date: item.pubDate || '',
       duration: durationSeconds,
       image_url: imageHref || channel.image?.url || '',
+      youtube_url: youtubeUrl || undefined,
     };
 
     return episode;
   });
 }
 
+interface CacheEntry {
+  episodes: Episode[];
+  timestamp: number;
+}
+
+const rssCache = new Map<string, CacheEntry>();
+const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes cache duration
+
 /**
- * Fetches and parses a thero's RSS feed from S3 with cache revalidation (ISR).
+ * Fetches and parses a thero's RSS feed from S3 with custom in-memory caching.
+ * Bypasses Next.js fetch cache to avoid errors with feeds exceeding 2MB.
  */
 export async function fetchPodcastFeed(rssUrl: string): Promise<Episode[]> {
+  const now = Date.now();
+  const cached = rssCache.get(rssUrl);
+  if (cached && (now - cached.timestamp < CACHE_TTL_MS)) {
+    return cached.episodes;
+  }
+
   try {
-    const res = await fetch(rssUrl, {
-      next: { revalidate: 1800 }, // Cache and revalidate every 30 minutes
+    const xmlText = await fetchUrlNative(rssUrl);
+    const episodes = parsePodcastFeed(xmlText);
+
+    // Update in-memory cache
+    rssCache.set(rssUrl, {
+      episodes,
+      timestamp: now,
     });
 
-    if (!res.ok) {
-      throw new Error(`Failed to fetch RSS feed from S3 status: ${res.status}`);
-    }
-
-    const xmlText = await res.text();
-    return parsePodcastFeed(xmlText);
+    return episodes;
   } catch (error) {
     console.error(`Error fetching podcast feed for URL ${rssUrl}:`, error);
+    // If fetch fails but we have stale cache, return it
+    if (cached) {
+      console.log(`Returning stale cache for ${rssUrl} due to fetch failure`);
+      return cached.episodes;
+    }
     return [];
   }
 }
