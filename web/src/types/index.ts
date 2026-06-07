@@ -3,6 +3,7 @@ export interface AIConfig {
   summarize: boolean;
   chapters: boolean;
   check_podcast_friendly: boolean;
+  skip_title_rewrite?: boolean;
 }
 
 export interface SyncConfig {

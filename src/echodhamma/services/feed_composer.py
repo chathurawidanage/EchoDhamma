@@ -85,37 +85,44 @@ class FeedComposer:
             ai_data = res.get("ai_response")
 
             # Dynamic Title Generation
+            ai_config = self.config.get("ai_config") or {}
+            skip_title_rewrite = ai_config.get("skip_title_rewrite", False)
+
             if ai_data and ai_data.get("title_components"):
-                forced_series_path = video_series_map.get(video_id)
+                if skip_title_rewrite:
+                    res["display_title"] = original_title
+                    description += f"<b>{original_title}</b><br/><br/>"
+                else:
+                    forced_series_path = video_series_map.get(video_id)
 
-                extracted = extract_series_and_episode(
-                    original_title,
-                    self.known_series,
-                    forced_series_path=forced_series_path,
-                )
+                    extracted = extract_series_and_episode(
+                        original_title,
+                        self.known_series,
+                        forced_series_path=forced_series_path,
+                    )
 
-                # 1. Short Title for Feed
-                display_title = format_display_title(
-                    original_title,
-                    series_path=extracted.get("series_match_path"),
-                    episode_number=str(extracted.get("episode_number"))
-                    if extracted.get("episode_number") is not None
-                    else None,
-                    topic_summary=ai_data["title_components"].get("topic_summary"),
-                )
+                    # 1. Short Title for Feed
+                    display_title = format_display_title(
+                        original_title,
+                        series_path=extracted.get("series_match_path"),
+                        episode_number=str(extracted.get("episode_number"))
+                        if extracted.get("episode_number") is not None
+                        else None,
+                        topic_summary=ai_data["title_components"].get("topic_summary"),
+                    )
 
-                # 2. Full Title for Description
-                hierarchical_title = format_hierarchical_title(
-                    original_title,
-                    series_path=extracted.get("series_match_path"),
-                    episode_number=str(extracted.get("episode_number"))
-                    if extracted.get("episode_number") is not None
-                    else None,
-                    topic_summary=ai_data["title_components"].get("topic_summary"),
-                )
+                    # 2. Full Title for Description
+                    hierarchical_title = format_hierarchical_title(
+                        original_title,
+                        series_path=extracted.get("series_match_path"),
+                        episode_number=str(extracted.get("episode_number"))
+                        if extracted.get("episode_number") is not None
+                        else None,
+                        topic_summary=ai_data["title_components"].get("topic_summary"),
+                    )
 
-                res["display_title"] = display_title
-                description += f"<b>{hierarchical_title}</b><br/><br/>"
+                    res["display_title"] = display_title
+                    description += f"<b>{hierarchical_title}</b><br/><br/>"
 
             # Append AI description
             if ai_data and ai_data.get("description"):
