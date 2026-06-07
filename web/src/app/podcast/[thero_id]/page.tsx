@@ -39,7 +39,7 @@ export default async function TheroPage({ params }: TheroPageProps) {
     .join('') || 'Ven';
 
   const providers = thero.podcast.providers || {};
-  const queryTitle = encodeURIComponent(thero.podcast.title);
+  const queryTitle = encodeURIComponent(thero.name);
   
   const spotifyUrl = providers.spotify || `https://open.spotify.com/search/${queryTitle}`;
   const appleUrl = providers.apple || `https://podcasts.apple.com/us/search?term=${queryTitle}`;
@@ -58,7 +58,7 @@ export default async function TheroPage({ params }: TheroPageProps) {
           {thero.podcast.image_url ? (
             <img 
               src={thero.podcast.image_url.startsWith('http') ? thero.podcast.image_url : `${getTheroS3BaseUrl(thero)}/${thero.podcast.image_url}`} 
-              alt={thero.name}
+              alt={thero.name_sinhala || thero.name}
               className={styles.avatarImg}
             />
           ) : (
@@ -67,8 +67,12 @@ export default async function TheroPage({ params }: TheroPageProps) {
         </div>
         
         <div className={styles.profileInfo}>
-          <h1 className={styles.theroName}>{thero.name}</h1>
-          <h3 className={styles.podcastTitle}>{thero.podcast.title}</h3>
+          <h1 className={styles.theroName}>
+            {thero.name_sinhala || thero.name}
+            {thero.name_sinhala && (
+              <span className={styles.englishNameSub}>{thero.name}</span>
+            )}
+          </h1>
           <p className={styles.podcastDesc}>{thero.podcast.description}</p>
           
           <div className={styles.platformRow}>
@@ -158,17 +162,21 @@ export async function generateMetadata({ params }: TheroPageProps) {
     ? thero.podcast.image_url
     : `${getTheroS3BaseUrl(thero)}/${thero.podcast.image_url}`;
 
+  const displayName = thero.name_sinhala 
+    ? `${thero.name_sinhala} (${thero.name})` 
+    : thero.name;
+
   return {
-    title: `${thero.name} - ${thero.podcast.title} | EchoDhamma`,
+    title: `${displayName} | EchoDhamma`,
     description: thero.podcast.description.substring(0, 160),
     openGraph: {
-      title: `${thero.name} | EchoDhamma`,
+      title: `${displayName} | EchoDhamma`,
       description: thero.podcast.description.substring(0, 160),
       images: [{ url: logoUrl }],
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${thero.name} | EchoDhamma`,
+      title: `${displayName} | EchoDhamma`,
       description: thero.podcast.description.substring(0, 160),
       images: [logoUrl],
     },

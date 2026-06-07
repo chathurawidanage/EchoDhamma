@@ -109,6 +109,7 @@
   color: var(--accent-gold);
   overflow: hidden;
   position: relative;
+  flex-shrink: 0;
 }
 
 .avatarImg {
@@ -125,6 +126,14 @@
   font-size: 1.1rem;
   font-weight: 600;
   margin-bottom: 0.25rem;
+}
+
+.englishNameSub {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: 400;
+  margin-top: 0.15rem;
 }
 
 .badge {

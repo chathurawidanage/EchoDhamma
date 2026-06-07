@@ -52,9 +52,9 @@ export default async function EpisodePage({ params }: EpisodePageProps) {
   const displayTitleLower = (episode.display_title || '').trim().toLowerCase();
 
   const [appleMap, pocketcastsMap, spotifyMap] = await Promise.all([
-    providers.apple ? getAppleEpisodeLinks(providers.apple) : Promise.resolve({}),
-    providers.pocketcasts ? getPocketCastsEpisodeLinks(providers.pocketcasts) : Promise.resolve({}),
-    providers.spotify ? getSpotifyEpisodeLinks(providers.spotify) : Promise.resolve({}),
+    providers.apple ? getAppleEpisodeLinks(providers.apple) : Promise.resolve<Record<string, string>>({}),
+    providers.pocketcasts ? getPocketCastsEpisodeLinks(providers.pocketcasts) : Promise.resolve<Record<string, string>>({}),
+    providers.spotify ? getSpotifyEpisodeLinks(providers.spotify) : Promise.resolve<Record<string, string>>({}),
   ]);
 
   if (providers.apple) {
@@ -95,7 +95,10 @@ export async function generateMetadata({ params }: EpisodePageProps) {
     return { title: 'Episode Not Found' };
   }
 
-  const titleText = `${episode.title} - ${thero.name} | EchoDhamma`;
+  const displayName = thero.name_sinhala 
+    ? `${thero.name_sinhala} (${thero.name})` 
+    : thero.name;
+  const titleText = `${episode.title} - ${displayName} | EchoDhamma`;
   const descText = episode.description
     ? episode.description.replace(/<[^>]*>/g, '').substring(0, 160)
     : thero.podcast.description.substring(0, 160);

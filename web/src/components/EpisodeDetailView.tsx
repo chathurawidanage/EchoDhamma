@@ -7,11 +7,11 @@ import TranscriptViewer from './TranscriptViewer';
 import { formatDate, formatDuration } from '@/utils/format';
 import { getTheroS3BaseUrl } from '@/utils/theros';
 import useAudioPlayer from '@/hooks/useAudioPlayer';
-import { 
-  ClockIcon, 
-  SpotifyIcon, 
-  ApplePodcastIcon, 
-  AmazonMusicIcon, 
+import {
+  ClockIcon,
+  SpotifyIcon,
+  ApplePodcastIcon,
+  AmazonMusicIcon,
   PocketCastsIcon,
   PlayIcon,
   PauseIcon
@@ -66,7 +66,7 @@ export default function EpisodeDetailView({
       title: episode.display_title || episode.title,
       audioUrl: episode.s3_audio_url || episode.url,
       imageUrl: artworkUrl,
-      theroName: thero.name,
+      theroName: thero.name_sinhala || thero.name,
       theroId: thero.id,
       duration: episode.duration,
     });
@@ -119,7 +119,7 @@ export default function EpisodeDetailView({
   // Convert text timestamps in the HTML description to clickable buttons
   const linkifyTimestamps = (html: string): string => {
     if (!html) return '';
-    
+
     // Match optional parenthesis + HH:MM:SS or MM:SS + optional parenthesis
     const regex = /(\()?(\d{1,2}):(\d{2}):(\d{2})(\))?|(\()?(\d{1,2}):(\d{2})(\))?/g;
 
@@ -151,7 +151,7 @@ export default function EpisodeDetailView({
 
   const queryTitle = encodeURIComponent(episode.display_title || episode.title);
   const providers = thero.podcast.providers || {};
-  
+
   const spotifyUrl = directLinks?.spotify || providers.spotify || `https://open.spotify.com/search/${queryTitle}`;
   const appleUrl = directLinks?.apple || providers.apple || `https://podcasts.apple.com/us/search?term=${queryTitle}`;
   const amazonUrl = directLinks?.amazon || providers.amazon || `https://music.amazon.com/search/${queryTitle}`;
@@ -161,7 +161,7 @@ export default function EpisodeDetailView({
     <div className={styles.container}>
       <header className={styles.header}>
         <Link href={`/podcast/${thero.id}`} className={styles.backLink}>
-          ← {thero.name.replace('Ven. ', '')} දේශනා ලැයිස්තුවට
+          ← දේශනා ලැයිස්තුවට
         </Link>
       </header>
 
@@ -173,9 +173,14 @@ export default function EpisodeDetailView({
             <ClockIcon size={14} /> {formatDuration(episode.duration)}
           </span>
         </div>
-        
+
         <h1 className={styles.title}>{episode.display_title || episode.title}</h1>
-        <span className={styles.speaker}>දේශකයාණෝ: {thero.name}</span>
+        <span className={styles.speaker}>
+          {thero.name_sinhala || thero.name}
+          {thero.name_sinhala && (
+            <span className={styles.englishNameSmall}> ({thero.name})</span>
+          )}
+        </span>
 
         {/* Local player segment */}
         <div className={`${styles.playerCard} glass`}>
@@ -208,37 +213,37 @@ export default function EpisodeDetailView({
         <div className={styles.platformSection}>
           <div className={styles.platformTitle}>වෙනත් මාධ්‍ය හරහා ශ්‍රවණය/නැරඹීම (Listen on other apps)</div>
           <div className={styles.platformRow}>
-            <a 
-              href={spotifyUrl} 
-              target="_blank" 
-              rel="noopener noreferrer" 
+            <a
+              href={spotifyUrl}
+              target="_blank"
+              rel="noopener noreferrer"
               className={`${styles.platformBtn} ${styles.spotify}`}
               id="ext-spotify"
             >
               <SpotifyIcon size={14} /> Spotify
             </a>
-            <a 
-              href={appleUrl} 
-              target="_blank" 
-              rel="noopener noreferrer" 
+            <a
+              href={appleUrl}
+              target="_blank"
+              rel="noopener noreferrer"
               className={`${styles.platformBtn} ${styles.apple}`}
               id="ext-apple"
             >
               <ApplePodcastIcon size={14} /> Apple Podcast
             </a>
-            <a 
-              href={amazonUrl} 
-              target="_blank" 
-              rel="noopener noreferrer" 
+            <a
+              href={amazonUrl}
+              target="_blank"
+              rel="noopener noreferrer"
               className={`${styles.platformBtn} ${styles.amazon}`}
               id="ext-amazon"
             >
               <AmazonMusicIcon size={14} /> Amazon Music
             </a>
-            <a 
-              href={pocketUrl} 
-              target="_blank" 
-              rel="noopener noreferrer" 
+            <a
+              href={pocketUrl}
+              target="_blank"
+              rel="noopener noreferrer"
               className={`${styles.platformBtn} ${styles.pocket}`}
               id="ext-pocket"
             >
@@ -266,7 +271,7 @@ export default function EpisodeDetailView({
 
           <div className={`${styles.card} glass`}>
             <h4 className={styles.sectionHeading}>දේශනාවේ විස්තරය (Episode Summary)</h4>
-            <div 
+            <div
               className={styles.summaryContent}
               onClick={handleDescriptionClick}
               dangerouslySetInnerHTML={{ __html: linkifyTimestamps(episode.description) }}
@@ -276,9 +281,9 @@ export default function EpisodeDetailView({
           {transcript && (
             <div className={`${styles.card} glass`}>
               <h4 className={styles.sectionHeading}>දේශනාවේ පිටපත (Transcript timeline)</h4>
-              <TranscriptViewer 
-                transcriptText={transcript} 
-                currentTime={currentTime} 
+              <TranscriptViewer
+                transcriptText={transcript}
+                currentTime={currentTime}
                 onTimestampClick={handleTranscriptSeek}
               />
             </div>
@@ -289,9 +294,9 @@ export default function EpisodeDetailView({
           <div className={styles.rightCol}>
             <div className={`${styles.card} glass ${styles.stickyChapters}`}>
               <h4 className={styles.sectionHeading}>දේශනාවේ ප්‍රධාන මාතෘකා (Chapters)</h4>
-              <ChaptersList 
-                chapters={chapters.chapters} 
-                currentTime={currentTime} 
+              <ChaptersList
+                chapters={chapters.chapters}
+                currentTime={currentTime}
                 onChapterClick={(seconds) => {
                   const ch = chapters.chapters.find((c) => c.startTime === seconds);
                   handleChapterSeek(seconds, ch?.title || '');

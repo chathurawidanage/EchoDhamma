@@ -35,7 +35,7 @@ export default function HomePage() {
                     {thero.podcast.image_url ? (
                       <img 
                         src={thero.podcast.image_url.startsWith('http') ? thero.podcast.image_url : `${getTheroS3BaseUrl(thero)}/${thero.podcast.image_url}`} 
-                        alt={thero.name}
+                        alt={thero.name_sinhala || thero.name}
                         className={styles.avatarImg}
                       />
                     ) : (
@@ -43,12 +43,16 @@ export default function HomePage() {
                     )}
                   </div>
                   <div>
-                    <h4 className={styles.theroName}>{thero.name}</h4>
+                    <h4 className={styles.theroName}>
+                      {thero.name_sinhala || thero.name}
+                      {thero.name_sinhala && (
+                        <span className={styles.englishNameSub}>{thero.name}</span>
+                      )}
+                    </h4>
                     <span className={styles.badge}>Podcast Active</span>
                   </div>
                 </div>
                 <div className={styles.theroCardBody}>
-                  <h5 className={styles.podcastTitle}>{thero.podcast.title}</h5>
                   <p className={styles.podcastDesc}>{thero.podcast.description}</p>
                 </div>
                 <div className={styles.theroCardFooter}>

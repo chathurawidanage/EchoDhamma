@@ -45,6 +45,7 @@ export interface TheroConfig {
   id: string;
   enabled: boolean;
   name: string;
+  name_sinhala?: string;
   rss?: string; // Absolute path to podcast RSS feed
   blocklist: string[];
   youtube_channel_urls: string[];

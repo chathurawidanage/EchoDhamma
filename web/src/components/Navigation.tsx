@@ -51,7 +51,7 @@ export default function Navigation({ theros }: NavigationProps) {
                 onClick={closeMenu}
                 className={`${styles.navLink} ${isPodcastActive(thero.id) ? styles.active : ''}`}
               >
-                <span className={styles.linkIcon}><PodcastIcon size={18} /></span> {thero.name.replace('Ven. ', '')}
+                <span className={styles.linkIcon}><PodcastIcon size={18} /></span> {thero.name_sinhala || thero.name.replace('Ven. ', '')}
               </Link>
             ))}
           </div>

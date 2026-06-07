@@ -61,6 +61,14 @@
   font-weight: 600;
 }
 
+.englishNameSmall {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-top: 0.15rem;
+}
+
 .playerCard {
   margin-top: 1.5rem;
   padding: 1.25rem;
