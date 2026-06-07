@@ -23,6 +23,12 @@ interface EpisodeDetailViewProps {
   thero: TheroConfig;
   chapters: ChapterData | null;
   transcript: string | null;
+  directLinks?: {
+    apple: string;
+    spotify: string;
+    pocketcasts: string;
+    amazon: string;
+  };
 }
 
 function getYouTubeEmbedUrl(url?: string): string | null {
@@ -38,6 +44,7 @@ export default function EpisodeDetailView({
   thero,
   chapters,
   transcript,
+  directLinks,
 }: EpisodeDetailViewProps) {
   const {
     currentTrack,
@@ -142,6 +149,14 @@ export default function EpisodeDetailView({
     }
   };
 
+  const queryTitle = encodeURIComponent(episode.display_title || episode.title);
+  const providers = thero.podcast.providers || {};
+  
+  const spotifyUrl = directLinks?.spotify || providers.spotify || `https://open.spotify.com/search/${queryTitle}`;
+  const appleUrl = directLinks?.apple || providers.apple || `https://podcasts.apple.com/us/search?term=${queryTitle}`;
+  const amazonUrl = directLinks?.amazon || providers.amazon || `https://music.amazon.com/search/${queryTitle}`;
+  const pocketUrl = directLinks?.pocketcasts || providers.pocketcasts || `https://pocketcasts.com/search?q=${queryTitle}`;
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
@@ -194,7 +209,7 @@ export default function EpisodeDetailView({
           <div className={styles.platformTitle}>වෙනත් මාධ්‍ය හරහා ශ්‍රවණය/නැරඹීම (Listen on other apps)</div>
           <div className={styles.platformRow}>
             <a 
-              href={`https://open.spotify.com/search/${encodeURIComponent(episode.display_title || episode.title)}`} 
+              href={spotifyUrl} 
               target="_blank" 
               rel="noopener noreferrer" 
               className={`${styles.platformBtn} ${styles.spotify}`}
@@ -203,7 +218,7 @@ export default function EpisodeDetailView({
               <SpotifyIcon size={14} /> Spotify
             </a>
             <a 
-              href={`https://podcasts.apple.com/us/search?term=${encodeURIComponent(episode.display_title || episode.title)}`} 
+              href={appleUrl} 
               target="_blank" 
               rel="noopener noreferrer" 
               className={`${styles.platformBtn} ${styles.apple}`}
@@ -212,7 +227,7 @@ export default function EpisodeDetailView({
               <ApplePodcastIcon size={14} /> Apple Podcast
             </a>
             <a 
-              href={`https://music.amazon.com/search/${encodeURIComponent(episode.display_title || episode.title)}`} 
+              href={amazonUrl} 
               target="_blank" 
               rel="noopener noreferrer" 
               className={`${styles.platformBtn} ${styles.amazon}`}
@@ -221,7 +236,7 @@ export default function EpisodeDetailView({
               <AmazonMusicIcon size={14} /> Amazon Music
             </a>
             <a 
-              href={`https://pocketcasts.com/search?q=${encodeURIComponent(episode.display_title || episode.title)}`} 
+              href={pocketUrl} 
               target="_blank" 
               rel="noopener noreferrer" 
               className={`${styles.platformBtn} ${styles.pocket}`}

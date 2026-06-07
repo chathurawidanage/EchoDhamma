@@ -9,6 +9,7 @@ import {
   SpotifyIcon, 
   ApplePodcastIcon, 
   AmazonMusicIcon, 
+  PocketCastsIcon,
   RssIcon 
 } from '@/components/Icons';
 import styles from './page.module.css';
@@ -36,6 +37,13 @@ export default async function TheroPage({ params }: TheroPageProps) {
     .filter(n => !n.startsWith('Ven.') && !n.startsWith('Thero') && !n.startsWith('අති') && !n.startsWith('පූජ්‍ය'))
     .map(n => n[0])
     .join('') || 'Ven';
+
+  const providers = thero.podcast.providers || {};
+  const queryTitle = encodeURIComponent(thero.podcast.title);
+  
+  const spotifyUrl = providers.spotify || `https://open.spotify.com/search/${queryTitle}`;
+  const appleUrl = providers.apple || `https://podcasts.apple.com/us/search?term=${queryTitle}`;
+  const amazonUrl = providers.amazon || `https://music.amazon.com/search/${queryTitle}`;
 
   return (
     <div className={styles.container}>
@@ -77,7 +85,7 @@ export default async function TheroPage({ params }: TheroPageProps) {
             )}
             
             <a 
-              href={`https://open.spotify.com/search/${encodeURIComponent(thero.podcast.title)}`} 
+              href={spotifyUrl} 
               target="_blank" 
               rel="noopener noreferrer" 
               className={`${styles.platformBtn} ${styles.spotify}`}
@@ -87,7 +95,7 @@ export default async function TheroPage({ params }: TheroPageProps) {
             </a>
             
             <a 
-              href={`https://podcasts.apple.com/us/search?term=${encodeURIComponent(thero.podcast.title)}`} 
+              href={appleUrl} 
               target="_blank" 
               rel="noopener noreferrer" 
               className={`${styles.platformBtn} ${styles.apple}`}
@@ -97,7 +105,7 @@ export default async function TheroPage({ params }: TheroPageProps) {
             </a>
 
             <a 
-              href={`https://music.amazon.com/search/${encodeURIComponent(thero.podcast.title)}`} 
+              href={amazonUrl} 
               target="_blank" 
               rel="noopener noreferrer" 
               className={`${styles.platformBtn} ${styles.amazon}`}
@@ -105,6 +113,18 @@ export default async function TheroPage({ params }: TheroPageProps) {
             >
               <AmazonMusicIcon size={16} /> Amazon Music
             </a>
+
+            {providers.pocketcasts && (
+              <a 
+                href={providers.pocketcasts} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className={`${styles.platformBtn} ${styles.pocket}`}
+                id="platform-pocket-btn"
+              >
+                <PocketCastsIcon size={16} /> Pocket Casts
+              </a>
+            )}
 
             <a 
               href={rssUrl} 

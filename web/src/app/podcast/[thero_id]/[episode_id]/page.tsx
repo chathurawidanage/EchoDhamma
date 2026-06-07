@@ -4,6 +4,11 @@ import { getTheroS3BaseUrl } from '@/utils/theros';
 import { fetchPodcastFeed } from '@/utils/rssParser';
 import { fetchEpisodeChapters, fetchEpisodeTranscript } from '@/utils/s3';
 import EpisodeDetailView from '@/components/EpisodeDetailView';
+import { 
+  getAppleEpisodeLinks, 
+  getPocketCastsEpisodeLinks, 
+  getSpotifyEpisodeLinks 
+} from '@/utils/episodeLinks';
 
 interface EpisodePageProps {
   params: Promise<{ thero_id: string; episode_id: string }>;
@@ -33,12 +38,44 @@ export default async function EpisodePage({ params }: EpisodePageProps) {
     fetchEpisodeTranscript(thero, episode_id),
   ]);
 
+  // Resolve direct podcast platform links
+  const providers = thero.podcast.providers || {};
+  const directLinks = {
+    apple: '',
+    spotify: '',
+    pocketcasts: '',
+    amazon: '',
+  };
+
+  const mp3Filename = episode.url.split('/').pop() || '';
+  const episodeTitleLower = episode.title.trim().toLowerCase();
+  const displayTitleLower = (episode.display_title || '').trim().toLowerCase();
+
+  const [appleMap, pocketcastsMap, spotifyMap] = await Promise.all([
+    providers.apple ? getAppleEpisodeLinks(providers.apple) : Promise.resolve({}),
+    providers.pocketcasts ? getPocketCastsEpisodeLinks(providers.pocketcasts) : Promise.resolve({}),
+    providers.spotify ? getSpotifyEpisodeLinks(providers.spotify) : Promise.resolve({}),
+  ]);
+
+  if (providers.apple) {
+    directLinks.apple = appleMap[episode.id] || appleMap[mp3Filename] || '';
+  }
+
+  if (providers.pocketcasts) {
+    directLinks.pocketcasts = pocketcastsMap[mp3Filename] || '';
+  }
+
+  if (providers.spotify) {
+    directLinks.spotify = spotifyMap[episodeTitleLower] || spotifyMap[displayTitleLower] || '';
+  }
+
   return (
     <EpisodeDetailView
       episode={episode}
       thero={thero}
       chapters={chapters}
       transcript={transcript}
+      directLinks={directLinks}
     />
   );
 }

@@ -33,6 +33,12 @@ export interface PodcastMetadata {
   explicit: string;
   email: string;
   description_template: string;
+  providers?: {
+    apple?: string;
+    spotify?: string;
+    amazon?: string;
+    pocketcasts?: string;
+  };
 }
 
 export interface TheroConfig {
