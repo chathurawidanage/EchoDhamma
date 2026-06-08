@@ -42,6 +42,11 @@ export default function EbookCard({ ebook }: EbookCardProps) {
         <h4 className={styles.title} title={ebook.title}>
           {ebook.title}
         </h4>
+        {ebook.title_transliterated && (
+          <span className={styles.titleTransliterated} title={ebook.title_transliterated}>
+            {ebook.title_transliterated}
+          </span>
+        )}
         <span className={styles.author}>{ebook.author}</span>
         <p className={styles.description}>{ebook.description}</p>
 

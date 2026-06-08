@@ -1,29 +1,20 @@
 [
   {
-    "id": "abhidharma-margaya",
-    "title": "අභිධර්ම මාර්ගය (Abhidharma Margaya)",
+    "id": "abi-dharmaye-moolika-karunu",
+    "title": "අභිධර්මයේ මූලික කරුණු",
+    "title_transliterated": "Abhidharmaye Moolika Karunu",
     "author": "අති පූජ්‍ය රේරුකානේ චන්දවිමල මහා නාහිමි",
-    "description": "අභිධර්ම පිටකයේ ඇති අතිශය ගැඹුරු දහම් කරුණු සරලව සහ ක්‍රමානුකූලව හදාරන්නන් සඳහා සකස් කරන ලද සම්භාව්‍ය දහම් ග්‍රන්ථයකි.",
-    "cover_url": "/covers/abhidharma-margaya.jpg",
-    "pdf_url": "https://files.widanage.com/ebooks/abhidharma-margaya.pdf",
-    "epub_url": "https://files.widanage.com/ebooks/abhidharma-margaya.epub"
+    "description": "අභිධර්මය පිළිබඳ මූලික කරුණු සරලව හා පැහැදිලිව විස්තර කෙරෙන වටිනා දහම් ග්‍රන්ථයකි.",
+    "cover_url": "/ebooks/Abi_Dharmaye_Moolika_Karunu/Abi_Dharmaye_Moolika_Karunu.jpg",
+    "epub_url": "/ebooks/Abi_Dharmaye_Moolika_Karunu/Abi_Dharmaye_Moolika_Karunu.epub"
   },
   {
-    "id": "bauddha-rakshanaya",
-    "title": "බෞද්ධ ආරක්ෂාව (Bauddha Rakshanaya)",
+    "id": "chathurarya-sathyaya",
+    "title": "චතුරාර්ය සත්‍යය",
+    "title_transliterated": "Chathurarya Sathyaya",
     "author": "අති පූජ්‍ය රේරුකානේ චන්දවිමල මහා නාහිමි",
-    "description": "ලෞකික සහ ලෝකෝත්තර දියුණුව සලසා ගැනීම පිණිසත්, විවිධ උපද්‍රවයන්ගෙන් ආරක්ෂා වීම පිණිසත් බෞද්ධයන් විසින් අනුගමනය කළ යුතු පිළිවෙත් පැහැදිලි කෙරෙන ග්‍රන්ථයකි.",
-    "cover_url": "/covers/bauddha-rakshanaya.jpg",
-    "pdf_url": "https://files.widanage.com/ebooks/bauddha-rakshanaya.pdf",
-    "epub_url": "https://files.widanage.com/ebooks/bauddha-rakshanaya.epub"
-  },
-  {
-    "id": "punyopadeshaya",
-    "title": "පුණ්‍යෝපදේශය (Punyopadeshaya)",
-    "author": "අති පූජ්‍ය රේරුකානේ චන්දවිමල මහා නාහිමි",
-    "description": "පින් සිදු කරගන්නා ආකාරය, පින් දීමේදී සහ අනුමෝදන් වීමේදී සිහිතබා ගත යුතු කරුණු සහ කුසල් සිත් උපදවා ගන්නා අයුරු සවිස්තරාත්මකව විග්‍රහ කෙරෙන වටිනා පොතකි.",
-    "cover_url": "/covers/punyopadeshaya.jpg",
-    "pdf_url": "https://files.widanage.com/ebooks/punyopadeshaya.pdf",
-    "epub_url": "https://files.widanage.com/ebooks/punyopadeshaya.epub"
+    "description": "චතුරාර්ය සත්‍යය පිළිබඳ ගැඹුරු දහම් කරුණු පැහැදිලි කර දෙන සම්භාව්‍ය ධර්ම ග්‍රන්ථයකි.",
+    "cover_url": "/ebooks/Chathurarya_Sathyaya/Chathurarya_Sathyaya.jpg",
+    "epub_url": "/ebooks/Chathurarya_Sathyaya/Chathurarya_Sathyaya.epub"
   }
 ]

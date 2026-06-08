@@ -30,32 +30,28 @@ export default function HomePage() {
                 className={`${styles.theroCard} glass glow-hover`}
                 id={`thero-card-${thero.id}`}
               >
-                <div className={styles.theroCardHeader}>
-                  <div className={styles.avatarPlaceholder}>
-                    {thero.podcast.image_url ? (
-                      <img
-                        src={thero.podcast.image_url.startsWith('http') ? thero.podcast.image_url : `${getTheroS3BaseUrl(thero)}/${thero.podcast.image_url}`}
-                        alt={thero.name_sinhala || thero.name}
-                        className={styles.avatarImg}
-                      />
-                    ) : (
-                      thero.name.split(' ').filter(n => !n.startsWith('Ven.') && !n.startsWith('Thero') && !n.startsWith('අති') && !n.startsWith('පූජ්‍ය')).map(n => n[0]).join('') || 'Ven'
+                <div className={styles.avatarPlaceholder}>
+                  {thero.podcast.image_url ? (
+                    <img
+                      src={thero.podcast.image_url.startsWith('http') ? thero.podcast.image_url : `${getTheroS3BaseUrl(thero)}/${thero.podcast.image_url}`}
+                      alt={thero.name_sinhala || thero.name}
+                      className={styles.avatarImg}
+                    />
+                  ) : (
+                    thero.name.split(' ').filter(n => !n.startsWith('Ven.') && !n.startsWith('Thero') && !n.startsWith('අති') && !n.startsWith('පූජ්‍ය')).map(n => n[0]).join('') || 'Ven'
+                  )}
+                </div>
+                <div className={styles.theroCardContent}>
+                  <h4 className={styles.theroName}>
+                    {thero.name_sinhala || thero.name}
+                    {thero.name_sinhala && (
+                      <span className={styles.englishNameSub}>{thero.name}</span>
                     )}
-                  </div>
-                  <div>
-                    <h4 className={styles.theroName}>
-                      {thero.name_sinhala || thero.name}
-                      {thero.name_sinhala && (
-                        <span className={styles.englishNameSub}>{thero.name}</span>
-                      )}
-                    </h4>
-                  </div>
-                </div>
-                <div className={styles.theroCardBody}>
+                  </h4>
                   <p className={styles.podcastDesc}>{thero.podcast.description}</p>
-                </div>
-                <div className={styles.theroCardFooter}>
-                  <span>දේශනා ශ්‍රවණය කරන්න →</span>
+                  <div className={styles.theroCardFooter}>
+                    <span>දේශනා ශ්‍රවණය කරන්න →</span>
+                  </div>
                 </div>
               </Link>
             ))}

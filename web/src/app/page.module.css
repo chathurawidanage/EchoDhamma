@@ -92,29 +92,24 @@
 
 .theroCard {
   border-radius: var(--border-radius-lg);
-  padding: 2rem;
+  padding: 1.5rem;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 1.5rem;
+  align-items: flex-start;
   transition: var(--transition-smooth);
 }
 
-.theroCardHeader {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
 .avatarPlaceholder {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
+  width: 110px;
+  height: 110px;
+  border-radius: var(--border-radius-md);
   background: var(--bg-tertiary);
   border: 1px solid var(--border-light);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.95rem;
+  font-size: 1.5rem;
   font-weight: 600;
   color: var(--accent-gold);
   overflow: hidden;
@@ -129,13 +124,21 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 50%;
+  border-radius: var(--border-radius-md);
+}
+
+.theroCardContent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
 }
 
 .theroName {
   font-size: 1.1rem;
   font-weight: 600;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.15rem;
 }
 
 .englishNameSub {
@@ -154,10 +157,6 @@
   padding: 0.1rem 0.5rem;
   border-radius: 9999px;
   font-weight: 500;
-}
-
-.theroCardBody {
-  flex: 1;
 }
 
 .podcastTitle {
@@ -182,6 +181,7 @@
   font-size: 0.9rem;
   font-weight: 500;
   transition: var(--transition-fast);
+  margin-top: 0.25rem;
 }
 
 .theroCard:hover .theroCardFooter {
@@ -282,6 +282,16 @@
   .theroGrid {
     grid-template-columns: 1fr;
     gap: 1.5rem;
+  }
+
+  .theroCard {
+    padding: 1.25rem;
+    gap: 1rem;
+  }
+
+  .avatarPlaceholder {
+    width: 90px;
+    height: 90px;
   }
   
   .ebookCard {

@@ -91,6 +91,7 @@ export interface Episode {
 export interface Ebook {
   id: string;
   title: string;
+  title_transliterated?: string;
   author: string;
   description: string;
   cover_url: string;
