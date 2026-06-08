@@ -58,7 +58,8 @@
         "providers": {
             "pocketcasts": "https://pca.st/v5gt26az",
             "spotify": "https://open.spotify.com/show/033uDh1bVo90ZJWrLULklc",
-            "apple": "https://podcasts.apple.com/us/podcast/පූජ්‍ය-හසලක-සීලවිමල-හිමි-ven-hasalaka-seelawimala-thero/id1896893840"
+            "apple": "https://podcasts.apple.com/us/podcast/පූජ්‍ය-හසලක-සීලවිමල-හිමි-ven-hasalaka-seelawimala-thero/id1896893840",
+            "amazon": "https://music.amazon.com/podcasts/80d8f565-8f56-426b-a02e-a383b08ef9bb/පජය-හසලක-සලවමල-හම-ven-hasalaka-seelawimala-thero"
         }
     }
 }
