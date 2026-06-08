@@ -52,14 +52,15 @@ export default function EbookCard({ ebook }: EbookCardProps) {
 
         {/* Action Buttons */}
         <div className={styles.actions}>
-          {ebook.pdf_url && (
+          {(ebook.pdf_url || ebook.html_url) && (
             <Link 
               href={`/ebooks/${ebook.id}/read`}
               className={`${styles.actionBtn} ${styles.readBtn}`}
               id={`read-online-${ebook.id}`}
               onClick={() => {
-                if (typeof window !== 'undefined' && (window as any).umami) {
-                  (window as any).umami.track('Ebook Read Online', { title: ebook.title, id: ebook.id });
+                const win = window as unknown as { umami?: { track: (event: string, data: Record<string, string>) => void } };
+                if (typeof window !== 'undefined' && win.umami) {
+                  win.umami.track('Ebook Read Online', { title: ebook.title, id: ebook.id });
                 }
               }}
             >
@@ -75,8 +76,9 @@ export default function EbookCard({ ebook }: EbookCardProps) {
                 className={`${styles.actionBtn} ${styles.downloadBtn}`}
                 id={`download-pdf-${ebook.id}`}
                 onClick={() => {
-                  if (typeof window !== 'undefined' && (window as any).umami) {
-                    (window as any).umami.track('Ebook Download', { title: ebook.title, id: ebook.id, format: 'pdf' });
+                  const win = window as unknown as { umami?: { track: (event: string, data: Record<string, string>) => void } };
+                  if (typeof window !== 'undefined' && win.umami) {
+                    win.umami.track('Ebook Download', { title: ebook.title, id: ebook.id, format: 'pdf' });
                   }
                 }}
               >
@@ -91,8 +93,9 @@ export default function EbookCard({ ebook }: EbookCardProps) {
                 className={`${styles.actionBtn} ${styles.downloadBtn}`}
                 id={`download-epub-${ebook.id}`}
                 onClick={() => {
-                  if (typeof window !== 'undefined' && (window as any).umami) {
-                    (window as any).umami.track('Ebook Download', { title: ebook.title, id: ebook.id, format: 'epub' });
+                  const win = window as unknown as { umami?: { track: (event: string, data: Record<string, string>) => void } };
+                  if (typeof window !== 'undefined' && win.umami) {
+                    win.umami.track('Ebook Download', { title: ebook.title, id: ebook.id, format: 'epub' });
                   }
                 }}
               >

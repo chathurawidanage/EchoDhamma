@@ -97,4 +97,5 @@ export interface Ebook {
   cover_url: string;
   pdf_url?: string;
   epub_url?: string;
+  html_url?: string;
 }
