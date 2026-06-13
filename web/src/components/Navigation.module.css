@@ -301,3 +301,37 @@
     z-index: 1008;
   }
 }
+
+.navAndActions {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.themeToggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--border-light);
+  color: var(--text-secondary);
+  background: transparent;
+  transition: var(--transition-smooth);
+  cursor: pointer;
+}
+
+.themeToggle:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--accent-gold);
+  border-color: var(--accent-gold);
+  transform: rotate(15deg) scale(1.05);
+}
+
+@media (max-width: 1024px) {
+  .navAndActions {
+    gap: 1rem;
+  }
+}
+

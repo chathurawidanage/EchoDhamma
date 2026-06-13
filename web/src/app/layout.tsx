@@ -40,7 +40,23 @@ export default function RootLayout({
   const theros = getTheros();
 
   return (
-    <html lang="si">
+    <html lang="si" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var savedTheme = localStorage.getItem('theme');
+                  if (savedTheme === 'light' || (!savedTheme && window.matchMedia('(prefers-color-scheme: light)').matches)) {
+                    document.documentElement.classList.add('light-theme');
+                  }
+                } catch (e) {}
+              })();
+            `
+          }}
+        />
+      </head>
       <body>
         <UmamiTracker />
         <AudioPlayerProvider>

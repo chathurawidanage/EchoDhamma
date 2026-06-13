@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { TheroConfig } from '@/types';
-import { HomeIcon, PodcastIcon, BookIcon } from './Icons';
+import { HomeIcon, PodcastIcon, BookIcon, SunIcon, MoonIcon } from './Icons';
 import styles from './Navigation.module.css';
 
 interface NavigationProps {
@@ -13,7 +13,27 @@ interface NavigationProps {
 
 export default function Navigation({ theros }: NavigationProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const pathname = usePathname();
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isLight = document.documentElement.classList.contains('light-theme');
+      setTheme(isLight ? 'light' : 'dark');
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+    if (newTheme === 'light') {
+      document.documentElement.classList.add('light-theme');
+      localStorage.setItem('theme', 'light');
+    } else {
+      document.documentElement.classList.remove('light-theme');
+      localStorage.setItem('theme', 'dark');
+    }
+  };
 
   const toggleMenu = () => setIsOpen(!isOpen);
   const closeMenu = () => setIsOpen(false);
@@ -32,48 +52,60 @@ export default function Navigation({ theros }: NavigationProps) {
           </span>
         </Link>
 
-        {/* Desktop Navigation Links */}
-        <nav className={styles.desktopNav}>
-          <Link
-            href="/"
-            className={`${styles.navLink} ${isActive('/') ? styles.active : ''}`}
-          >
-            <span className={styles.linkIcon}><HomeIcon size={18} /></span> මුල් පිටුව (Home)
-          </Link>
-
-          <div className={styles.dropdown}>
-            <button
-              className={`${styles.navLink} ${styles.dropdownTrigger} ${pathname?.startsWith('/podcast') ? styles.active : ''}`}
+        <div className={styles.navAndActions}>
+          {/* Desktop Navigation Links */}
+          <nav className={styles.desktopNav}>
+            <Link
+              href="/"
+              className={`${styles.navLink} ${isActive('/') ? styles.active : ''}`}
             >
-              <span className={styles.linkIcon}><PodcastIcon size={18} /></span> ධර්ම දේශනා (Podcasts) <span className={styles.arrow}>▼</span>
-            </button>
-            <div className={`${styles.dropdownContent} glass`}>
-              {theros.map((thero) => (
-                <Link
-                  key={thero.id}
-                  href={`/podcast/${thero.id}`}
-                  className={`${styles.dropdownLink} ${isPodcastActive(thero.id) ? styles.activeDropdown : ''}`}
-                >
-                  {thero.name_sinhala || thero.name.replace('Ven. ', '')}
-                </Link>
-              ))}
+              <span className={styles.linkIcon}><HomeIcon size={18} /></span> මුල් පිටුව (Home)
+            </Link>
+
+            <div className={styles.dropdown}>
+              <button
+                className={`${styles.navLink} ${styles.dropdownTrigger} ${pathname?.startsWith('/podcast') ? styles.active : ''}`}
+              >
+                <span className={styles.linkIcon}><PodcastIcon size={18} /></span> ධර්ම දේශනා (Podcasts) <span className={styles.arrow}>▼</span>
+              </button>
+              <div className={`${styles.dropdownContent} glass`}>
+                {theros.map((thero) => (
+                  <Link
+                    key={thero.id}
+                    href={`/podcast/${thero.id}`}
+                    className={`${styles.dropdownLink} ${isPodcastActive(thero.id) ? styles.activeDropdown : ''}`}
+                  >
+                    {thero.name_sinhala || thero.name.replace('Ven. ', '')}
+                  </Link>
+                ))}
+              </div>
             </div>
-          </div>
 
-          <Link
-            href="/ebooks"
-            className={`${styles.navLink} ${isActive('/ebooks') || pathname?.startsWith('/ebooks/') ? styles.active : ''}`}
+            <Link
+              href="/ebooks"
+              className={`${styles.navLink} ${isActive('/ebooks') || pathname?.startsWith('/ebooks/') ? styles.active : ''}`}
+            >
+              <span className={styles.linkIcon}><BookIcon size={18} /></span> පොත් එකතුව (Ebooks)
+            </Link>
+          </nav>
+
+          {/* Theme Toggle Button */}
+          <button
+            className={styles.themeToggle}
+            onClick={toggleTheme}
+            aria-label="Toggle dark/light mode"
+            title={theme === 'dark' ? 'ආලෝක තේමාව (Light Mode)' : 'අඳුරු තේමාව (Dark Mode)'}
           >
-            <span className={styles.linkIcon}><BookIcon size={18} /></span> පොත් එකතුව (Ebooks)
-          </Link>
-        </nav>
+            {theme === 'dark' ? <SunIcon size={18} /> : <MoonIcon size={18} />}
+          </button>
 
-        {/* Mobile Hamburger Button */}
-        <button className={styles.hamburger} onClick={toggleMenu} aria-label="Toggle menu">
-          <span className={`${styles.bar} ${isOpen ? styles.barOpen1 : ''}`}></span>
-          <span className={`${styles.bar} ${isOpen ? styles.barOpen2 : ''}`}></span>
-          <span className={`${styles.bar} ${isOpen ? styles.barOpen3 : ''}`}></span>
-        </button>
+          {/* Mobile Hamburger Button */}
+          <button className={styles.hamburger} onClick={toggleMenu} aria-label="Toggle menu">
+            <span className={`${styles.bar} ${isOpen ? styles.barOpen1 : ''}`}></span>
+            <span className={`${styles.bar} ${isOpen ? styles.barOpen2 : ''}`}></span>
+            <span className={`${styles.bar} ${isOpen ? styles.barOpen3 : ''}`}></span>
+          </button>
+        </div>
       </div>
 
       {/* Mobile Navigation Drawer */}

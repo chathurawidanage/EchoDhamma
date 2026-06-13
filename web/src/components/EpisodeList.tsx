@@ -110,15 +110,15 @@ export default function EpisodeList({ episodes, theroId }: EpisodeListProps) {
       <div className={styles.searchRow}>
         <input
           type="text"
-          placeholder="දේශනාවල මාතෘකා හෝ විස්තර සොයන්න... (Search episodes...)"
+          placeholder="දේශනාවල මාතෘකා හෝ විස්තර සොයන්න..."
           value={searchQuery}
           onChange={(e) => handleSearchChange(e.target.value)}
           className={`${styles.searchInput} glass`}
           id="episode-search-input"
         />
         {searchQuery && (
-          <button 
-            onClick={() => handleSearchChange('')} 
+          <button
+            onClick={() => handleSearchChange('')}
             className={styles.clearBtn}
             aria-label="Clear search"
           >
@@ -128,7 +128,7 @@ export default function EpisodeList({ episodes, theroId }: EpisodeListProps) {
       </div>
 
       <div className={styles.resultsMeta}>
-        Found {totalItems} {totalItems === 1 ? 'episode' : 'episodes'} 
+        Found {totalItems} {totalItems === 1 ? 'episode' : 'episodes'}
         {searchQuery && ` matching "${searchQuery}"`}
         {totalPages > 1 && ` (Showing page ${currentPage} of ${totalPages})`}
       </div>
@@ -137,10 +137,10 @@ export default function EpisodeList({ episodes, theroId }: EpisodeListProps) {
         <>
           <div className={styles.grid}>
             {paginatedEpisodes.map((episode) => (
-              <EpisodeCard 
-                key={episode.id} 
-                episode={episode} 
-                theroId={theroId} 
+              <EpisodeCard
+                key={episode.id}
+                episode={episode}
+                theroId={theroId}
               />
             ))}
           </div>

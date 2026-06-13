@@ -19,6 +19,10 @@
   --border-light: rgba(244, 241, 230, 0.07);
   --border-focus: rgba(217, 145, 22, 0.3);
   
+  /* Dynamic Background Gradient */
+  --bg-gradient: radial-gradient(at 0% 0%, rgba(217, 145, 22, 0.04) 0px, transparent 50%),
+                 radial-gradient(at 100% 100%, rgba(13, 19, 17, 0.4) 0px, transparent 50%);
+  
   /* Layout Metrics */
   --header-height: 70px;
   --player-height: 90px;
@@ -41,21 +45,34 @@
 
 /* Light Theme Fallback (mapped to CSS variables) */
 .light-theme {
-  --bg-primary: #fcfcfd;
-  --bg-secondary: #f4f4f6;
-  --bg-tertiary: #e9e9ee;
-  --bg-glass: rgba(252, 252, 253, 0.8);
+  /* Default Colors from Book Reading Mode (Sepia theme) */
+  --bg-primary: #f7f0e3;      /* Warm sepia paper background */
+  --bg-secondary: #efe6d5;    /* Slightly darker warm tone for cards/panels */
+  --bg-tertiary: #e2d7c0;     /* Even darker tone for hover/active states */
+  --bg-glass: rgba(247, 240, 227, 0.85); /* Glass opacity */
   
-  --text-primary: #18181b;
-  --text-secondary: #52525b;
-  --text-muted: #71717a;
+  --text-primary: #433422;    /* Deep tranquil brown */
+  --text-secondary: #7c6853;  /* Warm clay-gray for subtitles/secondary text */
+  --text-muted: #9c8975;      /* Calming stone/slate brown */
   
-  --accent-gold: #b45309;
+  --accent-gold: #b45309;     /* Saffron gold (adjusted for proper light theme contrast) */
   --accent-gold-hover: #92400e;
   --accent-gold-glow: rgba(180, 83, 9, 0.1);
   
-  --border-light: rgba(0, 0, 0, 0.08);
+  --border-light: rgba(67, 52, 34, 0.12); /* Warm subtle border line */
   --border-focus: rgba(180, 83, 9, 0.4);
+  
+  /* Light-theme specific gradients */
+  --bg-gradient: radial-gradient(at 0% 0%, rgba(217, 145, 22, 0.06) 0px, transparent 50%),
+                 radial-gradient(at 100% 100%, rgba(67, 52, 34, 0.08) 0px, transparent 50%);
+  
+  --shadow-premium: 0 10px 30px -10px rgba(67, 52, 34, 0.15);
+}
+
+.light-theme .title-gradient {
+  background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-gold) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 /* Baseline Reset */
