@@ -54,6 +54,13 @@
   overflow: hidden;
 }
 
+.trackLink {
+  text-decoration: none;
+  display: block;
+  overflow: hidden;
+  max-width: 100%;
+}
+
 .trackTitle {
   font-size: 0.9rem;
   font-weight: 600;
@@ -61,6 +68,18 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  transition: color var(--transition-fast);
+}
+
+.trackLink:hover .trackTitle {
+  color: var(--accent-gold);
+}
+
+.authorLink {
+  text-decoration: none;
+  display: block;
+  overflow: hidden;
+  max-width: 100%;
 }
 
 .trackAuthor {
@@ -69,6 +88,11 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  transition: color var(--transition-fast);
+}
+
+.authorLink:hover .trackAuthor {
+  color: var(--accent-gold);
 }
 
 /* Center: Playback controls styling */

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import useAudioPlayer from '@/hooks/useAudioPlayer';
 import { formatTimer } from '@/utils/format';
 import { 
@@ -61,10 +62,14 @@ export default function AudioPlayer() {
           )}
         </div>
         <div className={styles.textDetails}>
-          <h5 className={styles.trackTitle} title={currentTrack.title}>
-            {currentTrack.title}
-          </h5>
-          <span className={styles.trackAuthor}>{currentTrack.theroName}</span>
+          <Link href={`/podcast/${currentTrack.theroId}/${currentTrack.id}`} className={styles.trackLink}>
+            <h5 className={styles.trackTitle} title={currentTrack.title}>
+              {currentTrack.title}
+            </h5>
+          </Link>
+          <Link href={`/podcast/${currentTrack.theroId}`} className={styles.authorLink}>
+            <span className={styles.trackAuthor}>{currentTrack.theroName}</span>
+          </Link>
         </div>
       </div>
 
