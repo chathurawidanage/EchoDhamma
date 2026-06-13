@@ -167,16 +167,16 @@ export async function generateMetadata({ params }: TheroPageProps) {
     : thero.name;
 
   return {
-    title: `${displayName} | EchoDhamma`,
+    title: `${displayName} | DamSak.org`,
     description: thero.podcast.description.substring(0, 160),
     openGraph: {
-      title: `${displayName} | EchoDhamma`,
+      title: `${displayName} | DamSak.org`,
       description: thero.podcast.description.substring(0, 160),
       images: [{ url: logoUrl }],
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${displayName} | EchoDhamma`,
+      title: `${displayName} | DamSak.org`,
       description: thero.podcast.description.substring(0, 160),
       images: [logoUrl],
     },

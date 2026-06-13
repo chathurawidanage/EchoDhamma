@@ -44,6 +44,7 @@ export interface PodcastMetadata {
 
 export interface TheroConfig {
   id: string;
+  seniority?: number;
   enabled: boolean;
   name: string;
   name_sinhala?: string;

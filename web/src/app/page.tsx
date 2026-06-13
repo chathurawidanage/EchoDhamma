@@ -13,10 +13,13 @@ export default function HomePage() {
         <section className={styles.heroSection}>
           <div className={styles.heroGlow}></div>
           <div className={styles.heroContent}>
-            <h1>EchoDhamma — නිර්මල ශ්‍රී සද්ධර්මය ප්‍රතිධ්වනිය</h1>
+            <h1>DamSak.org — නිර්මල ශ්‍රී සද්ධර්මය ප්‍රතිධ්වනිය</h1>
             <p className={styles.heroLead}>
-              EchoDhamma තුළින් අප සිදු කරන්නේ පවතින ධර්ම මූලාශ්‍ර, පහසුවෙන් ශ්‍රවණය කළ හැකි Audio Podcasts ලෙස සහ ජංගම දුරකථන හෝ ඊ-රීඩර්ස් (E-readers) මඟින් පහසුවෙන් කියවිය හැකි EPUB / Ebooks ආකෘති වෙත උසස් ප්‍රමිතියෙන් යුතුව පරිවර්තනය (Re-encode) කර ක්‍රමවත්ව පෙළගැස්වීමයි.
+              DamSak.org තුළින් අප සිදු කරන්නේ පවතින ධර්ම මූලාශ්‍ර, පහසුවෙන් ශ්‍රවණය කළ හැකි Audio Podcasts ලෙස සහ ජංගම දුරකථන හෝ ඊ-රීඩර්ස් (E-readers) මඟින් පහසුවෙන් කියවිය හැකි EPUB / Ebooks ආකෘති වෙත උසස් ප්‍රමිතියෙන් යුතුව පරිවර්තනය (Re-encode) කර ක්‍රමවත්ව පෙළගැස්වීමයි.
             </p>
+          </div>
+          <div className={styles.heroLogoContainer}>
+            <img src="/logo-icon.png" alt="DamSak.org Dharmachakra Logo" className={styles.heroLogo} />
           </div>
         </section>
 
@@ -84,7 +87,7 @@ export default function HomePage() {
       </main>
 
       <footer className={styles.footer}>
-        <p>© {new Date().getFullYear()} EchoDhamma. May all beings be well and happy.</p>
+        <p>© {new Date().getFullYear()} DamSak.org. සියලු සත්වයෝ සුවපත් වෙත්වා.</p>
       </footer>
     </div>
   );

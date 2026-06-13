@@ -98,7 +98,7 @@ export async function generateMetadata({ params }: EpisodePageProps) {
   const displayName = thero.name_sinhala 
     ? `${thero.name_sinhala} (${thero.name})` 
     : thero.name;
-  const titleText = `${episode.title} - ${displayName} | EchoDhamma`;
+  const titleText = `${episode.title} - ${displayName} | DamSak.org`;
   const descText = episode.description
     ? episode.description.replace(/<[^>]*>/g, '').substring(0, 160)
     : thero.podcast.description.substring(0, 160);

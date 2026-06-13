@@ -33,6 +33,16 @@ export function getTheros(): TheroConfig[] {
       }
     }
 
+    // Sort by seniority ascending, fallback to id alphabetical
+    theroConfigs.sort((a, b) => {
+      const aSeniority = a.seniority ?? 999;
+      const bSeniority = b.seniority ?? 999;
+      if (aSeniority !== bSeniority) {
+        return aSeniority - bSeniority;
+      }
+      return a.id.localeCompare(b.id);
+    });
+
     return theroConfigs;
   } catch (error) {
     console.error('Error reading thero configurations:', error);

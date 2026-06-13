@@ -8,7 +8,7 @@ import { Ebook } from '@/types';
 export const revalidate = 86400; // Revalidate sitemap daily (24 hours)
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://echodhamma.org';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://damsak.org';
   const theros = getTheros();
   const ebooks = ebooksData as Ebook[];
 

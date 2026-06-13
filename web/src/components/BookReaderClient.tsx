@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Ebook } from '@/types';
-import { DownloadIcon, ChevronLeftIcon, ChevronRightIcon } from '@/components/Icons';
+import { DownloadIcon, ChevronLeftIcon, ChevronRightIcon, SettingsIcon } from '@/components/Icons';
 import { ParsedBook, TocItem } from '@/lib/ebookParser';
 import styles from '@/app/ebooks/[book_id]/read/page.module.css';
 
@@ -32,8 +32,10 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
   const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
   const [scrollPercentage, setScrollPercentage] = useState<number>(0);
   const [pendingScrollId, setPendingScrollId] = useState<string | null>(null);
+  const [activeTocId, setActiveTocId] = useState<string | null>(null);
 
   const readerRef = useRef<HTMLDivElement>(null);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -94,7 +96,16 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
     }
   }, [currentChapterId, book.id, hasHtml]);
 
-  // Sync scroll position tracking
+  // Clean up scroll timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Sync scroll position tracking and active section highlighting
   const handleScroll = () => {
     if (!readerRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = readerRef.current;
@@ -109,6 +120,50 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
     } else {
       setScrollPercentage(0);
     }
+
+    // Debounce active section highlight update on manual scroll
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+    scrollTimeoutRef.current = setTimeout(() => {
+      if (!parsedBook || !readerRef.current) return;
+
+      const currentChapterToc = parsedBook.toc.filter(t => t.chapterId === currentChapterId);
+      if (currentChapterToc.length === 0) return;
+
+      const containerTop = readerRef.current.getBoundingClientRect().top;
+      const containerBottom = readerRef.current.getBoundingClientRect().bottom;
+
+      const visibleHeadings: typeof currentChapterToc = [];
+      const headingsAbove: typeof currentChapterToc = [];
+
+      currentChapterToc.forEach(item => {
+        const el = document.getElementById(item.id);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          // Element is visible if it intersects the reader viewport bounds (with a small 10px buffer)
+          const isVisible = rect.bottom > containerTop + 10 && rect.top < containerBottom - 10;
+          
+          if (isVisible) {
+            visibleHeadings.push(item);
+          } else if (rect.top <= containerTop + 10) {
+            headingsAbove.push(item);
+          }
+        }
+      });
+
+      let activeId = currentChapterToc[0].id; // Fallback to first section of the chapter
+
+      if (visibleHeadings.length > 0) {
+        // Highlight the first visible heading on the screen (highest in TOC order)
+        activeId = visibleHeadings[0].id;
+      } else if (headingsAbove.length > 0) {
+        // Highlight the last heading scrolled past (above the viewport)
+        activeId = headingsAbove[headingsAbove.length - 1].id;
+      }
+
+      setActiveTocId(activeId);
+    }, 150);
   };
 
   // Restore scroll position when chapter changes
@@ -160,14 +215,21 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
       if (match) {
         setCurrentChapterId(match.chapterId);
         setPendingScrollId(match.id);
+        setActiveTocId(match.id);
       } else {
         const chapterMatch = parsedBook.chapters.find(c => c.id === chapterParam);
         if (chapterMatch) {
           setCurrentChapterId(chapterMatch.id);
+          const firstToc = parsedBook.toc.find(t => t.chapterId === chapterMatch.id);
+          setActiveTocId(firstToc ? firstToc.id : null);
         }
       }
+    } else {
+      // If no query param, default to the current chapter's first TOC item
+      const firstToc = parsedBook.toc.find(t => t.chapterId === currentChapterId);
+      setActiveTocId(firstToc ? firstToc.id : null);
     }
-  }, [searchParams, parsedBook]);
+  }, [searchParams, parsedBook, currentChapterId]);
 
   // Navigate through table of contents
   const handleTocClick = (item: TocItem) => {
@@ -269,7 +331,7 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
               <a
                 href={book.epub_url}
                 download
-                className={`${styles.actionBtn} glass`}
+                className={styles.actionBtn}
                 style={{ marginRight: '0.5rem' }}
                 id="reader-download-epub"
               >
@@ -280,7 +342,7 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
               <a
                 href={book.pdf_url}
                 download
-                className={`${styles.actionBtn} glass`}
+                className={styles.actionBtn}
                 id="reader-download-pdf"
               >
                 <DownloadIcon size={14} /> PDF බාගත කරන්න
@@ -338,7 +400,7 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
         <div className={styles.left}>
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className={`${styles.actionBtn} glass ${styles.tocToggleBtn}`}
+            className={`${styles.actionBtn} ${styles.tocToggleBtn}`}
             title="පටුන (Table of Contents)"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '0.25rem' }}>
@@ -380,14 +442,10 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
           {/* Format Settings Toggle */}
           <button
             onClick={() => setSettingsOpen(!settingsOpen)}
-            className={`${styles.iconBtn} glass ${settingsOpen ? styles.activeIconBtn : ''}`}
+            className={`${styles.iconBtn} ${settingsOpen ? styles.activeIconBtn : ''}`}
             title="අකුරු සැකසුම් (Aesthetics & Typography)"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M17.026 22.957c.77.283 1.636-.219 1.748-1.038l.18-1.334c.038-.276.183-.526.406-.7l1.076-.84c.655-.512.658-1.503.006-2.019l-1.07-1.12c-.22-.23-.33-.54-.31-.86l.09-1.34c.07-.94-.85-1.59-1.68-1.2l-1.24.57c-.28.13-.6.13-.88 0l-1.24-.57c-.83-.39-1.75.26-1.68 1.2l.09 1.34c.02.32-.09.63-.31.86l-1.07 1.12c-.652.516-.649 1.507.006 2.019l1.076.84c.223.174.368.424.406.7l.18 1.334c.112.819.978 1.321 1.748 1.038l1.24-.46c.29-.11.61-.11.9 0l1.24.46z"></path>
-              <path d="M9.026 13.957c.77.283 1.636-.219 1.748-1.038l.18-1.334c.038-.276.183-.526.406-.7l1.076-.84c.655-.512.658-1.503.006-2.019l-1.07-1.12c-.22-.23-.33-.54-.31-.86l.09-1.34C11.166 5.265 10.246 4.615 9.416 5l-1.24.57c-.28.13-.6.13-.88 0l-1.24-.57c-.83-.39-1.75.26-1.68 1.2l.09 1.34c.02.32-.09.63-.31.86l-1.07 1.12c-.652.516-.649 1.507.006 2.019l1.076.84c.223.174.368.424.406.7l.18 1.334c.112.819.978 1.321 1.748 1.038l1.24-.46c.29-.11.61-.11.9 0l1.24.46z"></path>
-              <circle cx="12" cy="12" r="3"></circle>
-            </svg>
+            <SettingsIcon size={20} />
           </button>
         </div>
       </header>
@@ -406,9 +464,7 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
                 <li
                   key={`${item.id}-${idx}`}
                   className={`${styles.tocItem} ${styles[`level${item.level}`]} ${
-                    pendingScrollId === item.id || (currentChapterId === item.chapterId && !pendingScrollId)
-                      ? styles.activeTocItem
-                      : ''
+                    activeTocId === item.id ? styles.activeTocItem : ''
                   }`}
                 >
                   <button onClick={() => handleTocClick(item)}>
@@ -588,7 +644,7 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
             {/* Chapter Footer Navigation */}
             <div className={styles.chapterNavigation}>
               <button
-                className={`${styles.navBtn} glass`}
+                className={styles.navBtn}
                 onClick={handlePrevChapter}
                 disabled={currentChapterIdx <= 0}
               >
@@ -600,7 +656,7 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
               </span>
 
               <button
-                className={`${styles.navBtn} glass`}
+                className={styles.navBtn}
                 onClick={handleNextChapter}
                 disabled={currentChapterIdx >= chapters.length - 1}
               >

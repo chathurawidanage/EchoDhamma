@@ -139,7 +139,7 @@ export default function AudioPlayerProvider({ children }: { children: React.Reac
       navigator.mediaSession.metadata = new MediaMetadata({
         title: currentTrack.title,
         artist: currentTrack.theroName,
-        album: 'EchoDhamma Podcast',
+        album: 'DamSak.org Podcast',
         artwork: [
           { src: currentTrack.imageUrl || '/ssmct.jpg', sizes: '512x512', type: 'image/jpeg' }
         ]

@@ -279,7 +279,7 @@ export default function EpisodeDetailView({
           </div>
 
           {transcript && (
-            <div className={`${styles.card} glass`}>
+            <div className={`${styles.card} glass`} style={{ display: 'none' }}>
               <h4 className={styles.sectionHeading}>දේශනාවේ පිටපත (Transcript timeline)</h4>
               <TranscriptViewer
                 transcriptText={transcript}

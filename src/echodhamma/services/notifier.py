@@ -54,7 +54,7 @@ class Notifier:
         try:
             logger.info(f"Pinging Podcast Index: {base_url} for feed: {feed_url}")
 
-            headers = {"User-Agent": "EchoDhamma/1.0"}
+            headers = {"User-Agent": "DamSak.org/1.0"}
 
             # Use GET with url param as verified
             params = {"url": feed_url}

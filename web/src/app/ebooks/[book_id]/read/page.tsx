@@ -36,7 +36,7 @@ export async function generateMetadata({ params }: ReadBookPageProps) {
   }
 
   return {
-    title: `කියවන්න: ${book.title} - ${book.author} | EchoDhamma`,
+    title: `කියවන්න: ${book.title} - ${book.author} | DamSak.org`,
     description: book.description.substring(0, 160),
     openGraph: {
       title: book.title,

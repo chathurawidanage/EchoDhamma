@@ -3,4 +3,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://echodhamma.org/sitemap.xml
+Sitemap: https://damsak.org/sitemap.xml
