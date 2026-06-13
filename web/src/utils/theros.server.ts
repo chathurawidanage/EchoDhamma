@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { TheroConfig } from '../types';
+import therosData from '../data/theros.json';
 
 const THEROS_DIR = path.join(process.cwd(), '../src/echodhamma/theros');
 
@@ -9,45 +10,54 @@ const THEROS_DIR = path.join(process.cwd(), '../src/echodhamma/theros');
  * Returns only those that are enabled.
  */
 export function getTheros(): TheroConfig[] {
-  try {
-    if (!fs.existsSync(THEROS_DIR)) {
-      console.warn(`Theros configuration directory not found at: ${THEROS_DIR}`);
-      return [];
-    }
+  // If in development and the source directory exists, read dynamically
+  if (process.env.NODE_ENV === 'development' && fs.existsSync(THEROS_DIR)) {
+    try {
+      const files = fs.readdirSync(THEROS_DIR);
+      const theroConfigs: TheroConfig[] = [];
 
-    const files = fs.readdirSync(THEROS_DIR);
-    const theroConfigs: TheroConfig[] = [];
-
-    for (const file of files) {
-      if (file.endsWith('.json')) {
-        const filePath = path.join(THEROS_DIR, file);
-        const fileContent = fs.readFileSync(filePath, 'utf-8');
-        try {
-          const config = JSON.parse(fileContent) as TheroConfig;
-          if (config.enabled) {
-            theroConfigs.push(config);
+      for (const file of files) {
+        if (file.endsWith('.json')) {
+          const filePath = path.join(THEROS_DIR, file);
+          const fileContent = fs.readFileSync(filePath, 'utf-8');
+          try {
+            const config = JSON.parse(fileContent) as TheroConfig;
+            if (config.enabled) {
+              theroConfigs.push(config);
+            }
+          } catch (err) {
+            console.error(`Failed to parse thero config file: ${file}`, err);
           }
-        } catch (err) {
-          console.error(`Failed to parse thero config file: ${file}`, err);
         }
       }
+
+      // Sort by seniority ascending, fallback to id alphabetical
+      theroConfigs.sort((a, b) => {
+        const aSeniority = a.seniority ?? 999;
+        const bSeniority = b.seniority ?? 999;
+        if (aSeniority !== bSeniority) {
+          return aSeniority - bSeniority;
+        }
+        return a.id.localeCompare(b.id);
+      });
+
+      return theroConfigs;
+    } catch (error) {
+      console.error('Error reading dynamic thero configurations in dev:', error);
     }
-
-    // Sort by seniority ascending, fallback to id alphabetical
-    theroConfigs.sort((a, b) => {
-      const aSeniority = a.seniority ?? 999;
-      const bSeniority = b.seniority ?? 999;
-      if (aSeniority !== bSeniority) {
-        return aSeniority - bSeniority;
-      }
-      return a.id.localeCompare(b.id);
-    });
-
-    return theroConfigs;
-  } catch (error) {
-    console.error('Error reading thero configurations:', error);
-    return [];
   }
+
+  // Fallback/production: Use statically bundled/synced configurations from the JSON
+  const configs = (therosData as TheroConfig[]).filter(config => config.enabled);
+  configs.sort((a, b) => {
+    const aSeniority = a.seniority ?? 999;
+    const bSeniority = b.seniority ?? 999;
+    if (aSeniority !== bSeniority) {
+      return aSeniority - bSeniority;
+    }
+    return a.id.localeCompare(b.id);
+  });
+  return configs;
 }
 
 /**

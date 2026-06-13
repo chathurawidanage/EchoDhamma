@@ -13,7 +13,10 @@ export default function HomePage() {
         <section className={styles.heroSection}>
           <div className={styles.heroGlow}></div>
           <div className={styles.heroContent}>
-            <h1>DamSak.org — නිර්මල ශ්‍රී සද්ධර්මය ප්‍රතිධ්වනිය</h1>
+            <h1>
+              <span className="title-gradient">DamSak</span>
+              <span className={styles.heroTitleOrg}>.org</span>
+            </h1>
             <p className={styles.heroLead}>
               DamSak.org තුළින් අප සිදු කරන්නේ පවතින ධර්ම මූලාශ්‍ර, පහසුවෙන් ශ්‍රවණය කළ හැකි Audio Podcasts ලෙස සහ ජංගම දුරකථන හෝ ඊ-රීඩර්ස් (E-readers) මඟින් පහසුවෙන් කියවිය හැකි EPUB / Ebooks ආකෘති වෙත උසස් ප්‍රමිතියෙන් යුතුව පරිවර්තනය (Re-encode) කර ක්‍රමවත්ව පෙළගැස්වීමයි.
             </p>
