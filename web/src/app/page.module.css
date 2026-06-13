@@ -66,6 +66,19 @@
   margin-right: 0.25rem;
 }
 
+.heroTitleSeparator {
+  color: var(--text-muted);
+  opacity: 0.6;
+  margin: 0 0.25rem;
+  font-weight: 300;
+}
+
+.heroTitleTagline {
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
 .heroLead {
   color: var(--text-primary);
   font-size: 1.15rem;

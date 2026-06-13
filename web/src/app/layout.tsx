@@ -8,7 +8,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   metadataBase: new URL('https://damsak.org'),
   title: "DamSak.org - නිර්මල ශ්‍රී සද්ධර්ම ප්‍රතිධ්වනිය",
-  description: "වර්තමාන ඩිජිටල් ලෝකය තුළ බුදු දහම සම්බන්ධ යූටියුබ් වීඩියෝ සහ පී.ඩී.එෆ් පොත්පත් බහුලව පැවතිය ද, කාර්යබහුල ධර්මකාමී ඔබට ඒවා ශ්‍රවණය කිරීමට පහසු Audio Podcasts සහ කියවීමට පහසු Ebooks ලෙස DamSak.org මඟින් ලබාදේ.",
+  description: "DamSak.org - නිර්මල ශ්‍රී සද්ධර්ම ප්‍රතිධ්වනිය. කාර්යබහුල ජීවිතයට ගැලපෙන පරිදි උසස් ප්‍රමිතියේ ධර්ම දේශනා Audio Podcasts ලෙස ශ්‍රවණය කරන්න සහ කියවීමට පහසු EPUB ඊ-පොත් (Ebooks) ක්‍රමවත්ව පරිශීලනය කරන්න.",
   keywords: ["DamSak.org", "DamSak", "Buddhism", "Dhamma", "Sutta", "Theravada", "Podcast", "Ebook", "Sinhala Dhamma Deshana", "බුදු දහම", "ධර්ම දේශනා"],
   icons: {
     icon: "/logo-icon.png",
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "DamSak.org",
-    description: "වර්තමාන ඩිජිටල් ලෝකය තුළ බුදු දහම සම්බන්ධ යූටියුබ් වීඩියෝ සහ පී.ඩී.එෆ් පොත්පත් බහුලව පැවතිය ද, කාර්යබහුල ධර්මකාමී ඔබට ඒවා ශ්‍රවණය කිරීමට පහසු Audio Podcasts සහ කියවීමට පහසු Ebooks ලෙස DamSak.org මඟින් ලබාදේ.",
+    description: "DamSak.org - නිර්මල ශ්‍රී සද්ධර්ම ප්‍රතිධ්වනිය. කාර්යබහුල ජීවිතයට ගැලපෙන පරිදි උසස් ප්‍රමිතියේ ධර්ම දේශනා Audio Podcasts ලෙස ශ්‍රවණය කරන්න සහ කියවීමට පහසු EPUB ඊ-පොත් (Ebooks) ක්‍රමවත්ව පරිශීලනය කරන්න.",
     url: "https://damsak.org",
     siteName: "DamSak.org",
     images: [
