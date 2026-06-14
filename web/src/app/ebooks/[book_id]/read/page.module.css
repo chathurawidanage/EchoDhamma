@@ -555,7 +555,7 @@
 }
 
 /* Verse / Stanza styling for gathas */
-.articleContent .gatha {
+.articleContent :global(.gatha) {
   font-style: italic;
   background-color: var(--verse-bg);
   border-left: 4px solid var(--accent-gold);
@@ -566,16 +566,16 @@
   display: block;
 }
 
-.articleContent .gatha p {
+.articleContent :global(.gatha p) {
   margin-bottom: 0.4rem;
   text-align: left;
 }
 
-.articleContent .gatha p:last-child {
+.articleContent :global(.gatha p:last-child) {
   margin-bottom: 0;
 }
 
-.articleContent .subhead {
+.articleContent :global(.subhead) {
   font-weight: 700;
   font-size: 1.05em;
   margin-top: 1.5rem;
@@ -583,8 +583,52 @@
   color: var(--accent-gold);
 }
 
-.articleContent .patuna-title {
+.articleContent :global(.patuna-title) {
   display: none; /* Hide internal TOC titles */
+}
+
+/* Table styling for Chitta Vithi (mind moment diagrams) */
+.articleContent :global(table.chitta) {
+  border-collapse: collapse;
+  margin: 2rem auto;
+  font-family: inherit;
+  width: auto;
+  max-width: 100%;
+  display: block;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.articleContent :global(table.chitta td) {
+  border: 1px solid var(--border-reader);
+  padding: 0.6rem 0.8rem;
+  text-align: center;
+  min-width: 3.5rem;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  vertical-align: middle;
+  background-color: var(--verse-bg);
+  color: var(--text-reader);
+  font-weight: 500;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Custom scrollbars for the horizontal scrollable tables */
+.articleContent :global(table.chitta)::-webkit-scrollbar {
+  height: 6px;
+}
+
+.articleContent :global(table.chitta)::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.articleContent :global(table.chitta)::-webkit-scrollbar-thumb {
+  background: var(--border-reader);
+  border-radius: 3px;
+}
+
+.articleContent :global(table.chitta)::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-gold);
 }
 
 /* Chapter cover styles */
