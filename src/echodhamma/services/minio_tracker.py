@@ -136,11 +136,7 @@ class MinioTracker:
             or "mac_powerpc" in ua_lower
         ):
             os_name = "macOS"
-        elif (
-            "windows" in ua_lower
-            or "win32" in ua_lower
-            or "win64" in ua_lower
-        ):
+        elif "windows" in ua_lower or "win32" in ua_lower or "win64" in ua_lower:
             os_name = "Windows"
         elif "linux" in ua_lower:
             os_name = "Linux"
@@ -151,11 +147,7 @@ class MinioTracker:
             device = "Mobile"
         elif "ipad" in ua_lower or "tablet" in ua_lower:
             device = "Tablet"
-        elif (
-            "macintosh" in ua_lower
-            or "windows" in ua_lower
-            or "linux" in ua_lower
-        ):
+        elif "macintosh" in ua_lower or "windows" in ua_lower or "linux" in ua_lower:
             device = "Desktop"
         elif (
             "sonos" in ua_lower
@@ -214,8 +206,6 @@ class MinioTracker:
 
     def process_event(self, data):
         """Process Minio event data."""
-        logger.info("Received MinIO event webhook request.")
-        logger.debug(f"Raw MinIO event payload: {data}")
 
         if not data or "Records" not in data:
             logger.warning("MinIO event payload has no 'Records' key or is empty.")
@@ -226,7 +216,9 @@ class MinioTracker:
         for record in data["Records"]:
             # Safety check for expected structure
             if "s3" not in record or "object" not in record["s3"]:
-                logger.debug(f"Skipping record due to missing s3 or object metadata: {record}")
+                logger.debug(
+                    f"Skipping record due to missing s3 or object metadata: {record}"
+                )
                 continue
 
             # Extract basic info
@@ -244,11 +236,22 @@ class MinioTracker:
             # Extract visitor User-Agent from source
             source_info = record.get("source", {})
             user_agent = source_info.get("userAgent")
-            
+
             # Skip events triggered by scripts/tools (boto3, botocore, minio clients, rclone, curl, etc.)
             if user_agent and isinstance(user_agent, str):
                 ua_lower = user_agent.lower()
-                if any(ignored in ua_lower for ignored in ["boto3", "botocore", "minio", "rclone", "curl", "wget", "http.client"]):
+                if any(
+                    ignored in ua_lower
+                    for ignored in [
+                        "boto3",
+                        "botocore",
+                        "minio",
+                        "rclone",
+                        "curl",
+                        "wget",
+                        "http.client",
+                    ]
+                ):
                     continue
 
             logger.info(
@@ -257,7 +260,9 @@ class MinioTracker:
             )
 
             if not user_agent or not isinstance(user_agent, str):
-                user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/119.0.0.0"
+                user_agent = (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/119.0.0.0"
+                )
 
             # 1. Only track MP3s
             if not file_key.endswith(".mp3"):
@@ -266,7 +271,9 @@ class MinioTracker:
 
             # 2. DEDUPLICATION LOGIC
             if self.is_duplicate(client_ip, file_key):
-                logger.info(f"Deduplicated event: file_key={file_key} from client_ip={client_ip}")
+                logger.info(
+                    f"Deduplicated event: file_key={file_key} from client_ip={client_ip}"
+                )
                 continue
 
             if bucket_name not in self.bucket_map:
