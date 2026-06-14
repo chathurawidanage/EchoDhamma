@@ -28,7 +28,7 @@ export default function TranscriptViewer({
   // Parse raw text transcript into structured lines
   const parsedLines = useMemo((): TranscriptLine[] => {
     if (!transcriptText) return [];
-    
+
     const rawLines = transcriptText.split('\n');
     const lines: TranscriptLine[] = [];
 
@@ -102,7 +102,7 @@ export default function TranscriptViewer({
       <div className={styles.controlsRow}>
         <input
           type="text"
-          placeholder="පිටපතෙහි වචන සොයන්න... (Search transcript...)"
+          placeholder="පිටපතෙහි වචන සොයන්න..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className={`${styles.searchInput} glass`}

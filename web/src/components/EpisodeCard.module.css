@@ -60,9 +60,17 @@
   font-size: 0.875rem;
   font-weight: 600;
   transition: var(--transition-fast);
+  display: inline-block;
 }
 
-.detailsLink:hover {
+.cardLink {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  height: 100%;
+}
+
+.cardLink:hover .detailsLink {
   color: var(--accent-gold-hover);
   transform: translateX(4px);
 }

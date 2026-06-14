@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { TheroConfig } from '@/types';
+import { getTheroS3BaseUrl } from '@/utils/theros';
 import { HomeIcon, PodcastIcon, BookIcon, SunIcon, MoonIcon } from './Icons';
 import styles from './Navigation.module.css';
 
@@ -59,14 +60,14 @@ export default function Navigation({ theros }: NavigationProps) {
               href="/"
               className={`${styles.navLink} ${isActive('/') ? styles.active : ''}`}
             >
-              <span className={styles.linkIcon}><HomeIcon size={18} /></span> මුල් පිටුව (Home)
+              <span className={styles.linkIcon}><HomeIcon size={18} /></span> මුල් පිටුව
             </Link>
 
             <div className={styles.dropdown}>
               <button
                 className={`${styles.navLink} ${styles.dropdownTrigger} ${pathname?.startsWith('/podcast') ? styles.active : ''}`}
               >
-                <span className={styles.linkIcon}><PodcastIcon size={18} /></span> ධර්ම දේශනා (Podcasts) <span className={styles.arrow}>▼</span>
+                <span className={styles.linkIcon}><PodcastIcon size={18} /></span> ධර්ම දේශනා <span className={styles.arrow}>▼</span>
               </button>
               <div className={`${styles.dropdownContent} glass`}>
                 {theros.map((thero) => (
@@ -75,7 +76,14 @@ export default function Navigation({ theros }: NavigationProps) {
                     href={`/podcast/${thero.id}`}
                     className={`${styles.dropdownLink} ${isPodcastActive(thero.id) ? styles.activeDropdown : ''}`}
                   >
-                    {thero.name_sinhala || thero.name.replace('Ven. ', '')}
+                    {thero.podcast.image_url && (
+                      <img
+                        src={thero.podcast.image_url.startsWith('http') ? thero.podcast.image_url : `${getTheroS3BaseUrl(thero)}/${thero.podcast.image_url}`}
+                        alt={thero.name_sinhala || thero.name}
+                        className={styles.dropdownTheroImage}
+                      />
+                    )}
+                    <span>{thero.name_sinhala || thero.name.replace('Ven. ', '')}</span>
                   </Link>
                 ))}
               </div>
@@ -85,7 +93,7 @@ export default function Navigation({ theros }: NavigationProps) {
               href="/ebooks"
               className={`${styles.navLink} ${isActive('/ebooks') || pathname?.startsWith('/ebooks/') ? styles.active : ''}`}
             >
-              <span className={styles.linkIcon}><BookIcon size={18} /></span> පොත් එකතුව (Ebooks)
+              <span className={styles.linkIcon}><BookIcon size={18} /></span> පොත් එකතුව
             </Link>
           </nav>
 
@@ -112,18 +120,20 @@ export default function Navigation({ theros }: NavigationProps) {
       <div className={`${styles.mobileDrawer} glass ${isOpen ? styles.drawerOpen : ''}`}>
         <nav className={styles.mobileNav}>
           <div className={styles.mobileSectionGroup}>
-            <div className={styles.mobileSectionTitle}>ප්‍රධාන (Home)</div>
+            <div className={styles.mobileSectionTitle}>
+              ප්‍රධාන <span className="english-sub">Home</span>
+            </div>
             <Link
               href="/"
               onClick={closeMenu}
               className={`${styles.mobileLink} ${isActive('/') ? styles.active : ''}`}
             >
-              <span className={styles.linkIcon}><HomeIcon size={18} /></span> මුල් පිටුව (Home)
+              <span className={styles.linkIcon}><HomeIcon size={18} /></span> මුල් පිටුව
             </Link>
           </div>
 
           <div className={styles.mobileSectionGroup}>
-            <div className={styles.mobileSectionTitle}>ධර්ම දේශනා (Podcasts)</div>
+            <div className={styles.mobileSectionTitle}>ධර්ම දේශනා</div>
             <div className={styles.mobileTheroList}>
               {theros.map((thero) => (
                 <Link
@@ -132,20 +142,31 @@ export default function Navigation({ theros }: NavigationProps) {
                   onClick={closeMenu}
                   className={`${styles.mobileLink} ${isPodcastActive(thero.id) ? styles.active : ''}`}
                 >
-                  <span className={styles.linkIcon}><PodcastIcon size={18} /></span> {thero.name_sinhala || thero.name.replace('Ven. ', '')}
+                  {thero.podcast.image_url ? (
+                    <img
+                      src={thero.podcast.image_url.startsWith('http') ? thero.podcast.image_url : `${getTheroS3BaseUrl(thero)}/${thero.podcast.image_url}`}
+                      alt={thero.name_sinhala || thero.name}
+                      className={styles.mobileTheroImage}
+                    />
+                  ) : (
+                    <span className={styles.linkIcon}><PodcastIcon size={18} /></span>
+                  )}
+                  <span>{thero.name_sinhala || thero.name.replace('Ven. ', '')}</span>
                 </Link>
               ))}
             </div>
           </div>
 
           <div className={styles.mobileSectionGroup}>
-            <div className={styles.mobileSectionTitle}>දහම් පොත්පත් (Ebooks)</div>
+            <div className={styles.mobileSectionTitle}>
+              දහම් පොත්පත් <span className="english-sub">Ebooks</span>
+            </div>
             <Link
               href="/ebooks"
               onClick={closeMenu}
               className={`${styles.mobileLink} ${isActive('/ebooks') || pathname?.startsWith('/ebooks/') ? styles.active : ''}`}
             >
-              <span className={styles.linkIcon}><BookIcon size={18} /></span> පොත් එකතුව (Ebooks)
+              <span className={styles.linkIcon}><BookIcon size={18} /></span> පොත් එකතුව
             </Link>
           </div>
         </nav>

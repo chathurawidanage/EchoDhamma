@@ -146,3 +146,37 @@ button {
   -webkit-text-fill-color: transparent;
 }
 
+.english-sub {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 400;
+  margin-top: 0.25rem;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+/* Adjust size based on parent heading level to keep them proportionate */
+h1 .english-sub {
+  font-size: 1.05rem;
+  margin-top: 0.35rem;
+}
+
+h2 .english-sub {
+  font-size: 0.95rem;
+  margin-top: 0.3rem;
+}
+
+h3 .english-sub {
+  font-size: 0.9rem;
+  margin-top: 0.3rem;
+}
+
+/* Keep it small in mobile drawer section titles */
+[class*="mobileSectionTitle"] .english-sub {
+  font-size: 0.65rem;
+  margin-top: 0.15rem;
+}
+
+
+

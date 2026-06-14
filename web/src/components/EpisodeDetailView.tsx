@@ -184,7 +184,9 @@ export default function EpisodeDetailView({
 
         {/* Local player segment */}
         <div className={`${styles.playerCard} glass`}>
-          <div className={styles.playerTitle}>වෙබ් අඩවියෙන් ශ්‍රවණය කරන්න (Listen inline)</div>
+          <div className={styles.playerTitle}>
+            වෙබ් අඩවියෙන් ශ්‍රවණය කරන්න <span className="english-sub">Listen inline</span>
+          </div>
           <div className={styles.playerControlsRow}>
             <button
               onClick={isCurrentEpisode ? togglePlay : handlePlayEpisode}
@@ -211,7 +213,9 @@ export default function EpisodeDetailView({
 
         {/* External Platform Links */}
         <div className={styles.platformSection}>
-          <div className={styles.platformTitle}>වෙනත් මාධ්‍ය හරහා ශ්‍රවණය/නැරඹීම (Listen on other apps)</div>
+          <div className={styles.platformTitle}>
+            වෙනත් මාධ්‍ය හරහා ශ්‍රවණය/නැරඹීම <span className="english-sub">Listen on other apps</span>
+          </div>
           <div className={styles.platformRow}>
             <a
               href={spotifyUrl}
@@ -257,7 +261,9 @@ export default function EpisodeDetailView({
         <div className={styles.leftCol}>
           {youtubeEmbedUrl && (
             <div className={`${styles.card} ${styles.videoCard} glass`}>
-              <h4 className={`${styles.sectionHeading} ${styles.videoCardHeading}`}>දේශනාවේ වීඩියෝව (Watch Video)</h4>
+              <h4 className={`${styles.sectionHeading} ${styles.videoCardHeading}`}>
+                දේශනාවේ වීඩියෝව <span className="english-sub">Watch Video</span>
+              </h4>
               <div className={styles.videoContainer}>
                 <iframe
                   src={youtubeEmbedUrl}
@@ -270,7 +276,9 @@ export default function EpisodeDetailView({
           )}
 
           <div className={`${styles.card} glass`}>
-            <h4 className={styles.sectionHeading}>දේශනාවේ විස්තරය (Episode Summary)</h4>
+            <h4 className={styles.sectionHeading}>
+              දේශනාවේ විස්තරය <span className="english-sub">Episode Summary</span>
+            </h4>
             <div
               className={styles.summaryContent}
               onClick={handleDescriptionClick}
@@ -280,7 +288,9 @@ export default function EpisodeDetailView({
 
           {transcript && (
             <div className={`${styles.card} glass`} style={{ display: 'none' }}>
-              <h4 className={styles.sectionHeading}>දේශනාවේ පිටපත (Transcript timeline)</h4>
+              <h4 className={styles.sectionHeading}>
+                දේශනාවේ පිටපත <span className="english-sub">Transcript timeline</span>
+              </h4>
               <TranscriptViewer
                 transcriptText={transcript}
                 currentTime={currentTime}
@@ -293,7 +303,9 @@ export default function EpisodeDetailView({
         {chapters && chapters.chapters?.length > 0 && (
           <div className={styles.rightCol}>
             <div className={`${styles.card} glass ${styles.stickyChapters}`}>
-              <h4 className={styles.sectionHeading}>දේශනාවේ ප්‍රධාන මාතෘකා (Chapters)</h4>
+              <h4 className={styles.sectionHeading}>
+                දේශනාවේ ප්‍රධාන මාතෘකා <span className="english-sub">Chapters</span>
+              </h4>
               <ChaptersList
                 chapters={chapters.chapters}
                 currentTime={currentTime}

@@ -49,7 +49,7 @@ export default async function TheroPage({ params }: TheroPageProps) {
     <div className={styles.container}>
       <header className={styles.header}>
         <Link href="/" className={styles.backLink}>
-          ← මුල් පිටුවට (Back to Home)
+          ← මුල් පිටුවට <span className="english-sub">Back to Home</span>
         </Link>
       </header>
 
@@ -144,7 +144,9 @@ export default async function TheroPage({ params }: TheroPageProps) {
       </div>
 
       <section className={styles.episodesSection}>
-        <h4 className={styles.sectionTitle}>ධර්ම දේශනා එකතුව (Episodes)</h4>
+        <h4 className={styles.sectionTitle}>
+          ධර්ම දේශනා එකතුව <span className="english-sub">Episodes</span>
+        </h4>
         <EpisodeList episodes={episodes} theroId={thero_id} />
       </section>
     </div>

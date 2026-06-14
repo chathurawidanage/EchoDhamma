@@ -29,7 +29,9 @@ export default function HomePage() {
         </section>
 
         <section className={styles.section}>
-          <h3 className={styles.sectionTitle}>ධර්ම දේශනා පෝඩ්කාස්ට් (Podcasts)</h3>
+          <h3 className={styles.sectionTitle}>
+            ධර්ම දේශනා පෝඩ්කාස්ට් <span className="english-sub">Dhamma Podcasts</span>
+          </h3>
           <div className={styles.theroGrid}>
             {theros.map((thero) => (
               <Link
@@ -67,7 +69,9 @@ export default function HomePage() {
         </section>
 
         <section className={styles.section}>
-          <h3 className={styles.sectionTitle}>දහම් පොත්පත් (Ebooks)</h3>
+          <h3 className={styles.sectionTitle}>
+            දහම් පොත්පත් <span className="english-sub">Dhamma Ebooks</span>
+          </h3>
           <div className={styles.ebookContainer}>
             <Link
               href="/ebooks"
@@ -79,7 +83,9 @@ export default function HomePage() {
                   <BookIcon size={32} />
                 </div>
                 <div>
-                  <h4>දහම් පොත් එකතුව (Ebook Library)</h4>
+                  <h4>
+                    දහම් පොත් එකතුව <span className="english-sub">Dhamma Ebook Library</span>
+                  </h4>
                   <p>අති පූජ්‍ය රේරුකානේ චන්දවිමල මහා නාහිමියන්ගේ ධර්ම ග්‍රන්ථ ඇතුළු අනෙකුත් දහම් පොත් කියවීමට සහ භාගත (Download) කර ගැනීමට පිවිසෙන්න.</p>
                 </div>
               </div>

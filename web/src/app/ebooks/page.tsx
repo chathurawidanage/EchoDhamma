@@ -30,9 +30,11 @@ export default function EbooksPage() {
     <div className={styles.container}>
       <header className={styles.header}>
         <Link href="/" className={styles.backLink}>
-          ← මුල් පිටුවට (Back to Home)
+          ← මුල් පිටුවට <span className="english-sub">Back to Home</span>
         </Link>
-        <h1 className={styles.pageTitle}>දහම් පොත් එකතුව (Ebook Library)</h1>
+        <h1 className={styles.pageTitle}>
+          දහම් පොත් එකතුව <span className="english-sub">Dhamma Ebook Library</span>
+        </h1>
         <p className={styles.pageSubtitle}>
           අති පූජ්‍ය රේරුකානේ චන්දවිමල මහා නාහිමියන් විසින් රචිත වටිනා ධර්ම ග්‍රන්ථ ඇතුළු දහම් පොත්පත් මෙහිදී ඔබට කියවීමට සහ භාගත (Download) කර ගැනීමට හැකිය.
         </p>
@@ -43,7 +45,7 @@ export default function EbooksPage() {
         <div className={styles.searchContainer}>
           <input
             type="text"
-            placeholder="පොත්වල මාතෘකා, කර්තෘ හෝ විස්තර සොයන්න... (Search books...)"
+            placeholder="පොත්වල මාතෘකා, කර්තෘ හෝ විස්තර සොයන්න..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className={`${styles.searchInput} glass`}
