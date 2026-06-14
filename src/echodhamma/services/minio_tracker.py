@@ -20,6 +20,7 @@ class MinioTracker:
             self.umami_url = f"{umami_base.rstrip('/')}/api/send"
         self.dedupe_window = int(os.getenv("DEDUPE_WINDOW", 10800))  # 3 hour in seconds
         self.download_cache = {}
+        self.hostname = os.getenv("TRACKING_HOSTNAME", "no.op")
         # Separate executor for lightweight tracking tasks
         self.executor = ThreadPoolExecutor(max_workers=4)
 
@@ -45,14 +46,20 @@ class MinioTracker:
 
                     s3_config = data.get("s3", {})
                     umami_config = data.get("umami", {})
+                    thero_id = data.get("id")
 
                     bucket_env = s3_config.get("bucket_env")
                     website_id = umami_config.get("website_id")
 
-                    if bucket_env and website_id:
+                    if bucket_env and website_id and thero_id:
                         bucket_name = os.getenv(bucket_env)
                         if bucket_name:
-                            mapping[bucket_name] = website_id
+                            mapping[bucket_name] = {
+                                "website_id": website_id,
+                                "thero_id": thero_id,
+                                "thero_name": data.get("name"),
+                                "thero_name_sinhala": data.get("name_sinhala"),
+                            }
                         else:
                             logger.warning(
                                 f"Bucket env var {bucket_env} not set for {file_path}"
@@ -65,6 +72,104 @@ class MinioTracker:
             logger.error(f"Error initializing bucket map: {e}")
 
         return mapping
+
+    def _parse_user_agent(self, ua_string):
+        """Parses a User-Agent string to identify common podcast clients, OS, and device types."""
+        if not ua_string or not isinstance(ua_string, str):
+            return {
+                "podcast_client": "Unknown Client",
+                "podcast_os": "Unknown OS",
+                "podcast_device": "Unknown Device",
+            }
+
+        ua_lower = ua_string.lower()
+
+        # 1. Identify Podcast Client
+        client = "Other Podcast Client"
+        if "spotify" in ua_lower:
+            client = "Spotify"
+        elif "pocketcasts" in ua_lower or "pocket casts" in ua_lower:
+            client = "Pocket Casts"
+        elif "antennapod" in ua_lower:
+            client = "AntennaPod"
+        elif "overcast" in ua_lower:
+            client = "Overcast"
+        elif "castbox" in ua_lower:
+            client = "Castbox"
+        elif "podcastaddict" in ua_lower or "podcast addict" in ua_lower:
+            client = "Podcast Addict"
+        elif "googlepodcasts" in ua_lower or "google podcasts" in ua_lower:
+            client = "Google Podcasts"
+        elif "amazonmusic" in ua_lower or "amazon music" in ua_lower:
+            client = "Amazon Music"
+        elif "deezer" in ua_lower:
+            client = "Deezer"
+        elif (
+            "itunes" in ua_lower
+            or "applecoremedia" in ua_lower
+            or "podcast" in ua_lower
+            or "podcasts" in ua_lower
+        ):
+            client = "Apple Podcasts"
+        elif (
+            "chrome" in ua_lower
+            or "safari" in ua_lower
+            or "firefox" in ua_lower
+            or "edge" in ua_lower
+        ):
+            client = "Web Browser"
+
+        # 2. Identify OS
+        os_name = "Unknown OS"
+        if (
+            "iphone" in ua_lower
+            or "ipad" in ua_lower
+            or "ipod" in ua_lower
+            or "ios" in ua_lower
+        ):
+            os_name = "iOS"
+        elif "android" in ua_lower:
+            os_name = "Android"
+        elif (
+            "macintosh" in ua_lower
+            or "mac os x" in ua_lower
+            or "mac_powerpc" in ua_lower
+        ):
+            os_name = "macOS"
+        elif (
+            "windows" in ua_lower
+            or "win32" in ua_lower
+            or "win64" in ua_lower
+        ):
+            os_name = "Windows"
+        elif "linux" in ua_lower:
+            os_name = "Linux"
+
+        # 3. Identify Device Type
+        device = "Unknown Device"
+        if "iphone" in ua_lower or "ipod" in ua_lower or "android" in ua_lower:
+            device = "Mobile"
+        elif "ipad" in ua_lower or "tablet" in ua_lower:
+            device = "Tablet"
+        elif (
+            "macintosh" in ua_lower
+            or "windows" in ua_lower
+            or "linux" in ua_lower
+        ):
+            device = "Desktop"
+        elif (
+            "sonos" in ua_lower
+            or "alexa" in ua_lower
+            or "homepod" in ua_lower
+            or "echo" in ua_lower
+        ):
+            device = "Smart Speaker"
+
+        return {
+            "podcast_client": client,
+            "podcast_os": os_name,
+            "podcast_device": device,
+        }
 
     def is_duplicate(self, ip, file_key):
         """Check if this IP has downloaded this file recently."""
@@ -109,7 +214,11 @@ class MinioTracker:
 
     def process_event(self, data):
         """Process Minio event data."""
+        logger.info("Received MinIO event webhook request.")
+        logger.debug(f"Raw MinIO event payload: {data}")
+
         if not data or "Records" not in data:
+            logger.warning("MinIO event payload has no 'Records' key or is empty.")
             return {"status": "ignored"}
 
         processed_count = 0
@@ -117,6 +226,7 @@ class MinioTracker:
         for record in data["Records"]:
             # Safety check for expected structure
             if "s3" not in record or "object" not in record["s3"]:
+                logger.debug(f"Skipping record due to missing s3 or object metadata: {record}")
                 continue
 
             # Extract basic info
@@ -131,37 +241,70 @@ class MinioTracker:
             # Get request parameters safely
             request_params = record.get("requestParameters", {})
             client_ip = request_params.get("sourceIPAddress", "0.0.0.0")
-            # Default to a generic browser UA if missing to satisfy Umami
-            user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/119.0.0.0"
+            # Extract visitor User-Agent from source
+            source_info = record.get("source", {})
+            user_agent = source_info.get("userAgent")
+            
+            logger.info(
+                f"MinIO event details: bucket={bucket_name}, file_key={file_key}, "
+                f"client_ip={client_ip}, user_agent={user_agent}"
+            )
+
+            if not user_agent or not isinstance(user_agent, str):
+                user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/119.0.0.0"
 
             # 1. Only track MP3s
             if not file_key.endswith(".mp3"):
+                logger.debug(f"Skipping non-MP3 file download event: {file_key}")
                 continue
 
             # 2. DEDUPLICATION LOGIC
             if self.is_duplicate(client_ip, file_key):
+                logger.info(f"Deduplicated event: file_key={file_key} from client_ip={client_ip}")
                 continue
 
             if bucket_name not in self.bucket_map:
                 logger.warning(
-                    f"Ignored event from unknown or unmapped bucket: {bucket_name}"
+                    f"Ignored event from unknown or unmapped bucket: {bucket_name}. "
+                    f"Mapped buckets: {list(self.bucket_map.keys())}"
                 )
                 continue
 
-            website_id = self.bucket_map[bucket_name]
+            bucket_info = self.bucket_map[bucket_name]
+            website_id = bucket_info["website_id"]
+            thero_id = bucket_info["thero_id"]
+            thero_name = (
+                bucket_info.get("thero_name_sinhala")
+                or bucket_info.get("thero_name")
+                or bucket_name
+            )
 
-            # 3. Send to Umami
+            # Generate URL path and title mimicking the website details page
+            episode_filename = os.path.basename(file_key)
+            episode_id = os.path.splitext(episode_filename)[0]
+            url_path = f"/podcast/{thero_id}/{episode_id}"
+            page_title = f"{thero_name} - {episode_id}"
+
+            # Parse user agent details
+            ua_details = self._parse_user_agent(user_agent)
+
+            # 3. Send to Umami (Pageview event payload - omitting name)
             payload = {
                 "type": "event",
                 "payload": {
                     "website": website_id,
-                    "url": f"/podcast/{file_key}",
-                    "name": "Podcast Download",
-                    "data": {"file_name": file_key, "bucket": bucket_name},
-                    "hostname": "minio.local",
+                    "url": url_path,
+                    "hostname": self.hostname,
                     "language": "en-US",
                     "screen": "1920x1080",
-                    "title": file_key,
+                    "title": page_title,
+                    "data": {
+                        "podcast_client": ua_details["podcast_client"],
+                        "podcast_os": ua_details["podcast_os"],
+                        "podcast_device": ua_details["podcast_device"],
+                        "file_name": file_key,
+                        "bucket": bucket_name,
+                    },
                 },
             }
 
