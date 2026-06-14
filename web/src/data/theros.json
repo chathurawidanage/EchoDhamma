@@ -23,9 +23,6 @@
       "max_ai_calls_per_day": 10
     },
     "rss_filename": "podcast.xml",
-    "umami": {
-      "website_id": "25970dec-065e-4740-ba91-7394ad1f613a"
-    },
     "s3": {
       "endpoint_env": "GNANALOKA_THERO_S3_ENDPOINT",
       "bucket_env": "GNANALOKA_THERO_S3_BUCKET",
@@ -66,9 +63,6 @@
       "https://www.youtube.com/channel/UCtmTjmQNsvvkCULd-z_1kow/videos",
       "https://www.youtube.com/channel/UCfQqHQ0uiF7OHo6peS-8Rsw/videos"
     ],
-    "umami": {
-      "website_id": "d3e03cc8-88df-40e7-9cc6-dc15a9e5f03d"
-    },
     "ai_config": {
       "enabled": true,
       "summarize": true,
@@ -231,9 +225,6 @@
     "youtube_channel_urls": [
       "https://www.youtube.com/channel/UCFhy_YsPcufmBl4AqkvaUXA/videos"
     ],
-    "umami": {
-      "website_id": "7b8506b4-423f-4543-ae0a-ed46ba04cadd"
-    },
     "ai_config": {
       "enabled": true,
       "summarize": true,

@@ -11,9 +11,6 @@ export interface SyncConfig {
   max_ai_calls_per_day: number;
 }
 
-export interface UmamiConfig {
-  website_id: string;
-}
 
 export interface S3Config {
   endpoint_env: string;
@@ -54,7 +51,6 @@ export interface TheroConfig {
   ai_config: AIConfig;
   sync_config: SyncConfig;
   rss_filename: string;
-  umami: UmamiConfig;
   s3: S3Config;
   podcast: PodcastMetadata;
 }

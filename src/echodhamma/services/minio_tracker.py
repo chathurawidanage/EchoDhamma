@@ -18,17 +18,22 @@ class MinioTracker:
             self.umami_url = umami_base
         else:
             self.umami_url = f"{umami_base.rstrip('/')}/api/send"
+        self.umami_website_id = os.getenv("LISTENS_TRACKER_UMAMI_WEBSITE_ID")
+        if not self.umami_website_id:
+            raise ValueError(
+                "LISTENS_TRACKER_UMAMI_WEBSITE_ID environment variable is required but not set"
+            )
         self.dedupe_window = int(os.getenv("DEDUPE_WINDOW", 10800))  # 3 hour in seconds
         self.download_cache = {}
         self.hostname = os.getenv("TRACKING_HOSTNAME", "no.op")
         # Separate executor for lightweight tracking tasks
         self.executor = ThreadPoolExecutor(max_workers=4)
 
-        # Load bucket -> website_id mapping
+        # Load bucket -> thero mapping
         self.bucket_map = self._load_bucket_map()
 
     def _load_bucket_map(self):
-        """Loads thero configs to map bucket names to Umami website IDs."""
+        """Loads thero configs to map bucket names to thero details."""
         mapping = {}
         try:
             theros_dir = os.path.join(
@@ -45,17 +50,14 @@ class MinioTracker:
                         continue
 
                     s3_config = data.get("s3", {})
-                    umami_config = data.get("umami", {})
                     thero_id = data.get("id")
 
                     bucket_env = s3_config.get("bucket_env")
-                    website_id = umami_config.get("website_id")
 
-                    if bucket_env and website_id and thero_id:
+                    if bucket_env and thero_id:
                         bucket_name = os.getenv(bucket_env)
                         if bucket_name:
                             mapping[bucket_name] = {
-                                "website_id": website_id,
                                 "thero_id": thero_id,
                                 "thero_name": data.get("name"),
                                 "thero_name_sinhala": data.get("name_sinhala"),
@@ -315,7 +317,7 @@ class MinioTracker:
                 continue
 
             bucket_info = self.bucket_map[bucket_name]
-            website_id = bucket_info["website_id"]
+            website_id = self.umami_website_id
             thero_id = bucket_info["thero_id"]
             thero_name = (
                 bucket_info.get("thero_name_sinhala")

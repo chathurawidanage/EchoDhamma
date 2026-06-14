@@ -12,9 +12,6 @@
         "https://www.youtube.com/channel/UCtmTjmQNsvvkCULd-z_1kow/videos",
         "https://www.youtube.com/channel/UCfQqHQ0uiF7OHo6peS-8Rsw/videos"
     ],
-    "umami": {
-        "website_id": "d3e03cc8-88df-40e7-9cc6-dc15a9e5f03d"
-    },
     "ai_config": {
         "enabled": true,
         "summarize": true,
