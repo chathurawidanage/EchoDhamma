@@ -239,6 +239,8 @@ class MinioTracker:
     def process_event(self, data):
         """Process Minio event data."""
 
+        logger.info(f"Received event: {data}")
+
         if not data or "Records" not in data:
             logger.warning("MinIO event payload has no 'Records' key or is empty.")
             return {"status": "ignored"}
