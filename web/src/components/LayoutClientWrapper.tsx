@@ -20,7 +20,7 @@ export default function LayoutClientWrapper({ theros, children }: LayoutClientWr
   const showPlayer = !isReaderPage && !!currentTrack;
 
   return (
-    <div className={styles.layoutShell}>
+    <div className={`${styles.layoutShell} ${isReaderPage ? styles.readerLayoutShell : ''}`}>
       <Navigation theros={theros} />
       <main className={`${styles.contentWrapper} ${isReaderPage ? styles.readerMode : ''} ${showPlayer ? styles.hasPlayer : ''}`}>
         {children}

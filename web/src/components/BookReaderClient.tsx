@@ -143,7 +143,7 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
           const rect = el.getBoundingClientRect();
           // Element is visible if it intersects the reader viewport bounds (with a small 10px buffer)
           const isVisible = rect.bottom > containerTop + 10 && rect.top < containerBottom - 10;
-          
+
           if (isVisible) {
             visibleHeadings.push(item);
           } else if (rect.top <= containerTop + 10) {
@@ -408,13 +408,13 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
               <line x1="3" y1="6" x2="21" y2="6"></line>
               <line x1="3" y1="18" x2="21" y2="18"></line>
             </svg>
-            පටුන (TOC)
+            පටුන
           </button>
-          
+
           <Link href="/ebooks" className={styles.backLink}>
             ← ග්‍රන්ථ එකතුවට
           </Link>
-          
+
           <div className={styles.titleInfo}>
             <h1 className={styles.bookTitle}>{book.title}</h1>
             <span className={styles.bookAuthor}>{book.author}</span>
@@ -463,9 +463,8 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
               {parsedBook.toc.map((item, idx) => (
                 <li
                   key={`${item.id}-${idx}`}
-                  className={`${styles.tocItem} ${styles[`level${item.level}`]} ${
-                    activeTocId === item.id ? styles.activeTocItem : ''
-                  }`}
+                  className={`${styles.tocItem} ${styles[`level${item.level}`]} ${activeTocId === item.id ? styles.activeTocItem : ''
+                    }`}
                 >
                   <button onClick={() => handleTocClick(item)}>
                     {item.title}
@@ -488,7 +487,7 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
               <h4>සැකසුම්</h4>
               <button className={styles.closeBtn} onClick={() => setSettingsOpen(false)}>×</button>
             </div>
-            
+
             {/* Theme Selector */}
             <div className={styles.settingRow}>
               <span className={styles.settingLabel}>තේමාව (Theme)</span>
@@ -621,9 +620,8 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
 
         {/* Reader Display Panel */}
         <main
-          className={`${styles.readerPane} ${fontFamily === 'serif' ? styles.serif : styles.sans} ${
-            styles[`width-${textWidth}`]
-          }`}
+          className={`${styles.readerPane} ${fontFamily === 'serif' ? styles.serif : styles.sans} ${styles[`width-${textWidth}`]
+            }`}
           ref={readerRef}
           onScroll={handleScroll}
         >
@@ -650,7 +648,7 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
               >
                 <ChevronLeftIcon size={16} /> පෙර පරිච්ඡේදය
               </button>
-              
+
               <span className={styles.chapterProgressLabel}>
                 පරිච්ඡේදය {currentChapterIdx + 1} / {chapters.length}
               </span>

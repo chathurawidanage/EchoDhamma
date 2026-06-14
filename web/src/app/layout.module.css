@@ -7,6 +7,12 @@
   background-color: var(--bg-primary);
 }
 
+.readerLayoutShell {
+  height: 100vh;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
 .contentWrapper {
   flex: 1;
   padding-top: var(--header-height);
@@ -25,7 +31,8 @@
 .readerMode {
   padding-top: var(--header-height);
   padding-bottom: 0 !important;
-  overflow: hidden;
+  overflow: hidden !important;
+  overflow-y: hidden !important;
   height: 100vh;
   min-height: 100vh;
 }
