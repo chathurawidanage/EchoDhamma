@@ -76,7 +76,7 @@ export default function EbooksPage() {
             මෙම පොත් එකතුවේ ඇති ඊ-පොත් (EPUB) සැකසීමට සහ අපගේ මාර්ගගත කියවනය (Online Reader) සඳහා <a href="https://pitaka.lk/books/" target="_blank" rel="noopener noreferrer" className={styles.creditLink}>pitaka.lk</a> වෙබ් අඩවියේ ඇති ඩිජිටල්කරණය කරන ලද මුල් HTML ලිපිගොනු මූලාශ්‍ර කරගන්නා ලදී. එම දහම් පොත් ඩිජිටල්කරණය කර පොදු පරිහරණය සඳහා විවෘතව ලබාදීම පිළිබඳව pitaka.lk කණ්ඩායමට අපගේ ගෞරවනීය ස්තූතිය සහ පුණ්‍යානුමෝදනාව මෙයින් පළ කර සිටිමු.
           </p>
           <p className={styles.creditsTextEnglish}>
-            The original digitized HTML source files used to re-encode these ebooks into EPUB formats and power our online reader were sourced from <a href="https://pitaka.lk" target="_blank" rel="noopener noreferrer" className={styles.creditLink}>pitaka.lk</a>. We express our heartfelt gratitude and appreciation to the pitaka.lk team for their dedication in digitizing these Dhamma books and making them freely available to the public.
+            The original digitized HTML source files used to re-encode these ebooks into EPUB formats and power our online reader were sourced from <a href="https://pitaka.lk/books/" target="_blank" rel="noopener noreferrer" className={styles.creditLink}>pitaka.lk</a>. We express our heartfelt gratitude and appreciation to the pitaka.lk team for their dedication in digitizing these Dhamma books and making them freely available to the public.
           </p>
         </div>
       </footer>
