@@ -245,17 +245,16 @@ class MinioTracker:
             source_info = record.get("source", {})
             user_agent = source_info.get("userAgent")
             
-            logger.info(
-                f"MinIO event details: bucket={bucket_name}, file_key={file_key}, "
-                f"client_ip={client_ip}, user_agent={user_agent}"
-            )
-
             # Skip events triggered by scripts/tools (boto3, botocore, minio clients, rclone, curl, etc.)
             if user_agent and isinstance(user_agent, str):
                 ua_lower = user_agent.lower()
                 if any(ignored in ua_lower for ignored in ["boto3", "botocore", "minio", "rclone", "curl", "wget", "http.client"]):
-                    logger.info(f"Skipping script/tool request from User-Agent: {user_agent}")
                     continue
+
+            logger.info(
+                f"MinIO event details: bucket={bucket_name}, file_key={file_key}, "
+                f"client_ip={client_ip}, user_agent={user_agent}"
+            )
 
             if not user_agent or not isinstance(user_agent, str):
                 user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/119.0.0.0"
