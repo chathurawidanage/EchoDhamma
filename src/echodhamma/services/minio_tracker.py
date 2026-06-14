@@ -163,29 +163,55 @@ class MinioTracker:
             "podcast_device": device,
         }
 
-    def is_duplicate(self, ip, file_key):
-        """Check if this IP has downloaded this file recently."""
+    def evaluate_session_action(self, ip, file_key):
+        """
+        Evaluates the session state for this IP and file download.
+        Returns:
+            "pageview" - if it is a new listen session (should send pageview).
+            "heartbeat" - if it is an active streaming session that has progressed
+                          by at least 60 seconds (should send heartbeat event).
+            "skip" - if it is a duplicate range request within the throttle window.
+        """
         current_time = time.time()
         cache_key = (ip, file_key)
 
-        if cache_key in self.download_cache:
-            last_seen = self.download_cache[cache_key]
-            if current_time - last_seen < self.dedupe_window:
-                return True
+        session = self.download_cache.get(cache_key)
 
-        # Update cache with new timestamp
-        self.download_cache[cache_key] = current_time
+        if session is None:
+            # First time seeing this download
+            self.download_cache[cache_key] = {
+                "start_time": current_time,
+                "last_log_time": current_time,
+                "last_activity_time": current_time,
+            }
+            # Clean up cache occasionally to prevent memory bloat
+            if len(self.download_cache) > 5000:
+                self.clean_cache(current_time)
+            return "pageview"
 
-        # Optional: Clean up cache occasionally to prevent memory bloat
-        if len(self.download_cache) > 5000:
-            self.clean_cache(current_time)
+        # Check if session has been inactive for longer than the deduplication window
+        if current_time - session["last_activity_time"] > self.dedupe_window:
+            session["start_time"] = current_time
+            session["last_log_time"] = current_time
+            session["last_activity_time"] = current_time
+            return "pageview"
 
-        return False
+        # Update last activity time
+        session["last_activity_time"] = current_time
+
+        # If it's an active streaming session, send a heartbeat every 60 seconds
+        if current_time - session["last_log_time"] >= 60:
+            session["last_log_time"] = current_time
+            return "heartbeat"
+
+        return "skip"
 
     def clean_cache(self, now):
         """Remove expired entries from cache."""
         self.download_cache = {
-            k: v for k, v in self.download_cache.items() if now - v < self.dedupe_window
+            k: v
+            for k, v in self.download_cache.items()
+            if now - v["last_activity_time"] < self.dedupe_window
         }
 
     def _log_download_async(self, payload, headers, file_key):
@@ -273,10 +299,11 @@ class MinioTracker:
                 logger.debug(f"Skipping non-MP3 file download event: {file_key}")
                 continue
 
-            # 2. DEDUPLICATION LOGIC
-            if self.is_duplicate(client_ip, file_key):
+            # 2. SESSION TRACKING & DEDUPLICATION
+            action = self.evaluate_session_action(client_ip, file_key)
+            if action == "skip":
                 logger.info(
-                    f"Deduplicated event: file_key={file_key} from client_ip={client_ip}"
+                    f"Skipping duplicate range request for file_key={file_key} from client_ip={client_ip}"
                 )
                 continue
 
@@ -305,7 +332,7 @@ class MinioTracker:
             # Parse user agent details
             ua_details = self._parse_user_agent(user_agent)
 
-            # 3. Send to Umami (Pageview event payload - omitting name)
+            # 3. Send to Umami (Pageview/Heartbeat event payload)
             payload = {
                 "type": "event",
                 "payload": {
@@ -324,6 +351,11 @@ class MinioTracker:
                     },
                 },
             }
+
+            # If it's a heartbeat, include the event name to extend the session
+            # without duplicating the pageviews count in the Umami dashboard.
+            if action == "heartbeat":
+                payload["payload"]["name"] = "Podcast Heartbeat"
 
             # To prevent Umami from filtering out non-browser traffic (like podcast players) as bots/crawlers,
             # we map the parsed OS to a standard, human-browser User-Agent.
