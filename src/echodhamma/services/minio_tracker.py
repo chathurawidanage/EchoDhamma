@@ -191,8 +191,12 @@ class MinioTracker:
     def _log_download_async(self, payload, headers, file_key):
         """Helper to send Umami request in background."""
         try:
+            logger.info(f"Sending tracking payload to Umami: {payload}")
             response = requests.post(
                 self.umami_url, json=payload, headers=headers, timeout=5
+            )
+            logger.info(
+                f"Umami API response for {file_key}: status={response.status_code}, body={response.text}"
             )
             if not (200 <= response.status_code < 300):
                 logger.error(
@@ -321,8 +325,18 @@ class MinioTracker:
                 },
             }
 
+            # To prevent Umami from filtering out non-browser traffic (like podcast players) as bots/crawlers,
+            # we map the parsed OS to a standard, human-browser User-Agent.
+            synthetic_ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
+            if ua_details["podcast_os"] == "iOS":
+                synthetic_ua = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1"
+            elif ua_details["podcast_os"] == "Android":
+                synthetic_ua = "Mozilla/5.0 (Linux; Android 11; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Mobile Safari/537.36"
+            elif ua_details["podcast_os"] == "macOS":
+                synthetic_ua = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Safari/605.1.15"
+
             headers = {
-                "User-Agent": user_agent,
+                "User-Agent": synthetic_ua,
                 "X-Forwarded-For": client_ip,
                 "Content-Type": "application/json",
             }
