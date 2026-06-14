@@ -248,7 +248,7 @@ class MinioTracker:
         for record in data["Records"]:
             # Safety check for expected structure
             if "s3" not in record or "object" not in record["s3"]:
-                logger.debug(
+                logger.warning(
                     f"Skipping record due to missing s3 or object metadata: {record}"
                 )
                 continue
