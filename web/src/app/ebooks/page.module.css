@@ -128,4 +128,60 @@
   .pageTitle {
     font-size: 1.5rem;
   }
+
+  .creditsCard {
+    padding: 1.25rem;
+  }
+}
+
+.creditsCard {
+  margin-top: 2rem;
+  padding: 1.25rem 1.75rem;
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--border-light);
+  background-color: var(--bg-glass);
+  text-align: center;
+}
+
+.creditsContent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.creditsContent h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--accent-gold);
+  margin: 0;
+}
+
+.creditsTextSinhala {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.creditsTextEnglish {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  line-height: 1.45;
+  border-top: 1px solid var(--border-light);
+  padding-top: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.creditLink {
+  color: var(--accent-gold);
+  font-weight: 600;
+  text-decoration: none;
+  border-bottom: 1px dotted var(--accent-gold);
+  transition: var(--transition-fast);
+}
+
+.creditLink:hover {
+  border-bottom-style: solid;
 }
