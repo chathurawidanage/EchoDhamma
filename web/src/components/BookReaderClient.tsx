@@ -30,12 +30,13 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
   const [currentChapterId, setCurrentChapterId] = useState<string>('titlepage');
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
   const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
-  const [scrollPercentage, setScrollPercentage] = useState<number>(0);
   const [pendingScrollId, setPendingScrollId] = useState<string | null>(null);
   const [activeTocId, setActiveTocId] = useState<string | null>(null);
 
   const readerRef = useRef<HTMLDivElement>(null);
+  const progressBarRef = useRef<HTMLDivElement>(null);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const localStorageTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -96,11 +97,14 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
     }
   }, [currentChapterId, book.id, hasHtml]);
 
-  // Clean up scroll timeout on unmount
+  // Clean up scroll timeouts on unmount
   useEffect(() => {
     return () => {
       if (scrollTimeoutRef.current) {
         clearTimeout(scrollTimeoutRef.current);
+      }
+      if (localStorageTimeoutRef.current) {
+        clearTimeout(localStorageTimeoutRef.current);
       }
     };
   }, []);
@@ -110,15 +114,19 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
     if (!readerRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = readerRef.current;
 
-    // Save scroll offset for resuming in the same chapter
-    localStorage.setItem(`ebook-scroll-${book.id}-${currentChapterId}`, String(scrollTop));
+    // Save scroll offset for resuming in the same chapter (debounced to avoid blocking main thread)
+    const currentScrollTop = scrollTop;
+    if (localStorageTimeoutRef.current) {
+      clearTimeout(localStorageTimeoutRef.current);
+    }
+    localStorageTimeoutRef.current = setTimeout(() => {
+      localStorage.setItem(`ebook-scroll-${book.id}-${currentChapterId}`, String(currentScrollTop));
+    }, 200);
 
     const totalScrollable = scrollHeight - clientHeight;
-    if (totalScrollable > 0) {
-      const pct = (scrollTop / totalScrollable) * 100;
-      setScrollPercentage(pct);
-    } else {
-      setScrollPercentage(0);
+    const pct = totalScrollable > 0 ? (scrollTop / totalScrollable) * 100 : 0;
+    if (progressBarRef.current) {
+      progressBarRef.current.style.width = `${pct}%`;
     }
 
     // Debounce active section highlight update on manual scroll
@@ -177,10 +185,15 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
     }
 
     const savedScroll = localStorage.getItem(`ebook-scroll-${book.id}-${currentChapterId}`);
-    if (savedScroll) {
-      readerRef.current.scrollTop = parseFloat(savedScroll);
-    } else {
-      readerRef.current.scrollTop = 0;
+    const scrollVal = savedScroll ? parseFloat(savedScroll) : 0;
+    readerRef.current.scrollTop = scrollVal;
+
+    // Immediately update progress bar
+    const { scrollHeight, clientHeight } = readerRef.current;
+    const totalScrollable = scrollHeight - clientHeight;
+    const pct = totalScrollable > 0 ? (scrollVal / totalScrollable) * 100 : 0;
+    if (progressBarRef.current) {
+      progressBarRef.current.style.width = `${pct}%`;
     }
   }, [currentChapterId, book.id, hasHtml]);
 
@@ -393,7 +406,7 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
       } as any}
     >
       {/* Top Reading Progress Bar */}
-      <div className={styles.progressBar} style={{ width: `${scrollPercentage}%` }} />
+      <div ref={progressBarRef} className={styles.progressBar} />
 
       {/* Reader Header */}
       <header className={`${styles.header} glass`}>
