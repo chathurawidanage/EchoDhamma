@@ -100,7 +100,11 @@ class MinioTracker:
             client = "Castbox"
         elif "podcastaddict" in ua_lower or "podcast addict" in ua_lower:
             client = "Podcast Addict"
-        elif "googlepodcasts" in ua_lower or "google podcasts" in ua_lower or "google-podcast" in ua_lower:
+        elif (
+            "googlepodcasts" in ua_lower
+            or "google podcasts" in ua_lower
+            or "google-podcast" in ua_lower
+        ):
             client = "Google Podcasts"
         elif "amazonmusic" in ua_lower or "amazon music" in ua_lower:
             client = "Amazon Music"
@@ -184,16 +188,33 @@ class MinioTracker:
             return False
         ua_lower = user_agent.lower()
         crawler_keywords = [
-            "bot", "crawler", "spider", "index", "feed", "parser", 
-            "scanner", "aggregator", "aggrivator", "rephonic", "piqo", "fetcher", "guzzlehttp", "axios"
+            "bot",
+            "crawler",
+            "spider",
+            "index",
+            "feed",
+            "parser",
+            "scanner",
+            "aggregator",
+            "aggrivator",
+            "rephonic",
+            "piqo",
+            "fetcher",
+            "guzzlehttp",
+            "axios",
         ]
         # Allow Pocket Casts and Amazon Music players (which can contain 'feed' or 'podcast')
         # while blocking their crawler counterparts (e.g. Feed Parser/Scanner)
-        if "pocketcasts" in ua_lower or "amazonmusic" in ua_lower or "spotify" in ua_lower or "ivoox" in ua_lower:
+        if (
+            "pocketcasts" in ua_lower
+            or "amazonmusic" in ua_lower
+            or "spotify" in ua_lower
+            or "ivoox" in ua_lower
+        ):
             if "parser" in ua_lower or "scanner" in ua_lower or "bot" in ua_lower:
                 return True
             return False
-            
+
         return any(keyword in ua_lower for keyword in crawler_keywords)
 
     def evaluate_session_action(self, ip, file_key):
@@ -269,6 +290,7 @@ class MinioTracker:
 
     def process_event(self, data):
         """Process Minio event data."""
+        logger.info(f"Processing MinIO event data: {data}")
 
         if not data or "Records" not in data:
             logger.warning("MinIO event payload has no 'Records' key or is empty.")
@@ -330,7 +352,9 @@ class MinioTracker:
 
             # Skip known indexing crawlers, bots, or aggregators
             if self._is_crawler(user_agent):
-                logger.info(f"Skipping crawler/bot request for {file_key} from {user_agent}")
+                logger.info(
+                    f"Skipping crawler/bot request for {file_key} from {user_agent}"
+                )
                 continue
 
             # Exclude metadata checks (e.g. range requests downloading less than 500 KB)
@@ -340,7 +364,9 @@ class MinioTracker:
                 try:
                     content_length = int(content_length_str)
                     if content_length < 500 * 1024:
-                        logger.info(f"Skipping metadata range check (downloaded {content_length} bytes) for {file_key}")
+                        logger.info(
+                            f"Skipping metadata range check (downloaded {content_length} bytes) for {file_key}"
+                        )
                         continue
                 except ValueError:
                     pass
