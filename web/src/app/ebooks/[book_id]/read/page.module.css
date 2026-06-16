@@ -491,7 +491,6 @@
   line-height: var(--reader-line-height);
   color: var(--text-reader);
   margin-bottom: 3rem;
-  transition: font-size 0.2s ease, line-height 0.2s ease;
 }
 
 .articleContent p {

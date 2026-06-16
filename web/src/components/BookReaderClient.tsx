@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Ebook } from '@/types';
@@ -37,6 +37,8 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
   const progressBarRef = useRef<HTMLDivElement>(null);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const localStorageTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const anchorElementIndexRef = useRef<number>(-1);
+  const anchorOffsetRef = useRef<number>(0);
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -173,6 +175,65 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
       setActiveTocId(activeId);
     }, 150);
   };
+
+  // Helper to capture the current visible element and its offset before applying a layout/style change
+  const applyLayoutChange = (updateFn: () => void) => {
+    if (!readerRef.current) {
+      updateFn();
+      return;
+    }
+
+    const container = readerRef.current;
+    const containerRect = container.getBoundingClientRect();
+    
+    // Select potential block elements inside the reader area (excluding wrapper divs to avoid scroll-anchoring to the top of the container)
+    const elements = container.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, pre, blockquote, tr, td, img');
+    
+    let firstVisibleIndex = -1;
+    let offset = 0;
+
+    for (let i = 0; i < elements.length; i++) {
+      const el = elements[i];
+      const rect = el.getBoundingClientRect();
+
+      // We look for the first element whose bottom is at least 10px below the container's top boundary
+      if (rect.bottom > containerRect.top + 10) {
+        firstVisibleIndex = i;
+        offset = rect.top - containerRect.top;
+        break;
+      }
+    }
+
+    if (firstVisibleIndex !== -1) {
+      anchorElementIndexRef.current = firstVisibleIndex;
+      anchorOffsetRef.current = offset;
+    }
+
+    updateFn();
+  };
+
+  // Adjust scroll position after any font/layout adjustments to prevent losing user's position
+  useLayoutEffect(() => {
+    if (anchorElementIndexRef.current !== -1 && readerRef.current) {
+      const container = readerRef.current;
+      const elements = container.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, pre, blockquote, tr, td, img');
+      const anchorElement = elements[anchorElementIndexRef.current];
+
+      if (anchorElement) {
+        const containerRect = container.getBoundingClientRect();
+        const elementRect = anchorElement.getBoundingClientRect();
+
+        // Calculate absolute offset of the anchor element from the container scroll top
+        const relativeOffset = elementRect.top - containerRect.top + container.scrollTop;
+        const targetScrollTop = relativeOffset - anchorOffsetRef.current;
+
+        container.scrollTop = targetScrollTop;
+      }
+      // Reset layout scroll anchors
+      anchorElementIndexRef.current = -1;
+      anchorOffsetRef.current = 0;
+    }
+  }, [fontSize, fontFamily, lineHeight, textWidth]);
 
   // Restore scroll position when chapter changes
   useEffect(() => {
@@ -535,13 +596,13 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
               <div className={styles.btnGroup}>
                 <button
                   className={`${styles.settingBtn} ${fontFamily === 'serif' ? styles.activeSetting : ''}`}
-                  onClick={() => setFontFamily('serif')}
+                  onClick={() => applyLayoutChange(() => setFontFamily('serif'))}
                 >
                   Serif
                 </button>
                 <button
                   className={`${styles.settingBtn} ${fontFamily === 'sans' ? styles.activeSetting : ''}`}
-                  onClick={() => setFontFamily('sans')}
+                  onClick={() => applyLayoutChange(() => setFontFamily('sans'))}
                 >
                   Sans
                 </button>
@@ -554,7 +615,7 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
               <div className={styles.btnGroup}>
                 <button
                   className={styles.settingBtn}
-                  onClick={() => setFontSize(prev => Math.max(14, prev - 2))}
+                  onClick={() => applyLayoutChange(() => setFontSize(prev => Math.max(14, prev - 2)))}
                   disabled={fontSize <= 14}
                 >
                   A-
@@ -562,7 +623,7 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
                 <span className={styles.sizeIndicator}>{fontSize}px</span>
                 <button
                   className={styles.settingBtn}
-                  onClick={() => setFontSize(prev => Math.min(28, prev + 2))}
+                  onClick={() => applyLayoutChange(() => setFontSize(prev => Math.min(28, prev + 2)))}
                   disabled={fontSize >= 28}
                 >
                   A+
@@ -576,25 +637,25 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
               <div className={styles.btnGroup}>
                 <button
                   className={`${styles.settingBtn} ${lineHeight === 1.4 ? styles.activeSetting : ''}`}
-                  onClick={() => setLineHeight(1.4)}
+                  onClick={() => applyLayoutChange(() => setLineHeight(1.4))}
                 >
                   1.4
                 </button>
                 <button
                   className={`${styles.settingBtn} ${lineHeight === 1.6 ? styles.activeSetting : ''}`}
-                  onClick={() => setLineHeight(1.6)}
+                  onClick={() => applyLayoutChange(() => setLineHeight(1.6))}
                 >
                   1.6
                 </button>
                 <button
                   className={`${styles.settingBtn} ${lineHeight === 1.8 ? styles.activeSetting : ''}`}
-                  onClick={() => setLineHeight(1.8)}
+                  onClick={() => applyLayoutChange(() => setLineHeight(1.8))}
                 >
                   1.8
                 </button>
                 <button
                   className={`${styles.settingBtn} ${lineHeight === 2.0 ? styles.activeSetting : ''}`}
-                  onClick={() => setLineHeight(2.0)}
+                  onClick={() => applyLayoutChange(() => setLineHeight(2.0))}
                 >
                   2.0
                 </button>
@@ -607,21 +668,21 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
               <div className={styles.btnGroup}>
                 <button
                   className={`${styles.settingBtn} ${textWidth === 'narrow' ? styles.activeSetting : ''}`}
-                  onClick={() => setTextWidth('narrow')}
+                  onClick={() => applyLayoutChange(() => setTextWidth('narrow'))}
                   title="Narrow View"
                 >
                   Narrow
                 </button>
                 <button
                   className={`${styles.settingBtn} ${textWidth === 'medium' ? styles.activeSetting : ''}`}
-                  onClick={() => setTextWidth('medium')}
+                  onClick={() => applyLayoutChange(() => setTextWidth('medium'))}
                   title="Medium View"
                 >
                   Medium
                 </button>
                 <button
                   className={`${styles.settingBtn} ${textWidth === 'wide' ? styles.activeSetting : ''}`}
-                  onClick={() => setTextWidth('wide')}
+                  onClick={() => applyLayoutChange(() => setTextWidth('wide'))}
                   title="Wide View"
                 >
                   Wide
