@@ -3,37 +3,37 @@
 /* Dynamic Reader Themes */
 .light {
   --bg-reader: #fbfbfb;
-  --bg-reader-glass: rgba(251, 251, 251, 0.85);
+  --bg-reader-glass: #fbfbfb;
   --text-reader: #1a1a1e;
   --text-reader-muted: #5f6368;
   --border-reader: rgba(0, 0, 0, 0.08);
   --verse-bg: rgba(0, 0, 0, 0.03);
   --btn-hover-bg: rgba(0, 0, 0, 0.05);
-  --bg-glass: rgba(251, 251, 251, 0.85);
+  --bg-glass: #fbfbfb;
   --border-light: rgba(0, 0, 0, 0.08);
 }
 
 .sepia {
   --bg-reader: #f7f0e3;
-  --bg-reader-glass: rgba(247, 240, 227, 0.85);
+  --bg-reader-glass: #f7f0e3;
   --text-reader: #433422;
   --text-reader-muted: #7c6853;
   --border-reader: rgba(67, 52, 34, 0.09);
   --verse-bg: rgba(67, 52, 34, 0.04);
   --btn-hover-bg: rgba(67, 52, 34, 0.06);
-  --bg-glass: rgba(247, 240, 227, 0.85);
+  --bg-glass: #f7f0e3;
   --border-light: rgba(67, 52, 34, 0.09);
 }
 
 .dark {
   --bg-reader: #121214;
-  --bg-reader-glass: rgba(18, 18, 20, 0.85);
+  --bg-reader-glass: #121214;
   --text-reader: #e3e3e7;
   --text-reader-muted: #94949e;
   --border-reader: rgba(255, 255, 255, 0.07);
   --verse-bg: rgba(255, 255, 255, 0.03);
   --btn-hover-bg: rgba(255, 255, 255, 0.06);
-  --bg-glass: rgba(18, 18, 20, 0.85);
+  --bg-glass: #121214;
   --border-light: rgba(255, 255, 255, 0.07);
 }
 
@@ -69,8 +69,6 @@
   align-items: center;
   padding: 0 1.5rem;
   background-color: var(--bg-reader-glass);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
   z-index: 40;
   flex-shrink: 0;
   transition: background-color 0.3s ease, border-color 0.3s ease;
@@ -221,8 +219,6 @@
   z-index: 50;
   border-right: 1px solid var(--border-reader);
   background-color: var(--bg-reader-glass);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
   transform: translateX(-100%);
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
@@ -328,8 +324,6 @@
   border-radius: var(--border-radius-md);
   border: 1px solid var(--border-reader);
   background-color: var(--bg-reader-glass);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
   padding: 1.25rem;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
   animation: fadeIn 0.15s ease-out;
@@ -506,16 +500,21 @@
   text-justify: inter-word;
 }
 
-.articleContent ol,
+.articleContent ol {
+  padding-left: 1.8em;
+  margin-top: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
 .articleContent ul {
-  padding-left: 1.75rem;
+  padding-left: 1.5em;
   margin-top: 0.5rem;
   margin-bottom: 1.5rem;
 }
 
 .articleContent li {
   margin-bottom: 0.5rem;
-  padding-left: 0.25rem;
+  padding-left: 0.25em;
   text-align: justify;
   text-justify: inter-word;
 }

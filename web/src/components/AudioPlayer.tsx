@@ -82,7 +82,7 @@ export default function AudioPlayer() {
             title="Skip back 10s"
             id="player-skip-back"
           >
-            <SkipBackIcon size={14} /> 10s
+            <SkipBackIcon size={14} /> <span className={styles.btnText}>10s</span>
           </button>
           
           <button 
@@ -100,7 +100,7 @@ export default function AudioPlayer() {
             title="Skip forward 30s"
             id="player-skip-forward"
           >
-            30s <SkipForwardIcon size={14} />
+            <span className={styles.btnText}>30s</span> <SkipForwardIcon size={14} />
           </button>
         </div>
 
@@ -116,38 +116,38 @@ export default function AudioPlayer() {
             id="player-seek-slider"
           />
           <span className={styles.timer}>{formatTimer(duration)}</span>
+
+          {/* Speed Option */}
+          <div className={styles.speedWrapper}>
+            <button 
+              onClick={() => setShowSpeedMenu(!showSpeedMenu)} 
+              className={styles.speedBtn}
+              id="player-speed-btn"
+            >
+              <SpeedIcon size={14} /> {playbackRate}x
+            </button>
+            {showSpeedMenu && (
+              <div className={`${styles.speedDropdown} glass`}>
+                {speedOptions.map((rate) => (
+                  <button
+                    key={rate}
+                    onClick={() => {
+                      setPlaybackRate(rate);
+                      setShowSpeedMenu(false);
+                    }}
+                    className={`${styles.dropdownItem} ${playbackRate === rate ? styles.activeRate : ''}`}
+                  >
+                    {rate}x
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Right: Audio Settings (Volume & Speed) */}
+      {/* Right: Audio Settings (Volume) */}
       <div className={styles.settingsControls}>
-        {/* Speed Option */}
-        <div className={styles.speedWrapper}>
-          <button 
-            onClick={() => setShowSpeedMenu(!showSpeedMenu)} 
-            className={styles.speedBtn}
-            id="player-speed-btn"
-          >
-            <SpeedIcon size={14} /> {playbackRate}x
-          </button>
-          {showSpeedMenu && (
-            <div className={`${styles.speedDropdown} glass`}>
-              {speedOptions.map((rate) => (
-                <button
-                  key={rate}
-                  onClick={() => {
-                    setPlaybackRate(rate);
-                    setShowSpeedMenu(false);
-                  }}
-                  className={`${styles.dropdownItem} ${playbackRate === rate ? styles.activeRate : ''}`}
-                >
-                  {rate}x
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
         {/* Volume Option */}
         <div className={styles.volumeWrapper}>
           <span className={styles.volumeIcon}><VolumeIcon size={18} /></span>
@@ -163,6 +163,7 @@ export default function AudioPlayer() {
           />
         </div>
       </div>
+
     </div>
   );
 }

@@ -6,7 +6,7 @@
   --bg-primary: #0d1311;      /* Deep tranquil forest-slate green */
   --bg-secondary: #131b18;    /* Calm temple shadows */
   --bg-tertiary: #192320;     /* Soft earth-clay green */
-  --bg-glass: rgba(19, 27, 24, 0.7);
+  --bg-glass: #131b18;      /* Solid temple shadows */
   
   --text-primary: #f4f1e6;    /* Soft warm linen/sand white */
   --text-secondary: #aba79a;  /* Calming clay-gray */
@@ -49,7 +49,7 @@
   --bg-primary: #f7f0e3;      /* Warm sepia paper background */
   --bg-secondary: #efe6d5;    /* Slightly darker warm tone for cards/panels */
   --bg-tertiary: #e2d7c0;     /* Even darker tone for hover/active states */
-  --bg-glass: rgba(247, 240, 227, 0.85); /* Glass opacity */
+  --bg-glass: #efe6d5; /* Solid warm tone for cards/panels */
   
   --text-primary: #433422;    /* Deep tranquil brown */
   --text-secondary: #7c6853;  /* Warm clay-gray for subtitles/secondary text */
@@ -130,8 +130,6 @@ button {
 /* Global utility classes for premium styling */
 .glass {
   background: var(--bg-glass);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border-light);
 }
 
@@ -176,6 +174,12 @@ h3 .english-sub {
 [class*="mobileSectionTitle"] .english-sub {
   font-size: 0.65rem;
   margin-top: 0.15rem;
+}
+
+@media (max-width: 768px) {
+  :root {
+    --player-height: calc(125px + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 

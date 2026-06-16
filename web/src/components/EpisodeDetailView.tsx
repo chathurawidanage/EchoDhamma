@@ -14,7 +14,8 @@ import {
   AmazonMusicIcon,
   PocketCastsIcon,
   PlayIcon,
-  PauseIcon
+  PauseIcon,
+  YoutubeIcon
 } from './Icons';
 import styles from './EpisodeDetailView.module.css';
 
@@ -152,6 +153,7 @@ export default function EpisodeDetailView({
   const queryTitle = encodeURIComponent(episode.display_title || episode.title);
   const providers = thero.podcast.providers || {};
 
+  const youtubeUrl = episode.youtube_url || `https://www.youtube.com/results?search_query=${queryTitle}`;
   const spotifyUrl = directLinks?.spotify || providers.spotify || `https://open.spotify.com/search/${queryTitle}`;
   const appleUrl = directLinks?.apple || providers.apple || `https://podcasts.apple.com/us/search?term=${queryTitle}`;
   const amazonUrl = directLinks?.amazon || providers.amazon || `https://music.amazon.com/search/${queryTitle}`;
@@ -183,40 +185,39 @@ export default function EpisodeDetailView({
         </span>
 
         {/* Local player segment */}
-        <div className={`${styles.playerCard} glass`}>
-          <div className={styles.playerTitle}>
-            වෙබ් අඩවියෙන් ශ්‍රවණය කරන්න <span className="english-sub">Listen inline</span>
-          </div>
-          <div className={styles.playerControlsRow}>
-            <button
-              onClick={isCurrentEpisode ? togglePlay : handlePlayEpisode}
-              className={`${styles.playBtn} ${isCurrentEpisode && isPlaying ? styles.playingBtn : ''}`}
-              id="detail-play-button"
-            >
-              {isCurrentEpisode && isPlaying ? (
-                <>
-                  <PauseIcon size={14} /> දේශනාව නවත්වන්න (Pause)
-                </>
-              ) : (
-                <>
-                  <PlayIcon size={14} /> දේශනාව ශ්‍රවණය කරන්න (Play Episode)
-                </>
-              )}
-            </button>
-            {isCurrentEpisode && (
-              <span className={styles.playbackState}>
-                {isPlaying ? '⚡ දැනට ධාවනය වේ (Playing)' : 'නවත්වා ඇත (Paused)'}
-              </span>
+        <div className={styles.playerControlsRow}>
+          <button
+            onClick={isCurrentEpisode ? togglePlay : handlePlayEpisode}
+            className={`${styles.playBtn} ${isCurrentEpisode && isPlaying ? styles.playingBtn : ''}`}
+            id="detail-play-button"
+          >
+            {isCurrentEpisode && isPlaying ? (
+              <>
+                <PauseIcon size={14} /> දේශනාව නවත්වන්න (Pause)
+              </>
+            ) : (
+              <>
+                <PlayIcon size={14} /> දේශනාව ශ්‍රවණය කරන්න (Play)
+              </>
             )}
-          </div>
+          </button>
         </div>
 
         {/* External Platform Links */}
         <div className={styles.platformSection}>
           <div className={styles.platformTitle}>
-            වෙනත් මාධ්‍ය හරහා ශ්‍රවණය/නැරඹීම <span className="english-sub">Listen on other apps</span>
+            වෙනත් මාධ්‍ය හරහා ශ්‍රවණය/නැරඹීම
           </div>
           <div className={styles.platformRow}>
+            <a
+              href={youtubeUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`${styles.platformBtn} ${styles.youtube}`}
+              id="ext-youtube"
+            >
+              <YoutubeIcon size={14} /> YouTube
+            </a>
             <a
               href={spotifyUrl}
               target="_blank"

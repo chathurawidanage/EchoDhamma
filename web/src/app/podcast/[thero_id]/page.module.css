@@ -153,6 +153,15 @@
   color: #ffffff;
 }
 
+.pocket {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+.pocket:hover {
+  background-color: #ef4444;
+  color: #ffffff;
+}
+
 .rss {
   background-color: rgba(245, 158, 11, 0.1);
   color: #f59e0b;

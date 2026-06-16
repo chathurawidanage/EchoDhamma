@@ -9,8 +9,7 @@ import {
   SpotifyIcon, 
   ApplePodcastIcon, 
   AmazonMusicIcon, 
-  PocketCastsIcon,
-  RssIcon 
+  PocketCastsIcon
 } from '@/components/Icons';
 import styles from './page.module.css';
 
@@ -129,16 +128,6 @@ export default async function TheroPage({ params }: TheroPageProps) {
                 <PocketCastsIcon size={16} /> Pocket Casts
               </a>
             )}
-
-            <a 
-              href={rssUrl} 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className={`${styles.platformBtn} ${styles.rss}`}
-              id="platform-rss-btn"
-            >
-              <RssIcon size={16} /> RSS Feed
-            </a>
           </div>
         </div>
       </div>
