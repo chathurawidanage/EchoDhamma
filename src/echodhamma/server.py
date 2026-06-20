@@ -105,6 +105,7 @@ def trigger_rss_sync():
 
 @app.route("/minio-event", methods=["POST"])
 def handle_minio_event():
+    logger.info(f"Received MinIO event: {request.json}")
     result = minio_tracker.process_event(request.json)
     return jsonify(result), 200
 
