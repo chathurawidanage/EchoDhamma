@@ -378,6 +378,7 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
       style={{
         '--reader-font-size': `${fontSize}px`,
       } as any}
+      suppressHydrationWarning
     >
       {/* Reader Header */}
       <header className={`${styles.header} glass`}>

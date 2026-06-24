@@ -406,6 +406,7 @@ export default function BookReaderClient({
         '--reader-font-size': `${fontSize}px`,
         '--reader-line-height': lineHeight,
       } as any}
+      suppressHydrationWarning
     >
       {/* Top Reading Progress Bar */}
       <div ref={progressBarRef} className={styles.progressBar} />
