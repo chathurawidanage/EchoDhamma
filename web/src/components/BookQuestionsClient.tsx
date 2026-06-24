@@ -588,62 +588,6 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
           </div>
         </main>
       </div>
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `
-            (function() {
-              try {
-                var theme = localStorage.getItem('ebook-reader-theme') || 'sepia';
-                var fontSize = localStorage.getItem('ebook-reader-font-size') || '18';
-                var fontFamily = localStorage.getItem('ebook-reader-font-family') || 'serif';
-                
-                var el = document.getElementById('questions-container');
-                if (el) {
-                  // Apply theme class
-                  var themeClasses = {
-                    light: '${styles.light || ""}',
-                    sepia: '${styles.sepia || ""}',
-                    dark: '${styles.dark || ""}'
-                  };
-                  var activeClass = themeClasses[theme];
-                  if (activeClass) {
-                    var classesToRemove = [themeClasses.light, themeClasses.sepia, themeClasses.dark].filter(Boolean);
-                    var currentClasses = el.className.split(' ');
-                    var newClasses = currentClasses.filter(function(c) {
-                      return classesToRemove.indexOf(c) === -1;
-                    });
-                    newClasses.push(activeClass);
-                    el.className = newClasses.join(' ');
-                  }
-                  
-                  // Apply inline styles for font size
-                  el.style.setProperty('--reader-font-size', fontSize + 'px');
-                  
-                  // Apply font family to readerPane
-                  var mainEl = el.querySelector('main');
-                  if (mainEl) {
-                    var fontClasses = {
-                      serif: '${styles.serif || ""}',
-                      sans: '${styles.sans || ""}'
-                    };
-                    
-                    var activeFontClass = fontClasses[fontFamily];
-                    if (activeFontClass) {
-                      var fontToRemove = [fontClasses.serif, fontClasses.sans].filter(Boolean);
-                      var mainClasses = mainEl.className.split(' ');
-                      var newMainClasses = mainClasses.filter(function(c) {
-                        return fontToRemove.indexOf(c) === -1;
-                      });
-                      newMainClasses.push(activeFontClass);
-                      mainEl.className = newMainClasses.join(' ');
-                    }
-                  }
-                }
-              } catch (e) {}
-            })();
-          `
-        }}
-      />
     </div>
   );
 }
