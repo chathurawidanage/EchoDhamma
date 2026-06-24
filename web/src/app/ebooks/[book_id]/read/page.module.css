@@ -291,7 +291,8 @@
   list-style: none;
 }
 
-.tocItem button {
+.tocItem button,
+.tocItem a {
   width: 100%;
   text-align: left;
   padding: 0.65rem 1.5rem;
@@ -299,29 +300,35 @@
   color: var(--text-reader-muted);
   transition: var(--transition-fast);
   display: block;
+  text-decoration: none;
 }
 
-.tocItem button:hover {
+.tocItem button:hover,
+.tocItem a:hover {
   color: var(--accent-gold);
   background-color: var(--btn-hover-bg);
 }
 
-.levelH1 button {
+.levelH1 button,
+.levelH1 a {
   font-weight: 700;
   color: var(--text-reader);
 }
 
-.levelH2 button {
+.levelH2 button,
+.levelH2 a {
   padding-left: 2.25rem;
   font-size: 0.8rem;
 }
 
-.levelH3 button {
+.levelH3 button,
+.levelH3 a {
   padding-left: 3.25rem;
   font-size: 0.75rem;
 }
 
-.activeTocItem button {
+.activeTocItem button,
+.activeTocItem a {
   color: var(--accent-gold) !important;
   background-color: var(--accent-gold-glow);
   border-left: 3px solid var(--accent-gold);
@@ -1316,6 +1323,96 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Parent Directory Layout */
+.directoryContainer {
+  margin-top: 2.5rem;
+  padding-top: 2rem;
+  border-top: 1px dashed var(--border-reader);
+  animation: fadeIn 0.4s ease-out;
+}
+
+.directorySubtitle {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-reader-muted);
+  margin-bottom: 1.25rem;
+  display: block;
+}
+
+.directoryGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .directoryGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.directoryCard {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--border-reader);
+  background: transparent;
+  border-radius: 8px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+  color: inherit;
+  font-family: inherit;
+  text-decoration: none;
+}
+
+.directoryCard:hover {
+  border-color: var(--accent-gold);
+  background-color: rgba(197, 160, 89, 0.06);
+  transform: translateY(-2px);
+}
+
+.directoryCardNumber {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.25rem;
+  height: 2.25rem;
+  background-color: var(--border-reader);
+  border-radius: 50%;
+  color: var(--accent-gold);
+  font-weight: 700;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+
+.directoryCard:hover .directoryCardNumber {
+  background-color: var(--accent-gold);
+  color: #ffffff;
+}
+
+.directoryCardTitle {
+  flex: 1;
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text-reader);
+}
+
+.directoryCardChevron {
+  color: var(--text-reader-muted);
+  font-weight: 700;
+  font-size: 1.15rem;
+  transition: transform 0.2s ease;
+}
+
+.directoryCard:hover .directoryCardChevron {
+  color: var(--accent-gold);
+  transform: translateX(3px);
 }
 
 

@@ -160,35 +160,11 @@ export async function parseBookHtml(htmlUrl: string): Promise<ParsedBook> {
     });
   }
 
-  // 3. Extract Main Chapters
-  $('section[epub\\:type="chapter"]').each((idx, el) => {
-    const section = $(el);
-    const firstHeader = section.find('h1, h2, h3').first();
-    const cid = firstHeader.attr('id') || `chapter-${idx}`;
-    const chapterTitle = firstHeader.text().trim() || `පරිච්ඡේදය ${idx + 1}`;
+  const idToSectionCid: Record<string, string> = {};
 
-    chapters.push({
-      id: cid,
-      title: chapterTitle,
-      content: section.html() || '',
-    });
-
-    // Map all IDs inside this chapter to this chapter ID
-    section.find('[id]').each((_, child) => {
-      const id = $(child).attr('id');
-      if (id) {
-        idToChapterId[id] = cid;
-      }
-    });
-
-    const mainId = firstHeader.attr('id');
-    if (mainId) {
-      idToChapterId[mainId] = cid;
-    }
-  });
-
-  // 4. Extract TOC and link each item to its containing chapter
+  // 1. Extract TOC first so we know the TOC boundaries
   const toc: TocItem[] = [];
+  const tocIds = new Set<string>();
   $('nav[epub\\:type="toc"] ul.TOC-container li').each((_, el) => {
     const li = $(el);
     const link = li.find('a.TOC');
@@ -199,15 +175,126 @@ export async function parseBookHtml(htmlUrl: string): Promise<ParsedBook> {
     const level = className.includes('H2') ? 'H2' : className.includes('H3') ? 'H3' : 'H1';
 
     if (id) {
-      const chapterId = idToChapterId[id] || 'titlepage';
+      tocIds.add(id);
       toc.push({
         id,
         title: itemTitle,
         level,
-        chapterId,
+        chapterId: '', // Will be updated after sections are parsed
       });
     }
   });
+
+  // 2. Extract Main Chapters, splitting by TOC items
+  $('section[epub\\:type="chapter"]').each((idx, el) => {
+    const section = $(el);
+    const firstHeader = section.find('h1, h2, h3').first();
+    const sectionCid = firstHeader.attr('id') || `chapter-${idx}`;
+    const sectionTitle = firstHeader.text().trim() || `පරිච්ඡේදය ${idx + 1}`;
+
+    // Find all element IDs inside this section that are in the TOC list
+    const sectionTocIds = new Set<string>();
+    section.find('[id]').each((_, child) => {
+      const id = $(child).attr('id');
+      if (id && tocIds.has(id)) {
+        sectionTocIds.add(id);
+      }
+    });
+
+    // If there are no TOC IDs in this section, add the entire section as a single chapter
+    if (sectionTocIds.size === 0) {
+      chapters.push({
+        id: sectionCid,
+        title: sectionTitle,
+        content: section.html() || '',
+      });
+      section.find('[id]').each((_, child) => {
+        const id = $(child).attr('id');
+        if (id) {
+          idToChapterId[id] = sectionCid;
+          idToSectionCid[id] = sectionCid;
+        }
+      });
+      return;
+    }
+
+    // Map all descendant IDs to this parent section CID for TOC hierarchical linking
+    section.find('[id]').each((_, child) => {
+      const id = $(child).attr('id');
+      if (id) {
+        idToSectionCid[id] = sectionCid;
+      }
+    });
+    if (firstHeader.attr('id')) {
+      idToSectionCid[firstHeader.attr('id')!] = sectionCid;
+    }
+
+    // Split the children of the section at TOC boundaries
+    let currentChapterId = sectionCid;
+    let currentChapterTitle = sectionTitle;
+    let currentWrapper = $('<div></div>');
+
+    section.children().each((_, childEl) => {
+      const child = $(childEl);
+      const childId = child.attr('id');
+
+      // Check if this child itself has a TOC ID or contains one
+      let foundTocId = childId && sectionTocIds.has(childId) ? childId : null;
+      if (!foundTocId) {
+        const nestedHeading = child.find('h1, h2, h3, h4, h5, h6').filter((_, h) => {
+          const hid = $(h).attr('id');
+          return !!hid && sectionTocIds.has(hid);
+        }).first();
+        if (nestedHeading.length > 0) {
+          foundTocId = nestedHeading.attr('id')!;
+        }
+      }
+
+      if (foundTocId && foundTocId !== currentChapterId) {
+        // Save the previous chapter before starting the new one
+        if (currentWrapper.children().length > 0 || currentChapterId === sectionCid) {
+          chapters.push({
+            id: currentChapterId,
+            title: currentChapterTitle,
+            content: currentWrapper.html() || '',
+          });
+        }
+
+        // Start the new chapter
+        currentChapterId = foundTocId;
+        const matchingToc = toc.find(t => t.id === foundTocId);
+        currentChapterTitle = matchingToc ? matchingToc.title : child.text().trim();
+        currentWrapper = $('<div></div>');
+      }
+
+      // Map all element IDs inside this child to the current active chapter
+      if (childId) {
+        idToChapterId[childId] = currentChapterId;
+      }
+      child.find('[id]').each((_, nestedEl) => {
+        const nestedId = $(nestedEl).attr('id');
+        if (nestedId) {
+          idToChapterId[nestedId] = currentChapterId;
+        }
+      });
+
+      currentWrapper.append(child.clone());
+    });
+
+    // Save the last chapter of the section
+    if (currentWrapper.children().length > 0 || currentChapterId === sectionCid) {
+      chapters.push({
+        id: currentChapterId,
+        title: currentChapterTitle,
+        content: currentWrapper.html() || '',
+      });
+    }
+  });
+
+  // 3. Link each TOC item to its containing parent section chapter
+  for (const item of toc) {
+    item.chapterId = idToSectionCid[item.id] || 'titlepage';
+  }
 
   // 5. Scan and load questions if questions directory exists next to the HTML file
   const questions: Record<string, Question[]> = {};

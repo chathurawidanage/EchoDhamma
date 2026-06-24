@@ -1,8 +1,6 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import ebooksData from '@/data/ebooks.json';
 import { Ebook } from '@/types';
-import BookReaderClient from '@/components/BookReaderClient';
-import { parseBookHtml } from '@/lib/ebookParser';
 
 interface ReadBookPageProps {
   params: Promise<{ book_id: string }>;
@@ -16,16 +14,7 @@ export default async function ReadBookPage({ params }: ReadBookPageProps) {
     notFound();
   }
 
-  let parsedBook = null;
-  if (book.html_url) {
-    try {
-      parsedBook = await parseBookHtml(book.html_url);
-    } catch (e) {
-      console.error('Failed to parse ebook HTML:', e);
-    }
-  }
-
-  return <BookReaderClient book={book} parsedBook={parsedBook} />;
+  redirect(`/ebooks/${book_id}/read/titlepage`);
 }
 
 export async function generateMetadata({ params }: ReadBookPageProps) {

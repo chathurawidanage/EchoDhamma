@@ -11,9 +11,10 @@ import styles from '@/app/ebooks/[book_id]/read/page.module.css';
 interface BookQuestionsClientProps {
   book: Ebook;
   parsedBook: ParsedBook;
+  chapterId: string;
 }
 
-export default function BookQuestionsClient({ book, parsedBook }: BookQuestionsClientProps) {
+export default function BookQuestionsClient({ book, parsedBook, chapterId }: BookQuestionsClientProps) {
   const hasPdf = !!book.pdf_url;
 
   // Q&A Mode State
@@ -90,12 +91,11 @@ export default function BookQuestionsClient({ book, parsedBook }: BookQuestionsC
     localStorage.setItem('ebook-reader-font-family', fontFamily);
   }, [fontFamily]);
 
-  // Sync activeTocId from URL parameter
+  // Sync activeTocId from chapterId prop
   useEffect(() => {
     if (!parsedBook) return;
-    const chapterParam = searchParams.get('chapter');
-    if (chapterParam) {
-      const match = parsedBook.toc.find(t => t.id === chapterParam);
+    if (chapterId) {
+      const match = parsedBook.toc.find(t => t.id === chapterId);
       if (match) {
         setActiveTocId(match.id);
       }
@@ -108,7 +108,7 @@ export default function BookQuestionsClient({ book, parsedBook }: BookQuestionsC
         setActiveTocId(parsedBook.toc[0].id);
       }
     }
-  }, [searchParams, parsedBook]);
+  }, [chapterId, parsedBook]);
 
   // Load questions when activeTocId updates
   useEffect(() => {
@@ -172,9 +172,7 @@ export default function BookQuestionsClient({ book, parsedBook }: BookQuestionsC
 
   const handleTocClick = (item: TocItem) => {
     setSidebarOpen(false);
-    const params = new URLSearchParams(window.location.search);
-    params.set('chapter', item.id);
-    router.replace(`?${params.toString()}`, { scroll: false });
+    router.replace(`/ebooks/${book.id}/questions/${item.id}`, { scroll: false });
   };
 
   const handleOptionSelect = (idx: number) => {
@@ -406,8 +404,8 @@ export default function BookQuestionsClient({ book, parsedBook }: BookQuestionsC
 
         <div className={styles.right}>
           <div className={styles.tabContainer}>
-            <Link
-              href={`/ebooks/${book.id}/read?chapter=${activeTocId || ''}`}
+             <Link
+              href={`/ebooks/${book.id}/read/${activeTocId || 'titlepage'}`}
               className={styles.tabBtn}
             >
               කියවන්න
@@ -445,9 +443,12 @@ export default function BookQuestionsClient({ book, parsedBook }: BookQuestionsC
                     className={`${styles.tocItem} ${styles[`level${item.level}`]} ${activeTocId === item.id ? styles.activeTocItem : ''
                       }`}
                   >
-                    <button onClick={() => handleTocClick(item)}>
+                    <Link
+                      href={`/ebooks/${book.id}/questions/${item.id}`}
+                      onClick={() => setSidebarOpen(false)}
+                    >
                       {item.title}
-                    </button>
+                    </Link>
                   </li>
                 );
               })}

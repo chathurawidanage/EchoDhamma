@@ -1,7 +1,6 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import ebooksData from '@/data/ebooks.json';
 import { Ebook } from '@/types';
-import BookQuestionsClient from '@/components/BookQuestionsClient';
 import { parseBookHtml } from '@/lib/ebookParser';
 
 interface BookQuestionsPageProps {
@@ -20,11 +19,18 @@ export default async function BookQuestionsPage({ params }: BookQuestionsPagePro
   try {
     parsedBook = await parseBookHtml(book.html_url);
   } catch (e) {
-    console.error('Failed to parse ebook HTML for questions:', e);
+    console.error('Failed to parse ebook HTML for questions redirect:', e);
     notFound();
   }
 
-  return <BookQuestionsClient book={book} parsedBook={parsedBook} />;
+  // Find the first TOC item in the book that contains questions
+  const firstWithQuestions = parsedBook.toc.find(tocItem => {
+    const list = parsedBook.questions?.[tocItem.id];
+    return list && Array.isArray(list) && list.length > 0;
+  });
+
+  const defaultChapterId = firstWithQuestions ? firstWithQuestions.id : 'toc-ind-0';
+  redirect(`/ebooks/${book_id}/questions/${defaultChapterId}`);
 }
 
 export async function generateMetadata({ params }: BookQuestionsPageProps) {

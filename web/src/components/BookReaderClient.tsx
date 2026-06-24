@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import Link from 'next/link';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Ebook, Definition, Question } from '@/types';
 import { DownloadIcon, ChevronLeftIcon, ChevronRightIcon, SettingsIcon } from '@/components/Icons';
 import { ParsedBook, TocItem } from '@/lib/ebookParser';
@@ -15,9 +15,18 @@ const definitions = definitionsData as Record<string, Definition>;
 interface BookReaderClientProps {
   book: Ebook;
   parsedBook: ParsedBook | null;
+  initialActiveChapterId: string;
+  initialPendingScrollId: string | null;
+  initialChapterId: string;
 }
 
-export default function BookReaderClient({ book, parsedBook }: BookReaderClientProps) {
+export default function BookReaderClient({
+  book,
+  parsedBook,
+  initialActiveChapterId,
+  initialPendingScrollId,
+  initialChapterId,
+}: BookReaderClientProps) {
   // Determine if HTML mode is available
   const hasHtml = !!parsedBook;
   const hasPdf = !!book.pdf_url;
@@ -30,11 +39,17 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
   const [textWidth, setTextWidth] = useState<'narrow' | 'medium' | 'wide'>('medium');
 
   // Navigation and Layout State
-  const [currentChapterId, setCurrentChapterId] = useState<string>('titlepage');
+  const currentChapterId = initialActiveChapterId;
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
   const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
-  const [pendingScrollId, setPendingScrollId] = useState<string | null>(null);
-  const [activeTocId, setActiveTocId] = useState<string | null>(null);
+  const [pendingScrollId, setPendingScrollId] = useState<string | null>(initialPendingScrollId);
+  const [activeTocId, setActiveTocId] = useState<string | null>(initialChapterId);
+
+  // Sync props to state on path-based navigation
+  useEffect(() => {
+    setPendingScrollId(initialPendingScrollId);
+    setActiveTocId(initialChapterId);
+  }, [initialPendingScrollId, initialChapterId]);
 
   // Tooltip State
   const [tooltip, setTooltip] = useState<{
@@ -102,17 +117,9 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
 
   const readerRef = useRef<HTMLDivElement>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
-  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const localStorageTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const anchorElementIndexRef = useRef<number>(-1);
-  const anchorOffsetRef = useRef<number>(0);
-  const searchParams = useSearchParams();
   const router = useRouter();
-  const lastChapterParamRef = useRef<string | null>(null);
-  const isInternalNavigationRef = useRef<boolean>(false);
-  const isRestoringScrollRef = useRef<boolean>(false);
 
-  // Load settings and last read chapter on mount
+  // Load settings on mount
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -130,27 +137,7 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
 
     const savedTextWidth = localStorage.getItem('ebook-reader-text-width') as 'narrow' | 'medium' | 'wide' | null;
     if (savedTextWidth) setTextWidth(savedTextWidth);
-
-    // Restore last read chapter for this book
-    const savedChapter = localStorage.getItem(`ebook-last-chapter-${book.id}`);
-    let activeChapterId = 'titlepage';
-    if (savedChapter && parsedBook) {
-      const chapterExists = parsedBook.chapters.some(c => c.id === savedChapter);
-      if (chapterExists) {
-        activeChapterId = savedChapter;
-        setCurrentChapterId(savedChapter);
-      }
-    }
-
-    // Set URL parameter if missing
-    if (parsedBook) {
-      const params = new URLSearchParams(window.location.search);
-      if (!params.has('chapter')) {
-        params.set('chapter', activeChapterId);
-        router.replace(`?${params.toString()}`, { scroll: false });
-      }
-    }
-  }, [book.id, parsedBook]);
+  }, [book.id]);
 
   // Save settings when changed
   useEffect(() => {
@@ -173,184 +160,27 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
     localStorage.setItem('ebook-reader-text-width', textWidth);
   }, [textWidth]);
 
-  // Track current chapter to restore position
-  useEffect(() => {
-    if (hasHtml && currentChapterId) {
-      localStorage.setItem(`ebook-last-chapter-${book.id}`, currentChapterId);
-    }
-  }, [currentChapterId, book.id, hasHtml]);
-
-  // Clean up scroll timeouts on unmount or tab change
-  useEffect(() => {
-    return () => {
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
-      }
-      if (localStorageTimeoutRef.current) {
-        clearTimeout(localStorageTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  // Sync scroll position tracking and active section highlighting
+  // Simple scroll position tracking to update progress bar width
   const handleScroll = () => {
-    if (!readerRef.current || isRestoringScrollRef.current) return;
-
+    if (!readerRef.current || !progressBarRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = readerRef.current;
-
-    // Save scroll offset for resuming in the same chapter (debounced to avoid blocking main thread)
-    const currentScrollTop = scrollTop;
-    if (localStorageTimeoutRef.current) {
-      clearTimeout(localStorageTimeoutRef.current);
-    }
-    localStorageTimeoutRef.current = setTimeout(() => {
-      localStorage.setItem(`ebook-scroll-${book.id}-${currentChapterId}`, String(currentScrollTop));
-    }, 200);
-
     const totalScrollable = scrollHeight - clientHeight;
     const pct = totalScrollable > 0 ? (scrollTop / totalScrollable) * 100 : 0;
-    if (progressBarRef.current) {
-      progressBarRef.current.style.width = `${pct}%`;
-    }
-
-    // Debounce active section highlight update on manual scroll
-    if (scrollTimeoutRef.current) {
-      clearTimeout(scrollTimeoutRef.current);
-    }
-    scrollTimeoutRef.current = setTimeout(() => {
-      if (!parsedBook || !readerRef.current) return;
-
-      const currentChapterToc = parsedBook.toc.filter(t => t.chapterId === currentChapterId);
-      if (currentChapterToc.length === 0) return;
-
-      const containerTop = readerRef.current.getBoundingClientRect().top;
-      const containerBottom = readerRef.current.getBoundingClientRect().bottom;
-
-      const visibleHeadings: typeof currentChapterToc = [];
-      const headingsAbove: typeof currentChapterToc = [];
-
-      currentChapterToc.forEach(item => {
-        const el = document.getElementById(item.id);
-        if (el) {
-          const rect = el.getBoundingClientRect();
-          // Element is visible if it intersects the reader viewport bounds (with a small 10px buffer)
-          const isVisible = rect.bottom > containerTop + 10 && rect.top < containerBottom - 10;
-
-          if (isVisible) {
-            visibleHeadings.push(item);
-          } else if (rect.top <= containerTop + 10) {
-            headingsAbove.push(item);
-          }
-        }
-      });
-
-      let activeId = currentChapterToc[0].id; // Fallback to first section of the chapter
-
-      if (visibleHeadings.length > 0) {
-        // Highlight the first visible heading on the screen (highest in TOC order)
-        activeId = visibleHeadings[0].id;
-      } else if (headingsAbove.length > 0) {
-        // Highlight the last heading scrolled past (above the viewport)
-        activeId = headingsAbove[headingsAbove.length - 1].id;
-      }
-
-      setActiveTocId(activeId);
-    }, 150);
+    progressBarRef.current.style.width = `${pct}%`;
   };
 
-  // Helper to capture the current visible element and its offset before applying a layout/style change
-  const applyLayoutChange = (updateFn: () => void) => {
-    if (!readerRef.current) {
-      updateFn();
-      return;
-    }
-
-    const container = readerRef.current;
-    const containerRect = container.getBoundingClientRect();
-    
-    // Select potential block elements inside the reader area (excluding wrapper divs to avoid scroll-anchoring to the top of the container)
-    const elements = container.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, pre, blockquote, tr, td, img');
-    
-    let firstVisibleIndex = -1;
-    let offset = 0;
-
-    for (let i = 0; i < elements.length; i++) {
-      const el = elements[i];
-      const rect = el.getBoundingClientRect();
-
-      // We look for the first element whose bottom is at least 10px below the container's top boundary
-      if (rect.bottom > containerRect.top + 10) {
-        firstVisibleIndex = i;
-        offset = rect.top - containerRect.top;
-        break;
-      }
-    }
-
-    if (firstVisibleIndex !== -1) {
-      anchorElementIndexRef.current = firstVisibleIndex;
-      anchorOffsetRef.current = offset;
-    }
-
-    updateFn();
-  };
-
-  // Adjust scroll position after any font/layout adjustments to prevent losing user's position
+  // Reset scroll to top synchronously when chapter changes
   useLayoutEffect(() => {
-    if (anchorElementIndexRef.current !== -1 && readerRef.current) {
-      const container = readerRef.current;
-      const elements = container.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, pre, blockquote, tr, td, img');
-      const anchorElement = elements[anchorElementIndexRef.current];
-
-      if (anchorElement) {
-        const containerRect = container.getBoundingClientRect();
-        const elementRect = anchorElement.getBoundingClientRect();
-
-        // Calculate absolute offset of the anchor element from the container scroll top
-        const relativeOffset = elementRect.top - containerRect.top + container.scrollTop;
-        const targetScrollTop = relativeOffset - anchorOffsetRef.current;
-
-        container.scrollTop = targetScrollTop;
-      }
-      // Reset layout scroll anchors
-      anchorElementIndexRef.current = -1;
-      anchorOffsetRef.current = 0;
-    }
-  }, [fontSize, fontFamily, lineHeight, textWidth]);
-
-  // Set the flag to ignore scroll events when chapter changes
-  useEffect(() => {
-    isRestoringScrollRef.current = true;
-  }, [currentChapterId]);
-
-  // Restore scroll position when chapter changes
-  useEffect(() => {
-    if (!hasHtml || !readerRef.current) return;
-
+    if (!readerRef.current) return;
     hideTooltip();
 
-    // If there is a pending scroll ID, let the other effect handle it.
-    // Do NOT restore the old saved scroll position.
-    if (pendingScrollId) {
-      return;
+    if (!pendingScrollId) {
+      readerRef.current.scrollTop = 0;
+      if (progressBarRef.current) {
+        progressBarRef.current.style.width = '0%';
+      }
     }
-
-    const savedScroll = localStorage.getItem(`ebook-scroll-${book.id}-${currentChapterId}`);
-    const scrollVal = savedScroll ? parseFloat(savedScroll) : 0;
-    readerRef.current.scrollTop = scrollVal;
-
-    // Immediately update progress bar
-    const { scrollHeight, clientHeight } = readerRef.current;
-    const totalScrollable = scrollHeight - clientHeight;
-    const pct = totalScrollable > 0 ? (scrollVal / totalScrollable) * 100 : 0;
-    if (progressBarRef.current) {
-      progressBarRef.current.style.width = `${pct}%`;
-    }
-
-    const timer = setTimeout(() => {
-      isRestoringScrollRef.current = false;
-    }, 100);
-    return () => clearTimeout(timer);
-  }, [currentChapterId, book.id, hasHtml]);
+  }, [initialActiveChapterId, pendingScrollId]);
 
   // Handle scrolling to a specific target within a chapter
   useEffect(() => {
@@ -365,59 +195,14 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
 
         readerRef.current.scrollTo({
           top: relativeOffset - 24, // 24px padding at the top
-          behavior: 'smooth'
+          behavior: 'instant' as any
         });
       }
       setPendingScrollId(null);
-      isRestoringScrollRef.current = false;
-    }, 100);
+    }, 50);
 
     return () => clearTimeout(timer);
   }, [pendingScrollId, hasHtml]);
-
-  // Listen to url query updates e.g. when deep-linked
-  useEffect(() => {
-    if (!parsedBook) return;
-    const chapterParam = searchParams.get('chapter');
-    
-    if (chapterParam !== lastChapterParamRef.current) {
-      const wasInternal = isInternalNavigationRef.current;
-      isInternalNavigationRef.current = false; // Reset for next transition
-      lastChapterParamRef.current = chapterParam;
-
-      if (chapterParam) {
-        const match = parsedBook.toc.find(t => t.id === chapterParam);
-        if (match) {
-          setCurrentChapterId(match.chapterId);
-          if (!wasInternal) {
-            setPendingScrollId(match.id);
-          }
-          setActiveTocId(match.id);
-        } else {
-          const chapterMatch = parsedBook.chapters.find(c => c.id === chapterParam);
-          if (chapterMatch) {
-            setCurrentChapterId(chapterMatch.id);
-            const firstToc = parsedBook.toc.find(t => t.chapterId === chapterMatch.id);
-            setActiveTocId(firstToc ? firstToc.id : null);
-          }
-        }
-      } else {
-        // If no query param, default to the current chapter's first TOC item
-        const firstToc = parsedBook.toc.find(t => t.chapterId === currentChapterId);
-        setActiveTocId(firstToc ? firstToc.id : null);
-      }
-    }
-  }, [searchParams, parsedBook, currentChapterId]);
-
-  // Listen to url query updates for active tab (e.g., tab=pdf)
-  useEffect(() => {
-    const tabParam = searchParams.get('tab');
-    if (tabParam === 'pdf' && hasPdf) {
-      setActiveTab('pdf');
-    } else if (tabParam === 'html' && hasHtml) {
-      setActiveTab('html');
-    }
-  }, [searchParams, hasPdf, hasHtml]);
 
   // Navigate through table of contents
   const handleTocClick = (item: TocItem) => {
@@ -430,21 +215,26 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
         const relativeOffset = elementTop - containerTop + readerRef.current.scrollTop;
         readerRef.current.scrollTo({
           top: relativeOffset - 24,
-          behavior: 'smooth'
+          behavior: 'instant' as any
         });
       }
+      
+      // Update path (still in the same chapter, but with the element's TOC ID)
+      router.replace(`/ebooks/${book.id}/read/${item.id}`, { scroll: false });
     } else {
-      // Different chapter - set pending scroll and change chapter
-      setCurrentChapterId(item.chapterId);
-      setPendingScrollId(item.id);
+      // Different chapter - transition path
+      router.replace(`/ebooks/${book.id}/read/${item.id}`, { scroll: false });
     }
     setSidebarOpen(false);
+  };
 
-    // Update query param
-    const params = new URLSearchParams(window.location.search);
-    params.set('chapter', item.id);
-    isInternalNavigationRef.current = true;
-    router.replace(`?${params.toString()}`, { scroll: false });
+  const handleTocLinkClick = (e: React.MouseEvent, item: TocItem) => {
+    if (item.chapterId === currentChapterId) {
+      e.preventDefault();
+      handleTocClick(item);
+    } else {
+      setSidebarOpen(false);
+    }
   };
 
   // Handle in-book link interceptions and term clicks
@@ -488,25 +278,13 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
             const el = document.getElementById(id);
             if (el && readerRef.current) {
               el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              
-              // Update query param for current page scroll
-              const params = new URLSearchParams(window.location.search);
-              params.set('chapter', id);
-              isInternalNavigationRef.current = true;
-              router.replace(`?${params.toString()}`, { scroll: false });
+              router.replace(`/ebooks/${book.id}/read/${id}`, { scroll: false });
             } else if (parsedBook) {
               // Try to find if this id exists inside any chapter
               // Fallback scanning
               const targetChapter = parsedBook.chapters.find(c => c.content.includes(`id="${id}"`) || c.content.includes(`id='${id}'`));
               if (targetChapter) {
-                setCurrentChapterId(targetChapter.id);
-                setPendingScrollId(id);
-
-                // Update query param
-                const params = new URLSearchParams(window.location.search);
-                params.set('chapter', id);
-                isInternalNavigationRef.current = true;
-                router.replace(`?${params.toString()}`, { scroll: false });
+                router.replace(`/ebooks/${book.id}/read/${id}`, { scroll: false });
               }
             }
           }
@@ -535,33 +313,6 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
   const currentChapterIdx = chapters.findIndex(c => c.id === currentChapterId);
   const activeChapter = chapters[currentChapterIdx >= 0 ? currentChapterIdx : 0];
 
-  const handlePrevChapter = () => {
-    if (currentChapterIdx > 0) {
-      const prev = chapters[currentChapterIdx - 1];
-      setCurrentChapterId(prev.id);
-      if (readerRef.current) readerRef.current.scrollTop = 0;
-
-      // Update query param and mark as internal navigation
-      const params = new URLSearchParams(window.location.search);
-      params.set('chapter', prev.id);
-      isInternalNavigationRef.current = true;
-      router.replace(`?${params.toString()}`, { scroll: false });
-    }
-  };
-
-  const handleNextChapter = () => {
-    if (currentChapterIdx < chapters.length - 1) {
-      const next = chapters[currentChapterIdx + 1];
-      setCurrentChapterId(next.id);
-      if (readerRef.current) readerRef.current.scrollTop = 0;
-
-      // Update query param and mark as internal navigation
-      const params = new URLSearchParams(window.location.search);
-      params.set('chapter', next.id);
-      isInternalNavigationRef.current = true;
-      router.replace(`?${params.toString()}`, { scroll: false });
-    }
-  };
 
   // Helper to find the best TOC item for questions in the current chapter
   const getQuestionsTocId = (): string => {
@@ -600,6 +351,46 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
     const chapterTocItems = parsedBook.toc.filter(item => item.chapterId === currentChapterId);
     const firstWithQuestions = chapterTocItems.find(item => hasQuestions(item));
     return firstWithQuestions ? firstWithQuestions.id : '';
+  };
+
+  const activeChapterItem = parsedBook?.toc.find(t => t.id === activeChapter?.id);
+
+  const getSubChapters = (): TocItem[] => {
+    if (!parsedBook || !activeChapter) return [];
+    const idx = parsedBook.toc.findIndex(t => t.id === activeChapter.id);
+    if (idx === -1) return [];
+
+    const parentLevelNum = activeChapterItem?.level === 'H1' ? 1 : activeChapterItem?.level === 'H2' ? 2 : 3;
+    const targetLevelNum = parentLevelNum + 1;
+
+    const subChapters: TocItem[] = [];
+    for (let i = idx + 1; i < parsedBook.toc.length; i++) {
+      const nextItem = parsedBook.toc[i];
+      const nextLevelNum = nextItem.level === 'H1' ? 1 : nextItem.level === 'H2' ? 2 : 3;
+      
+      if (nextLevelNum <= parentLevelNum) {
+        break;
+      }
+      
+      if (nextLevelNum === targetLevelNum) {
+        subChapters.push(nextItem);
+      }
+    }
+    return subChapters;
+  };
+
+  const isParentDirectoryPage = (): boolean => {
+    if (!activeChapter || !parsedBook) return false;
+    
+    const subChapters = getSubChapters();
+    if (subChapters.length === 0) return false;
+
+    const contentWithoutHeadings = activeChapter.content
+      .replace(/<h[1-6][^>]*>[\s\S]*?<\/h[1-6]>/gi, '')
+      .replace(/<[^>]*>/g, '')
+      .trim();
+      
+    return contentWithoutHeadings.length < 10;
   };
 
   const questionsTocId = getQuestionsTocId();
@@ -648,7 +439,7 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
             </span>
             {questionsTocId ? (
               <Link
-                href={`/ebooks/${book.id}/questions?chapter=${questionsTocId}`}
+                href={`/ebooks/${book.id}/questions/${questionsTocId}`}
                 className={styles.tabBtn}
               >
                 ප්‍රශ්නෝත්තර
@@ -689,9 +480,13 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
                   className={`${styles.tocItem} ${styles[`level${item.level}`]} ${activeTocId === item.id ? styles.activeTocItem : ''
                     }`}
                 >
-                  <button onClick={() => handleTocClick(item)}>
+                  <Link
+                    href={`/ebooks/${book.id}/read/${item.id}`}
+                    scroll={false}
+                    onClick={(e) => handleTocLinkClick(e, item)}
+                  >
                     {item.title}
-                  </button>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -745,13 +540,13 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
               <div className={styles.btnGroup}>
                 <button
                   className={`${styles.settingBtn} ${fontFamily === 'serif' ? styles.activeSetting : ''}`}
-                  onClick={() => applyLayoutChange(() => setFontFamily('serif'))}
+                  onClick={() => setFontFamily('serif')}
                 >
                   Serif
                 </button>
                 <button
                   className={`${styles.settingBtn} ${fontFamily === 'sans' ? styles.activeSetting : ''}`}
-                  onClick={() => applyLayoutChange(() => setFontFamily('sans'))}
+                  onClick={() => setFontFamily('sans')}
                 >
                   Sans
                 </button>
@@ -764,7 +559,7 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
               <div className={styles.btnGroup}>
                 <button
                   className={styles.settingBtn}
-                  onClick={() => applyLayoutChange(() => setFontSize(prev => Math.max(14, prev - 2)))}
+                  onClick={() => setFontSize(prev => Math.max(14, prev - 2))}
                   disabled={fontSize <= 14}
                 >
                   A-
@@ -772,7 +567,7 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
                 <span className={styles.sizeIndicator}>{fontSize}px</span>
                 <button
                   className={styles.settingBtn}
-                  onClick={() => applyLayoutChange(() => setFontSize(prev => Math.min(28, prev + 2)))}
+                  onClick={() => setFontSize(prev => Math.min(28, prev + 2))}
                   disabled={fontSize >= 28}
                 >
                   A+
@@ -786,25 +581,25 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
               <div className={styles.btnGroup}>
                 <button
                   className={`${styles.settingBtn} ${lineHeight === 1.4 ? styles.activeSetting : ''}`}
-                  onClick={() => applyLayoutChange(() => setLineHeight(1.4))}
+                  onClick={() => setLineHeight(1.4)}
                 >
                   1.4
                 </button>
                 <button
                   className={`${styles.settingBtn} ${lineHeight === 1.6 ? styles.activeSetting : ''}`}
-                  onClick={() => applyLayoutChange(() => setLineHeight(1.6))}
+                  onClick={() => setLineHeight(1.6)}
                 >
                   1.6
                 </button>
                 <button
                   className={`${styles.settingBtn} ${lineHeight === 1.8 ? styles.activeSetting : ''}`}
-                  onClick={() => applyLayoutChange(() => setLineHeight(1.8))}
+                  onClick={() => setLineHeight(1.8)}
                 >
                   1.8
                 </button>
                 <button
                   className={`${styles.settingBtn} ${lineHeight === 2.0 ? styles.activeSetting : ''}`}
-                  onClick={() => applyLayoutChange(() => setLineHeight(2.0))}
+                  onClick={() => setLineHeight(2.0)}
                 >
                   2.0
                 </button>
@@ -817,21 +612,21 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
               <div className={styles.btnGroup}>
                 <button
                   className={`${styles.settingBtn} ${textWidth === 'narrow' ? styles.activeSetting : ''}`}
-                  onClick={() => applyLayoutChange(() => setTextWidth('narrow'))}
+                  onClick={() => setTextWidth('narrow')}
                   title="Narrow View"
                 >
                   Narrow
                 </button>
                 <button
                   className={`${styles.settingBtn} ${textWidth === 'medium' ? styles.activeSetting : ''}`}
-                  onClick={() => applyLayoutChange(() => setTextWidth('medium'))}
+                  onClick={() => setTextWidth('medium')}
                   title="Medium View"
                 >
                   Medium
                 </button>
                 <button
                   className={`${styles.settingBtn} ${textWidth === 'wide' ? styles.activeSetting : ''}`}
-                  onClick={() => applyLayoutChange(() => setTextWidth('wide'))}
+                  onClick={() => setTextWidth('wide')}
                   title="Wide View"
                 >
                   Wide
@@ -894,27 +689,64 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
               dangerouslySetInnerHTML={{ __html: activeChapter.content }}
             />
 
+            {isParentDirectoryPage() && (
+              <div className={styles.directoryContainer}>
+                <span className={styles.directorySubtitle}>පරිච්ඡේද පටුන (Chapter Outline)</span>
+                <div className={styles.directoryGrid}>
+                  {getSubChapters().map((item) => (
+                    <Link
+                      key={item.id}
+                      href={`/ebooks/${book.id}/read/${item.id}`}
+                      scroll={false}
+                      className={styles.directoryCard}
+                      onClick={(e) => handleTocLinkClick(e, item)}
+                    >
+                      <span className={styles.directoryCardNumber}>
+                        {item.title.match(/^\d+(\.\d+)*/)?.[0] || '§'}
+                      </span>
+                      <span className={styles.directoryCardTitle}>
+                        {item.title.replace(/^\d+(\.\d+)*\.\s*/, '')}
+                      </span>
+                      <span className={styles.directoryCardChevron}>→</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Chapter Footer Navigation */}
             <div className={styles.chapterNavigation}>
-              <button
-                className={styles.navBtn}
-                onClick={handlePrevChapter}
-                disabled={currentChapterIdx <= 0}
-              >
-                <ChevronLeftIcon size={16} /> පෙර පරිච්ඡේදය
-              </button>
+              {currentChapterIdx > 0 ? (
+                <Link
+                  href={`/ebooks/${book.id}/read/${chapters[currentChapterIdx - 1].id}`}
+                  className={styles.navBtn}
+                  scroll={false}
+                >
+                  <ChevronLeftIcon size={16} /> පෙර පරිච්ඡේදය
+                </Link>
+              ) : (
+                <button className={styles.navBtn} disabled>
+                  <ChevronLeftIcon size={16} /> පෙර පරිච්ඡේදය
+                </button>
+              )}
 
               <span className={styles.chapterProgressLabel}>
                 පරිච්ඡේදය {currentChapterIdx + 1} / {chapters.length}
               </span>
 
-              <button
-                className={styles.navBtn}
-                onClick={handleNextChapter}
-                disabled={currentChapterIdx >= chapters.length - 1}
-              >
-                මීළඟ පරිච්ඡේදය <ChevronRightIcon size={16} />
-              </button>
+              {currentChapterIdx < chapters.length - 1 ? (
+                <Link
+                  href={`/ebooks/${book.id}/read/${chapters[currentChapterIdx + 1].id}`}
+                  className={styles.navBtn}
+                  scroll={false}
+                >
+                  මීළඟ පරිච්ඡේදය <ChevronRightIcon size={16} />
+                </Link>
+              ) : (
+                <button className={styles.navBtn} disabled>
+                  මීළඟ පරිච්ඡේදය <ChevronRightIcon size={16} />
+                </button>
+              )}
             </div>
           </div>
 
