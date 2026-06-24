@@ -7,6 +7,7 @@ import { Ebook, Question } from '@/types';
 import { SettingsIcon, ChevronLeftIcon, DownloadIcon } from '@/components/Icons';
 import { ParsedBook, TocItem } from '@/lib/ebookParser';
 import styles from '@/app/ebooks/[book_id]/read/page.module.css';
+import { settingsCache } from '@/lib/readerSettingsCache';
 
 interface BookQuestionsClientProps {
   book: Ebook;
@@ -26,9 +27,10 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
   const [sessionCompleted, setSessionCompleted] = useState<boolean>(false);
 
   // Reader/Aesthetics Settings State
-  const [theme, setTheme] = useState<'light' | 'sepia' | 'dark'>('sepia');
-  const [fontSize, setFontSize] = useState<number>(18);
-  const [fontFamily, setFontFamily] = useState<'serif' | 'sans'>('serif');
+  const [theme, setTheme] = useState<'light' | 'sepia' | 'dark'>(() => settingsCache.theme || 'sepia');
+  const [fontSize, setFontSize] = useState<number>(() => settingsCache.fontSize || 18);
+  const [fontFamily, setFontFamily] = useState<'serif' | 'sans'>(() => settingsCache.fontFamily || 'serif');
+  const [isLoaded, setIsLoaded] = useState<boolean>(() => settingsCache.isLoaded || false);
 
   // Navigation and Sidebar State
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
@@ -76,20 +78,34 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
 
     const savedFontFamily = localStorage.getItem('ebook-reader-font-family') as 'serif' | 'sans' | null;
     if (savedFontFamily) setFontFamily(savedFontFamily);
+
+    // Sync to cache
+    settingsCache.theme = savedTheme || 'sepia';
+    settingsCache.fontSize = savedFontSize ? parseInt(savedFontSize, 10) : 18;
+    settingsCache.fontFamily = savedFontFamily || 'serif';
+    settingsCache.isLoaded = true;
+
+    setIsLoaded(true);
   }, []);
 
   // Save settings when changed (synchronizes with reader page)
   useEffect(() => {
+    if (!isLoaded) return;
     localStorage.setItem('ebook-reader-theme', theme);
-  }, [theme]);
+    settingsCache.theme = theme;
+  }, [theme, isLoaded]);
 
   useEffect(() => {
+    if (!isLoaded) return;
     localStorage.setItem('ebook-reader-font-size', String(fontSize));
-  }, [fontSize]);
+    settingsCache.fontSize = fontSize;
+  }, [fontSize, isLoaded]);
 
   useEffect(() => {
+    if (!isLoaded) return;
     localStorage.setItem('ebook-reader-font-family', fontFamily);
-  }, [fontFamily]);
+    settingsCache.fontFamily = fontFamily;
+  }, [fontFamily, isLoaded]);
 
   // Sync activeTocId from chapterId prop
   useEffect(() => {
@@ -371,6 +387,7 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
 
   return (
     <div
+      id="questions-container"
       className={`${styles.container} ${styles[theme]} ${sidebarOpen ? styles.sidebarActive : ''}`}
       style={{
         '--reader-font-size': `${fontSize}px`,
@@ -584,6 +601,62 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
           </div>
         </main>
       </div>
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            (function() {
+              try {
+                var theme = localStorage.getItem('ebook-reader-theme') || 'sepia';
+                var fontSize = localStorage.getItem('ebook-reader-font-size') || '18';
+                var fontFamily = localStorage.getItem('ebook-reader-font-family') || 'serif';
+                
+                var el = document.getElementById('questions-container');
+                if (el) {
+                  // Apply theme class
+                  var themeClasses = {
+                    light: '${styles.light || ""}',
+                    sepia: '${styles.sepia || ""}',
+                    dark: '${styles.dark || ""}'
+                  };
+                  var activeClass = themeClasses[theme];
+                  if (activeClass) {
+                    var classesToRemove = [themeClasses.light, themeClasses.sepia, themeClasses.dark].filter(Boolean);
+                    var currentClasses = el.className.split(' ');
+                    var newClasses = currentClasses.filter(function(c) {
+                      return classesToRemove.indexOf(c) === -1;
+                    });
+                    newClasses.push(activeClass);
+                    el.className = newClasses.join(' ');
+                  }
+                  
+                  // Apply inline styles for font size
+                  el.style.setProperty('--reader-font-size', fontSize + 'px');
+                  
+                  // Apply font family to readerPane
+                  var mainEl = el.querySelector('main');
+                  if (mainEl) {
+                    var fontClasses = {
+                      serif: '${styles.serif || ""}',
+                      sans: '${styles.sans || ""}'
+                    };
+                    
+                    var activeFontClass = fontClasses[fontFamily];
+                    if (activeFontClass) {
+                      var fontToRemove = [fontClasses.serif, fontClasses.sans].filter(Boolean);
+                      var mainClasses = mainEl.className.split(' ');
+                      var newMainClasses = mainClasses.filter(function(c) {
+                        return fontToRemove.indexOf(c) === -1;
+                      });
+                      newMainClasses.push(activeFontClass);
+                      mainEl.className = newMainClasses.join(' ');
+                    }
+                  }
+                }
+              } catch (e) {}
+            })();
+          `
+        }}
+      />
     </div>
   );
 }

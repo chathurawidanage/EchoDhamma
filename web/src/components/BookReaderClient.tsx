@@ -8,6 +8,7 @@ import { DownloadIcon, ChevronLeftIcon, ChevronRightIcon, SettingsIcon } from '@
 import { ParsedBook, TocItem } from '@/lib/ebookParser';
 import styles from '@/app/ebooks/[book_id]/read/page.module.css';
 import definitionsData from '@/data/definitions.json';
+import { settingsCache } from '@/lib/readerSettingsCache';
 
 const definitions = definitionsData as Record<string, Definition>;
 
@@ -32,11 +33,12 @@ export default function BookReaderClient({
   const hasPdf = !!book.pdf_url;
 
   // Reader Settings State
-  const [theme, setTheme] = useState<'light' | 'sepia' | 'dark'>('sepia');
-  const [fontSize, setFontSize] = useState<number>(18);
-  const [fontFamily, setFontFamily] = useState<'serif' | 'sans'>('serif');
-  const [lineHeight, setLineHeight] = useState<number>(1.6);
-  const [textWidth, setTextWidth] = useState<'narrow' | 'medium' | 'wide'>('medium');
+  const [theme, setTheme] = useState<'light' | 'sepia' | 'dark'>(() => settingsCache.theme || 'sepia');
+  const [fontSize, setFontSize] = useState<number>(() => settingsCache.fontSize || 18);
+  const [fontFamily, setFontFamily] = useState<'serif' | 'sans'>(() => settingsCache.fontFamily || 'serif');
+  const [lineHeight, setLineHeight] = useState<number>(() => settingsCache.lineHeight || 1.6);
+  const [textWidth, setTextWidth] = useState<'narrow' | 'medium' | 'wide'>(() => settingsCache.textWidth || 'medium');
+  const [isLoaded, setIsLoaded] = useState<boolean>(() => settingsCache.isLoaded || false);
 
   // Navigation and Layout State
   const currentChapterId = initialActiveChapterId;
@@ -137,28 +139,48 @@ export default function BookReaderClient({
 
     const savedTextWidth = localStorage.getItem('ebook-reader-text-width') as 'narrow' | 'medium' | 'wide' | null;
     if (savedTextWidth) setTextWidth(savedTextWidth);
+
+    // Sync to cache
+    settingsCache.theme = savedTheme || 'sepia';
+    settingsCache.fontSize = savedFontSize ? parseInt(savedFontSize, 10) : 18;
+    settingsCache.fontFamily = savedFontFamily || 'serif';
+    settingsCache.lineHeight = savedLineHeight ? parseFloat(savedLineHeight) : 1.6;
+    settingsCache.textWidth = savedTextWidth || 'medium';
+    settingsCache.isLoaded = true;
+
+    setIsLoaded(true);
   }, [book.id]);
 
   // Save settings when changed
   useEffect(() => {
+    if (!isLoaded) return;
     localStorage.setItem('ebook-reader-theme', theme);
-  }, [theme]);
+    settingsCache.theme = theme;
+  }, [theme, isLoaded]);
 
   useEffect(() => {
+    if (!isLoaded) return;
     localStorage.setItem('ebook-reader-font-size', String(fontSize));
-  }, [fontSize]);
+    settingsCache.fontSize = fontSize;
+  }, [fontSize, isLoaded]);
 
   useEffect(() => {
+    if (!isLoaded) return;
     localStorage.setItem('ebook-reader-font-family', fontFamily);
-  }, [fontFamily]);
+    settingsCache.fontFamily = fontFamily;
+  }, [fontFamily, isLoaded]);
 
   useEffect(() => {
+    if (!isLoaded) return;
     localStorage.setItem('ebook-reader-line-height', String(lineHeight));
-  }, [lineHeight]);
+    settingsCache.lineHeight = lineHeight;
+  }, [lineHeight, isLoaded]);
 
   useEffect(() => {
+    if (!isLoaded) return;
     localStorage.setItem('ebook-reader-text-width', textWidth);
-  }, [textWidth]);
+    settingsCache.textWidth = textWidth;
+  }, [textWidth, isLoaded]);
 
   // Simple scroll position tracking to update progress bar width
   const handleScroll = () => {
@@ -397,6 +419,7 @@ export default function BookReaderClient({
 
   return (
     <div
+      id="reader-container"
       className={`${styles.container} ${styles[theme]} ${sidebarOpen ? styles.sidebarActive : ''}`}
       style={{
         '--reader-font-size': `${fontSize}px`,
@@ -685,13 +708,12 @@ export default function BookReaderClient({
             )}
 
             <article
-              className={styles.articleContent}
+              className={`${styles.articleContent} ${isParentDirectoryPage() ? styles.directoryArticle : ''}`}
               dangerouslySetInnerHTML={{ __html: activeChapter.content }}
             />
 
             {isParentDirectoryPage() && (
               <div className={styles.directoryContainer}>
-                <span className={styles.directorySubtitle}>පරිච්ඡේද පටුන (Chapter Outline)</span>
                 <div className={styles.directoryGrid}>
                   {getSubChapters().map((item) => (
                     <Link
@@ -783,6 +805,81 @@ export default function BookReaderClient({
           )}
         </main>
       </div>
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            (function() {
+              try {
+                var theme = localStorage.getItem('ebook-reader-theme') || 'sepia';
+                var fontSize = localStorage.getItem('ebook-reader-font-size') || '18';
+                var fontFamily = localStorage.getItem('ebook-reader-font-family') || 'serif';
+                var lineHeight = localStorage.getItem('ebook-reader-line-height') || '1.6';
+                var textWidth = localStorage.getItem('ebook-reader-text-width') || 'medium';
+                
+                var el = document.getElementById('reader-container');
+                if (el) {
+                  // Apply theme class
+                  var themeClasses = {
+                    light: '${styles.light || ""}',
+                    sepia: '${styles.sepia || ""}',
+                    dark: '${styles.dark || ""}'
+                  };
+                  var activeClass = themeClasses[theme];
+                  if (activeClass) {
+                    var classesToRemove = [themeClasses.light, themeClasses.sepia, themeClasses.dark].filter(Boolean);
+                    var currentClasses = el.className.split(' ');
+                    var newClasses = currentClasses.filter(function(c) {
+                      return classesToRemove.indexOf(c) === -1;
+                    });
+                    newClasses.push(activeClass);
+                    el.className = newClasses.join(' ');
+                  }
+                  
+                  // Apply inline styles for font size and line height
+                  el.style.setProperty('--reader-font-size', fontSize + 'px');
+                  el.style.setProperty('--reader-line-height', lineHeight);
+                  
+                  // Apply font family and text width to readerPane
+                  var mainEl = el.querySelector('main');
+                  if (mainEl) {
+                    var fontClasses = {
+                      serif: '${styles.serif || ""}',
+                      sans: '${styles.sans || ""}'
+                    };
+                    var widthClasses = {
+                      narrow: '${styles['width-narrow'] || ""}',
+                      medium: '${styles['width-medium'] || ""}',
+                      wide: '${styles['width-wide'] || ""}'
+                    };
+                    
+                    var activeFontClass = fontClasses[fontFamily];
+                    if (activeFontClass) {
+                      var fontToRemove = [fontClasses.serif, fontClasses.sans].filter(Boolean);
+                      var mainClasses = mainEl.className.split(' ');
+                      var newMainClasses = mainClasses.filter(function(c) {
+                        return fontToRemove.indexOf(c) === -1;
+                      });
+                      newMainClasses.push(activeFontClass);
+                      mainEl.className = newMainClasses.join(' ');
+                    }
+                    
+                    var activeWidthClass = widthClasses[textWidth];
+                    if (activeWidthClass) {
+                      var widthToRemove = [widthClasses.narrow, widthClasses.medium, widthClasses.wide].filter(Boolean);
+                      var mainClasses2 = mainEl.className.split(' ');
+                      var newMainClasses2 = mainClasses2.filter(function(c) {
+                        return widthToRemove.indexOf(c) === -1;
+                      });
+                      newMainClasses2.push(activeWidthClass);
+                      mainEl.className = newMainClasses2.join(' ');
+                    }
+                  }
+                }
+              } catch (e) {}
+            })();
+          `
+        }}
+      />
     </div>
   );
 }

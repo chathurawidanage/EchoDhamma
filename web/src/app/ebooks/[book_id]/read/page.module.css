@@ -130,12 +130,14 @@
   gap: 0.4rem;
   font-size: 0.75rem;
   font-weight: 600;
-  padding: 0.45rem 0.85rem;
+  height: 40px;
+  padding: 0 0.85rem;
   border-radius: var(--border-radius-sm);
   transition: var(--transition-smooth);
   color: var(--text-reader);
   border: 1px solid var(--border-reader);
   background: transparent;
+  box-sizing: border-box;
 }
 
 .actionBtn:hover {
@@ -154,6 +156,7 @@
   border: 1px solid var(--border-reader);
   color: var(--text-reader);
   transition: var(--transition-smooth);
+  box-sizing: border-box;
 }
 
 .iconBtn:hover {
@@ -179,21 +182,30 @@
 /* Tabs */
 .tabContainer {
   display: flex;
+  align-items: stretch;
   background-color: var(--btn-hover-bg);
   padding: 0.2rem;
   border-radius: var(--border-radius-sm);
   border: 1px solid var(--border-reader);
   gap: 0.2rem;
+  height: 40px;
+  box-sizing: border-box;
 }
 
 .tabBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-reader-muted);
-  padding: 0.35rem 0.85rem;
+  height: 100%;
+  padding: 0 0.85rem;
   border-radius: calc(var(--border-radius-sm) - 2px);
   transition: var(--transition-fast);
   background: transparent;
+  border: 1px solid transparent;
+  box-sizing: border-box;
 }
 
 .tabBtn:hover {
@@ -204,7 +216,7 @@
   color: var(--accent-gold) !important;
   background-color: var(--bg-reader) !important;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-  border: 1px solid var(--border-reader);
+  border: 1px solid var(--border-reader) !important;
 }
 
 .tabBtnDisabled {
@@ -469,7 +481,7 @@
 .readerPane {
   flex: 1;
   overflow-y: auto;
-  padding: 3rem 1.5rem;
+  padding: 3rem 1.5rem 0;
   display: flex;
   justify-content: center;
   height: 100%;
@@ -482,6 +494,7 @@
   width: 100%;
   display: flex;
   flex-direction: column;
+  padding-bottom: 3rem;
 }
 
 /* Reading column widths */
@@ -512,6 +525,10 @@
   line-height: var(--reader-line-height);
   color: var(--text-reader);
   margin-bottom: 3rem;
+}
+
+.directoryArticle {
+  margin-bottom: 0.5rem;
 }
 
 .articleContent p {
@@ -753,13 +770,19 @@
     height: 36px;
   }
 
+  .actionBtn {
+    height: 36px;
+    padding: 0 0.65rem;
+  }
+
   .tabContainer {
+    height: 36px;
     padding: 0.15rem;
     gap: 0.1rem;
   }
 
   .tabBtn {
-    padding: 0.35rem 0.5rem;
+    padding: 0 0.5rem;
     font-size: 0.7rem;
   }
 
@@ -778,7 +801,7 @@
   }
 
   .readerPane {
-    padding: 1.5rem 1rem;
+    padding: 1.5rem 1rem 0;
   }
 
   .chapterNavigation {
@@ -1327,9 +1350,8 @@
 
 /* Parent Directory Layout */
 .directoryContainer {
-  margin-top: 2.5rem;
-  padding-top: 2rem;
-  border-top: 1px dashed var(--border-reader);
+  margin-top: 0.5rem;
+  margin-bottom: 3rem;
   animation: fadeIn 0.4s ease-out;
 }
 

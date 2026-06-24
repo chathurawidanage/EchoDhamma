@@ -291,9 +291,9 @@ export async function parseBookHtml(htmlUrl: string): Promise<ParsedBook> {
     }
   });
 
-  // 3. Link each TOC item to its containing parent section chapter
+  // 3. Link each TOC item to its containing split chapter
   for (const item of toc) {
-    item.chapterId = idToSectionCid[item.id] || 'titlepage';
+    item.chapterId = idToChapterId[item.id] || idToSectionCid[item.id] || 'titlepage';
   }
 
   // 5. Scan and load questions if questions directory exists next to the HTML file

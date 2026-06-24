@@ -14,8 +14,12 @@ interface LayoutClientWrapperProps {
 
 export default function LayoutClientWrapper({ theros, children }: LayoutClientWrapperProps) {
   const pathname = usePathname();
-  // Detect if we are on the ebook reader page: /ebooks/[book_id]/read
-  const isReaderPage = pathname?.endsWith('/read') || pathname?.includes('/read/');
+  // Detect if we are on the ebook reader or questions page
+  const isReaderPage =
+    pathname?.endsWith('/read') ||
+    pathname?.includes('/read/') ||
+    pathname?.endsWith('/questions') ||
+    pathname?.includes('/questions/');
   const { currentTrack } = useAudioPlayer();
   const showPlayer = !isReaderPage && !!currentTrack;
 
