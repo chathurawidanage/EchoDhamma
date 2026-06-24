@@ -24,12 +24,11 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
   const [incorrectCount, setIncorrectCount] = useState<number>(0);
   const [sessionCompleted, setSessionCompleted] = useState<boolean>(false);
 
-  // Reader/Aesthetics Settings State — always initialize with hardcoded defaults so server and
-  // client render identically (avoids hydration mismatch from server-side settingsCache pollution).
-  const [theme, setTheme] = useState<'light' | 'sepia' | 'dark'>('sepia');
-  const [fontSize, setFontSize] = useState<number>(18);
-  const [fontFamily, setFontFamily] = useState<'serif' | 'sans'>('serif');
-  const [isLoaded, setIsLoaded] = useState<boolean>(false);
+  // Reader/Aesthetics Settings State
+  const [theme, setTheme] = useState<'light' | 'sepia' | 'dark'>(() => settingsCache.theme || 'sepia');
+  const [fontSize, setFontSize] = useState<number>(() => settingsCache.fontSize || 18);
+  const [fontFamily, setFontFamily] = useState<'serif' | 'sans'>(() => settingsCache.fontFamily || 'serif');
+  const [isLoaded, setIsLoaded] = useState<boolean>(() => settingsCache.isLoaded || false);
 
   // Navigation and Sidebar State
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
@@ -79,15 +78,10 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
     if (typeof window === 'undefined') return;
 
     if (settingsCache.isLoaded) {
-      // Client-side navigation: restore from in-memory cache (no localStorage read needed)
-      if (settingsCache.theme) setTheme(settingsCache.theme);
-      if (settingsCache.fontSize) setFontSize(settingsCache.fontSize);
-      if (settingsCache.fontFamily) setFontFamily(settingsCache.fontFamily);
       setIsLoaded(true);
       return;
     }
 
-    // First load: read from localStorage
     const savedTheme = localStorage.getItem('ebook-reader-theme') as 'light' | 'sepia' | 'dark' | null;
     if (savedTheme) setTheme(savedTheme);
 

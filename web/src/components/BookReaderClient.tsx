@@ -28,16 +28,13 @@ export default function BookReaderClient({
   initialPendingScrollId,
   initialChapterId,
 }: BookReaderClientProps) {
-  // Reader Settings State — always initialize with hardcoded defaults so server and client
-  // render identically (avoids hydration mismatch from server-side settingsCache pollution).
-  // The inline <script> below handles visual flash prevention; settingsCache is used only
-  // inside useEffect (client-only) to skip the localStorage re-read on navigation.
-  const [theme, setTheme] = useState<'light' | 'sepia' | 'dark'>('sepia');
-  const [fontSize, setFontSize] = useState<number>(18);
-  const [fontFamily, setFontFamily] = useState<'serif' | 'sans'>('serif');
-  const [lineHeight, setLineHeight] = useState<number>(1.6);
-  const [textWidth, setTextWidth] = useState<'narrow' | 'medium' | 'wide'>('medium');
-  const [isLoaded, setIsLoaded] = useState<boolean>(false);
+  // Reader Settings State
+  const [theme, setTheme] = useState<'light' | 'sepia' | 'dark'>(() => settingsCache.theme || 'sepia');
+  const [fontSize, setFontSize] = useState<number>(() => settingsCache.fontSize || 18);
+  const [fontFamily, setFontFamily] = useState<'serif' | 'sans'>(() => settingsCache.fontFamily || 'serif');
+  const [lineHeight, setLineHeight] = useState<number>(() => settingsCache.lineHeight || 1.6);
+  const [textWidth, setTextWidth] = useState<'narrow' | 'medium' | 'wide'>(() => settingsCache.textWidth || 'medium');
+  const [isLoaded, setIsLoaded] = useState<boolean>(() => settingsCache.isLoaded || false);
 
   // Navigation and Layout State
   const currentChapterId = initialActiveChapterId;
@@ -123,17 +120,10 @@ export default function BookReaderClient({
     if (typeof window === 'undefined') return;
 
     if (settingsCache.isLoaded) {
-      // Client-side navigation: restore from in-memory cache (no localStorage read needed)
-      if (settingsCache.theme) setTheme(settingsCache.theme);
-      if (settingsCache.fontSize) setFontSize(settingsCache.fontSize);
-      if (settingsCache.fontFamily) setFontFamily(settingsCache.fontFamily);
-      if (settingsCache.lineHeight) setLineHeight(settingsCache.lineHeight);
-      if (settingsCache.textWidth) setTextWidth(settingsCache.textWidth);
       setIsLoaded(true);
       return;
     }
 
-    // First load: read from localStorage
     const savedTheme = localStorage.getItem('ebook-reader-theme') as 'light' | 'sepia' | 'dark' | null;
     if (savedTheme) setTheme(savedTheme);
 
@@ -411,10 +401,10 @@ export default function BookReaderClient({
   return (
     <div
       id="reader-container"
-      className={[styles.container, styles[theme], sidebarOpen ? styles.sidebarActive : ''].filter(Boolean).join(' ')}
+      className={`${styles.container} ${styles[theme]} ${sidebarOpen ? styles.sidebarActive : ''}`}
       style={{
         '--reader-font-size': `${fontSize}px`,
-        '--reader-line-height': `${lineHeight}`,
+        '--reader-line-height': lineHeight,
       } as any}
     >
       {/* Top Reading Progress Bar */}
