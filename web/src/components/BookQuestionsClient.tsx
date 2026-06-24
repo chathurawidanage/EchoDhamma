@@ -577,14 +577,16 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
         <main
           className={`${styles.readerPane} ${fontFamily === 'serif' ? styles.serif : styles.sans}`}
         >
-          <div className={styles.qaContainer}>
-            {sessionCompleted ? (
-              renderResultsView()
-            ) : qaQuestions.length > 0 ? (
-              renderQuestionView()
-            ) : (
-              renderEmptyState()
-            )}
+          <div style={{ width: '100%', paddingBottom: '4rem' }}>
+            <div className={styles.qaContainer}>
+              {sessionCompleted ? (
+                renderResultsView()
+              ) : qaQuestions.length > 0 ? (
+                renderQuestionView()
+              ) : (
+                renderEmptyState()
+              )}
+            </div>
           </div>
         </main>
       </div>
