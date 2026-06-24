@@ -95,6 +95,7 @@ export interface Ebook {
   pdf_url?: string;
   epub_url?: string;
   html_url?: string;
+  has_questions?: boolean;
 }
 
 export interface Definition {
@@ -104,4 +105,16 @@ export interface Definition {
   language: 'pali' | 'sanskrit' | 'sinhala';
   matches?: string[];
 }
+
+export interface Question {
+  id: string;
+  question: string;
+  options: string[];
+  correctAnswerIndex: number;
+  explanation: string;
+  fromBook?: boolean;
+}
+
+export type BookQuestions = Record<string, Question[]>; // Keyed by TOC anchor ID
+
 

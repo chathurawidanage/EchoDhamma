@@ -2,7 +2,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import * as cheerio from 'cheerio';
 import definitionsData from '../data/definitions.json';
-import { Definition } from '@/types';
+import { Definition, Question } from '@/types';
 
 export interface TocItem {
   id: string;
@@ -22,6 +22,7 @@ export interface ParsedBook {
   chapters: Chapter[];
   title: string;
   author: string;
+  questions?: Record<string, Question[]>;
 }
 
 function injectDefinitions($: cheerio.CheerioAPI) {
@@ -208,10 +209,39 @@ export async function parseBookHtml(htmlUrl: string): Promise<ParsedBook> {
     }
   });
 
+  // 5. Scan and load questions if questions directory exists next to the HTML file
+  const questions: Record<string, Question[]> = {};
+  const bookDir = path.dirname(filePath);
+  const questionsDir = path.join(bookDir, 'questions');
+
+  try {
+    const stats = await fs.stat(questionsDir);
+    if (stats.isDirectory()) {
+      const files = await fs.readdir(questionsDir);
+      for (const file of files) {
+        if (file.endsWith('.json')) {
+          const sectionId = path.basename(file, '.json');
+          const fileContent = await fs.readFile(path.join(questionsDir, file), 'utf-8');
+          try {
+            const parsedQuestions = JSON.parse(fileContent);
+            if (Array.isArray(parsedQuestions)) {
+              questions[sectionId] = parsedQuestions;
+            }
+          } catch (err) {
+            console.error(`Failed to parse question JSON file ${file}:`, err);
+          }
+        }
+      }
+    }
+  } catch (e) {
+    // questions directory does not exist, ignore
+  }
+
   return {
     toc,
     chapters,
     title,
     author,
+    questions,
   };
 }

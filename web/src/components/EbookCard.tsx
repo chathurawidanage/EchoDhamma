@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Ebook } from '@/types';
 import { Card } from './UI';
-import { BookIcon, DownloadIcon, EyeIcon } from './Icons';
+import { BookIcon, DownloadIcon, EyeIcon, HelpCircleIcon } from './Icons';
 import styles from './EbookCard.module.css';
 
 interface EbookCardProps {
@@ -65,6 +65,22 @@ export default function EbookCard({ ebook }: EbookCardProps) {
               }}
             >
               <EyeIcon size={16} /> කියවන්න (Read)
+            </Link>
+          )}
+
+          {ebook.has_questions && (
+            <Link 
+              href={`/ebooks/${ebook.id}/questions`}
+              className={`${styles.actionBtn} ${styles.questionsBtn}`}
+              id={`questions-${ebook.id}`}
+              onClick={() => {
+                const win = window as unknown as { umami?: { track: (event: string, data: Record<string, string>) => void } };
+                if (typeof window !== 'undefined' && win.umami) {
+                  win.umami.track('Ebook Attempt Questions', { title: ebook.title, id: ebook.id });
+                }
+              }}
+            >
+              <HelpCircleIcon size={16} /> ප්‍රශ්නෝත්තර (Q&A)
             </Link>
           )}
 

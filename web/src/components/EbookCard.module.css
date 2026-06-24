@@ -177,6 +177,17 @@
   border-color: var(--accent-gold);
 }
 
+.questionsBtn {
+  background-color: transparent;
+  color: var(--accent-gold);
+  border: 1px solid var(--accent-gold);
+}
+
+.questionsBtn:hover {
+  background-color: rgba(212, 163, 89, 0.1);
+  transform: translateY(-1px);
+}
+
 @media (max-width: 640px) {
   .card {
     flex-direction: column;

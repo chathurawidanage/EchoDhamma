@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Ebook, Definition } from '@/types';
+import { Ebook, Definition, Question } from '@/types';
 import { DownloadIcon, ChevronLeftIcon, ChevronRightIcon, SettingsIcon } from '@/components/Icons';
 import { ParsedBook, TocItem } from '@/lib/ebookParser';
 import styles from '@/app/ebooks/[book_id]/read/page.module.css';
@@ -21,7 +21,6 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
   // Determine if HTML mode is available
   const hasHtml = !!parsedBook;
   const hasPdf = !!book.pdf_url;
-  const [activeTab, setActiveTab] = useState<'html' | 'pdf'>(hasHtml ? 'html' : 'pdf');
 
   // Reader Settings State
   const [theme, setTheme] = useState<'light' | 'sepia' | 'dark'>('sepia');
@@ -109,6 +108,9 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
   const anchorOffsetRef = useRef<number>(0);
   const searchParams = useSearchParams();
   const router = useRouter();
+  const lastChapterParamRef = useRef<string | null>(null);
+  const isInternalNavigationRef = useRef<boolean>(false);
+  const isRestoringScrollRef = useRef<boolean>(false);
 
   // Load settings and last read chapter on mount
   useEffect(() => {
@@ -131,10 +133,21 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
 
     // Restore last read chapter for this book
     const savedChapter = localStorage.getItem(`ebook-last-chapter-${book.id}`);
+    let activeChapterId = 'titlepage';
     if (savedChapter && parsedBook) {
       const chapterExists = parsedBook.chapters.some(c => c.id === savedChapter);
       if (chapterExists) {
+        activeChapterId = savedChapter;
         setCurrentChapterId(savedChapter);
+      }
+    }
+
+    // Set URL parameter if missing
+    if (parsedBook) {
+      const params = new URLSearchParams(window.location.search);
+      if (!params.has('chapter')) {
+        params.set('chapter', activeChapterId);
+        router.replace(`?${params.toString()}`, { scroll: false });
       }
     }
   }, [book.id, parsedBook]);
@@ -167,7 +180,7 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
     }
   }, [currentChapterId, book.id, hasHtml]);
 
-  // Clean up scroll timeouts on unmount
+  // Clean up scroll timeouts on unmount or tab change
   useEffect(() => {
     return () => {
       if (scrollTimeoutRef.current) {
@@ -181,7 +194,7 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
 
   // Sync scroll position tracking and active section highlighting
   const handleScroll = () => {
-    if (!readerRef.current) return;
+    if (!readerRef.current || isRestoringScrollRef.current) return;
 
     const { scrollTop, scrollHeight, clientHeight } = readerRef.current;
 
@@ -304,6 +317,11 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
     }
   }, [fontSize, fontFamily, lineHeight, textWidth]);
 
+  // Set the flag to ignore scroll events when chapter changes
+  useEffect(() => {
+    isRestoringScrollRef.current = true;
+  }, [currentChapterId]);
+
   // Restore scroll position when chapter changes
   useEffect(() => {
     if (!hasHtml || !readerRef.current) return;
@@ -327,6 +345,11 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
     if (progressBarRef.current) {
       progressBarRef.current.style.width = `${pct}%`;
     }
+
+    const timer = setTimeout(() => {
+      isRestoringScrollRef.current = false;
+    }, 100);
+    return () => clearTimeout(timer);
   }, [currentChapterId, book.id, hasHtml]);
 
   // Handle scrolling to a specific target within a chapter
@@ -346,6 +369,7 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
         });
       }
       setPendingScrollId(null);
+      isRestoringScrollRef.current = false;
     }, 100);
 
     return () => clearTimeout(timer);
@@ -355,26 +379,45 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
   useEffect(() => {
     if (!parsedBook) return;
     const chapterParam = searchParams.get('chapter');
-    if (chapterParam) {
-      const match = parsedBook.toc.find(t => t.id === chapterParam);
-      if (match) {
-        setCurrentChapterId(match.chapterId);
-        setPendingScrollId(match.id);
-        setActiveTocId(match.id);
-      } else {
-        const chapterMatch = parsedBook.chapters.find(c => c.id === chapterParam);
-        if (chapterMatch) {
-          setCurrentChapterId(chapterMatch.id);
-          const firstToc = parsedBook.toc.find(t => t.chapterId === chapterMatch.id);
-          setActiveTocId(firstToc ? firstToc.id : null);
+    
+    if (chapterParam !== lastChapterParamRef.current) {
+      const wasInternal = isInternalNavigationRef.current;
+      isInternalNavigationRef.current = false; // Reset for next transition
+      lastChapterParamRef.current = chapterParam;
+
+      if (chapterParam) {
+        const match = parsedBook.toc.find(t => t.id === chapterParam);
+        if (match) {
+          setCurrentChapterId(match.chapterId);
+          if (!wasInternal) {
+            setPendingScrollId(match.id);
+          }
+          setActiveTocId(match.id);
+        } else {
+          const chapterMatch = parsedBook.chapters.find(c => c.id === chapterParam);
+          if (chapterMatch) {
+            setCurrentChapterId(chapterMatch.id);
+            const firstToc = parsedBook.toc.find(t => t.chapterId === chapterMatch.id);
+            setActiveTocId(firstToc ? firstToc.id : null);
+          }
         }
+      } else {
+        // If no query param, default to the current chapter's first TOC item
+        const firstToc = parsedBook.toc.find(t => t.chapterId === currentChapterId);
+        setActiveTocId(firstToc ? firstToc.id : null);
       }
-    } else {
-      // If no query param, default to the current chapter's first TOC item
-      const firstToc = parsedBook.toc.find(t => t.chapterId === currentChapterId);
-      setActiveTocId(firstToc ? firstToc.id : null);
     }
   }, [searchParams, parsedBook, currentChapterId]);
+
+  // Listen to url query updates for active tab (e.g., tab=pdf)
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam === 'pdf' && hasPdf) {
+      setActiveTab('pdf');
+    } else if (tabParam === 'html' && hasHtml) {
+      setActiveTab('html');
+    }
+  }, [searchParams, hasPdf, hasHtml]);
 
   // Navigate through table of contents
   const handleTocClick = (item: TocItem) => {
@@ -400,6 +443,7 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
     // Update query param
     const params = new URLSearchParams(window.location.search);
     params.set('chapter', item.id);
+    isInternalNavigationRef.current = true;
     router.replace(`?${params.toString()}`, { scroll: false });
   };
 
@@ -444,6 +488,12 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
             const el = document.getElementById(id);
             if (el && readerRef.current) {
               el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              
+              // Update query param for current page scroll
+              const params = new URLSearchParams(window.location.search);
+              params.set('chapter', id);
+              isInternalNavigationRef.current = true;
+              router.replace(`?${params.toString()}`, { scroll: false });
             } else if (parsedBook) {
               // Try to find if this id exists inside any chapter
               // Fallback scanning
@@ -451,6 +501,12 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
               if (targetChapter) {
                 setCurrentChapterId(targetChapter.id);
                 setPendingScrollId(id);
+
+                // Update query param
+                const params = new URLSearchParams(window.location.search);
+                params.set('chapter', id);
+                isInternalNavigationRef.current = true;
+                router.replace(`?${params.toString()}`, { scroll: false });
               }
             }
           }
@@ -464,71 +520,12 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
     }
   };
 
-  const isPdfView = !hasHtml || activeTab === 'pdf';
-  if (isPdfView) {
+
+
+  if (!parsedBook) {
     return (
-      <div className={styles.container}>
-        <header className={`${styles.header} glass`}>
-          <div className={styles.left}>
-            <Link href="/ebooks" className={styles.backLink}>
-              ← ග්‍රන්ථ එකතුවට (Back)
-            </Link>
-            <div className={styles.titleInfo}>
-              <h1 className={styles.bookTitle}>{book.title}</h1>
-              <span className={styles.bookAuthor}>{book.author}</span>
-            </div>
-          </div>
-
-          {hasHtml && hasPdf && (
-            <div className={styles.tabContainer}>
-              <button
-                onClick={() => setActiveTab('html')}
-                className={`${styles.tabBtn} ${(activeTab as string) === 'html' ? styles.activeTab : ''}`}
-              >
-                HTML කියවනය
-              </button>
-              <button
-                onClick={() => setActiveTab('pdf')}
-                className={`${styles.tabBtn} ${(activeTab as string) === 'pdf' ? styles.activeTab : ''}`}
-              >
-                PDF කියවනය
-              </button>
-            </div>
-          )}
-
-          <div className={styles.right}>
-            {book.epub_url && (
-              <a
-                href={book.epub_url}
-                download
-                className={styles.actionBtn}
-                style={{ marginRight: '0.5rem' }}
-                id="reader-download-epub"
-              >
-                <DownloadIcon size={14} /> EPUB බාගත කරන්න
-              </a>
-            )}
-            {book.pdf_url && (
-              <a
-                href={book.pdf_url}
-                download
-                className={styles.actionBtn}
-                id="reader-download-pdf"
-              >
-                <DownloadIcon size={14} /> PDF බාගත කරන්න
-              </a>
-            )}
-          </div>
-        </header>
-        <main className={styles.readerWrapper}>
-          {book.pdf_url && (
-            <iframe
-              src={`${book.pdf_url}#toolbar=1`}
-              title={book.title}
-              className={styles.pdfIframe}
-            />
-          )}
-        </main>
+      <div className={styles.container} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
+        <p>පොත පූරණය වෙමින් පවතී...</p>
       </div>
     );
   }
@@ -543,6 +540,12 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
       const prev = chapters[currentChapterIdx - 1];
       setCurrentChapterId(prev.id);
       if (readerRef.current) readerRef.current.scrollTop = 0;
+
+      // Update query param and mark as internal navigation
+      const params = new URLSearchParams(window.location.search);
+      params.set('chapter', prev.id);
+      isInternalNavigationRef.current = true;
+      router.replace(`?${params.toString()}`, { scroll: false });
     }
   };
 
@@ -551,8 +554,55 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
       const next = chapters[currentChapterIdx + 1];
       setCurrentChapterId(next.id);
       if (readerRef.current) readerRef.current.scrollTop = 0;
+
+      // Update query param and mark as internal navigation
+      const params = new URLSearchParams(window.location.search);
+      params.set('chapter', next.id);
+      isInternalNavigationRef.current = true;
+      router.replace(`?${params.toString()}`, { scroll: false });
     }
   };
+
+  // Helper to find the best TOC item for questions in the current chapter
+  const getQuestionsTocId = (): string => {
+    if (!parsedBook) return '';
+    
+    // Helper to check if a TOC item (or its descendants) has questions
+    const hasQuestions = (tocItem: TocItem) => {
+      const idx = parsedBook.toc.findIndex(t => t.id === tocItem.id);
+      if (idx === -1) return false;
+      const currentLevelNum = tocItem.level === 'H1' ? 1 : tocItem.level === 'H2' ? 2 : 3;
+      const targetIds = [tocItem.id];
+      for (let i = idx + 1; i < parsedBook.toc.length; i++) {
+        const nextItem = parsedBook.toc[i];
+        const nextLevelNum = nextItem.level === 'H1' ? 1 : nextItem.level === 'H2' ? 2 : 3;
+        if (nextLevelNum <= currentLevelNum) {
+          break;
+        }
+        targetIds.push(nextItem.id);
+      }
+      const bookQuestions = parsedBook.questions || {};
+      return targetIds.some(id => {
+        const list = bookQuestions[id];
+        return list && Array.isArray(list) && list.length > 0;
+      });
+    };
+
+    // If activeTocId is in the current chapter and has questions, use it
+    if (activeTocId) {
+      const activeItem = parsedBook.toc.find(t => t.id === activeTocId);
+      if (activeItem && activeItem.chapterId === currentChapterId && hasQuestions(activeItem)) {
+        return activeTocId;
+      }
+    }
+
+    // Otherwise, find the first TOC item in the current chapter that has questions
+    const chapterTocItems = parsedBook.toc.filter(item => item.chapterId === currentChapterId);
+    const firstWithQuestions = chapterTocItems.find(item => hasQuestions(item));
+    return firstWithQuestions ? firstWithQuestions.id : '';
+  };
+
+  const questionsTocId = getQuestionsTocId();
 
   return (
     <div
@@ -568,22 +618,22 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
       {/* Reader Header */}
       <header className={`${styles.header} glass`}>
         <div className={styles.left}>
+          <Link href="/ebooks" className={`${styles.iconBtn} ${styles.backBtn}`} title="ග්‍රන්ථ එකතුවට">
+            <ChevronLeftIcon size={20} />
+          </Link>
+
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className={`${styles.actionBtn} ${styles.tocToggleBtn}`}
             title="පටුන (Table of Contents)"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '0.25rem' }}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="3" y1="12" x2="21" y2="12"></line>
               <line x1="3" y1="6" x2="21" y2="6"></line>
               <line x1="3" y1="18" x2="21" y2="18"></line>
             </svg>
-            පටුන
+            <span className={styles.tocToggleText}>පටුන</span>
           </button>
-
-          <Link href="/ebooks" className={styles.backLink}>
-            ← ග්‍රන්ථ එකතුවට
-          </Link>
 
           <div className={styles.titleInfo}>
             <h1 className={styles.bookTitle}>{book.title}</h1>
@@ -591,24 +641,27 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
           </div>
         </div>
 
-        {hasHtml && hasPdf && (
-          <div className={styles.tabContainer}>
-            <button
-              onClick={() => setActiveTab('html')}
-              className={`${styles.tabBtn} ${(activeTab as string) === 'html' ? styles.activeTab : ''}`}
-            >
-              HTML කියවනය
-            </button>
-            <button
-              onClick={() => setActiveTab('pdf')}
-              className={`${styles.tabBtn} ${(activeTab as string) === 'pdf' ? styles.activeTab : ''}`}
-            >
-              PDF කියවනය
-            </button>
-          </div>
-        )}
-
         <div className={styles.right}>
+          <div className={styles.tabContainer}>
+            <span className={`${styles.tabBtn} ${styles.activeTab}`}>
+              කියවන්න
+            </span>
+            {questionsTocId ? (
+              <Link
+                href={`/ebooks/${book.id}/questions?chapter=${questionsTocId}`}
+                className={styles.tabBtn}
+              >
+                ප්‍රශ්නෝත්තර
+              </Link>
+            ) : (
+              <span
+                className={`${styles.tabBtn} ${styles.tabBtnDisabled}`}
+                title="මෙම පරිච්ඡේදය සඳහා ප්‍රශ්න සූදානම් කර නොමැත"
+              >
+                ප්‍රශ්නෝත්තර
+              </span>
+            )}
+          </div>
           {/* Format Settings Toggle */}
           <button
             onClick={() => setSettingsOpen(!settingsOpen)}
@@ -785,6 +838,35 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
                 </button>
               </div>
             </div>
+
+            {/* Download Buttons Section */}
+            {(book.epub_url || book.pdf_url) && (
+              <div className={styles.settingRow} style={{ flexDirection: 'column', alignItems: 'stretch', gap: '0.6rem', marginTop: '1.2rem', borderTop: '1px solid var(--border-reader)', paddingTop: '1.2rem' }}>
+                <span className={styles.settingLabel} style={{ marginBottom: '0.2rem' }}>ග්‍රන්ථය බාගත කරන්න (Download Book)</span>
+                <div className={styles.btnGroup} style={{ width: '100%', gap: '0.5rem' }}>
+                  {book.epub_url && (
+                    <a
+                      href={book.epub_url}
+                      download
+                      className={styles.settingBtn}
+                      style={{ flex: 1, textDecoration: 'none', textAlign: 'center', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', height: '36px' }}
+                    >
+                      <DownloadIcon size={14} /> EPUB
+                    </a>
+                  )}
+                  {book.pdf_url && (
+                    <a
+                      href={book.pdf_url}
+                      download
+                      className={styles.settingBtn}
+                      style={{ flex: 1, textDecoration: 'none', textAlign: 'center', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', height: '36px' }}
+                    >
+                      <DownloadIcon size={14} /> PDF
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
