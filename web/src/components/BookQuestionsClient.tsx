@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Ebook, Question } from '@/types';
 import { SettingsIcon, ChevronLeftIcon, DownloadIcon } from '@/components/Icons';
 import { ParsedBook, TocItem } from '@/lib/ebookParser';
@@ -16,8 +16,6 @@ interface BookQuestionsClientProps {
 }
 
 export default function BookQuestionsClient({ book, parsedBook, chapterId }: BookQuestionsClientProps) {
-  const hasPdf = !!book.pdf_url;
-
   // Q&A Mode State
   const [qaQuestions, setQaQuestions] = useState<Question[]>([]);
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState<number>(0);
@@ -35,9 +33,7 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
   // Navigation and Sidebar State
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
   const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
-  const [activeTocId, setActiveTocId] = useState<string | null>(null);
 
-  const searchParams = useSearchParams();
   const router = useRouter();
 
   // Helper to determine if a TOC item (and its descendants) has questions
@@ -66,9 +62,25 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
     });
   };
 
+  const activeTocId = useMemo(() => {
+    if (chapterId) {
+      const match = parsedBook.toc.find(t => t.id === chapterId);
+      if (match) return match.id;
+    }
+    // Find first TOC item that has questions
+    const firstWithQuestions = parsedBook.toc.find((_, idx) => hasQuestions(idx));
+    if (firstWithQuestions) return firstWithQuestions.id;
+    return parsedBook.toc[0]?.id || null;
+  }, [chapterId, parsedBook]);
+
   // Load settings on mount
   useEffect(() => {
     if (typeof window === 'undefined') return;
+
+    if (settingsCache.isLoaded) {
+      setIsLoaded(true);
+      return;
+    }
 
     const savedTheme = localStorage.getItem('ebook-reader-theme') as 'light' | 'sepia' | 'dark' | null;
     if (savedTheme) setTheme(savedTheme);
@@ -92,39 +104,13 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
   useEffect(() => {
     if (!isLoaded) return;
     localStorage.setItem('ebook-reader-theme', theme);
-    settingsCache.theme = theme;
-  }, [theme, isLoaded]);
-
-  useEffect(() => {
-    if (!isLoaded) return;
     localStorage.setItem('ebook-reader-font-size', String(fontSize));
-    settingsCache.fontSize = fontSize;
-  }, [fontSize, isLoaded]);
-
-  useEffect(() => {
-    if (!isLoaded) return;
     localStorage.setItem('ebook-reader-font-family', fontFamily);
-    settingsCache.fontFamily = fontFamily;
-  }, [fontFamily, isLoaded]);
 
-  // Sync activeTocId from chapterId prop
-  useEffect(() => {
-    if (!parsedBook) return;
-    if (chapterId) {
-      const match = parsedBook.toc.find(t => t.id === chapterId);
-      if (match) {
-        setActiveTocId(match.id);
-      }
-    } else {
-      // Find first TOC item that has questions
-      const firstWithQuestions = parsedBook.toc.find((_, idx) => hasQuestions(idx));
-      if (firstWithQuestions) {
-        setActiveTocId(firstWithQuestions.id);
-      } else if (parsedBook.toc.length > 0) {
-        setActiveTocId(parsedBook.toc[0].id);
-      }
-    }
-  }, [chapterId, parsedBook]);
+    settingsCache.theme = theme;
+    settingsCache.fontSize = fontSize;
+    settingsCache.fontFamily = fontFamily;
+  }, [theme, fontSize, fontFamily, isLoaded]);
 
   // Load questions when activeTocId updates
   useEffect(() => {

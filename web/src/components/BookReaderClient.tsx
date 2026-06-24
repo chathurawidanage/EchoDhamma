@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Ebook, Definition, Question } from '@/types';
+import { Ebook, Definition } from '@/types';
 import { DownloadIcon, ChevronLeftIcon, ChevronRightIcon, SettingsIcon } from '@/components/Icons';
 import { ParsedBook, TocItem } from '@/lib/ebookParser';
 import styles from '@/app/ebooks/[book_id]/read/page.module.css';
@@ -28,10 +28,6 @@ export default function BookReaderClient({
   initialPendingScrollId,
   initialChapterId,
 }: BookReaderClientProps) {
-  // Determine if HTML mode is available
-  const hasHtml = !!parsedBook;
-  const hasPdf = !!book.pdf_url;
-
   // Reader Settings State
   const [theme, setTheme] = useState<'light' | 'sepia' | 'dark'>(() => settingsCache.theme || 'sepia');
   const [fontSize, setFontSize] = useState<number>(() => settingsCache.fontSize || 18);
@@ -45,13 +41,11 @@ export default function BookReaderClient({
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
   const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
   const [pendingScrollId, setPendingScrollId] = useState<string | null>(initialPendingScrollId);
-  const [activeTocId, setActiveTocId] = useState<string | null>(initialChapterId);
 
   // Sync props to state on path-based navigation
   useEffect(() => {
     setPendingScrollId(initialPendingScrollId);
-    setActiveTocId(initialChapterId);
-  }, [initialPendingScrollId, initialChapterId]);
+  }, [initialPendingScrollId]);
 
   // Tooltip State
   const [tooltip, setTooltip] = useState<{
@@ -125,6 +119,11 @@ export default function BookReaderClient({
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
+    if (settingsCache.isLoaded) {
+      setIsLoaded(true);
+      return;
+    }
+
     const savedTheme = localStorage.getItem('ebook-reader-theme') as 'light' | 'sepia' | 'dark' | null;
     if (savedTheme) setTheme(savedTheme);
 
@@ -155,32 +154,17 @@ export default function BookReaderClient({
   useEffect(() => {
     if (!isLoaded) return;
     localStorage.setItem('ebook-reader-theme', theme);
-    settingsCache.theme = theme;
-  }, [theme, isLoaded]);
-
-  useEffect(() => {
-    if (!isLoaded) return;
     localStorage.setItem('ebook-reader-font-size', String(fontSize));
-    settingsCache.fontSize = fontSize;
-  }, [fontSize, isLoaded]);
-
-  useEffect(() => {
-    if (!isLoaded) return;
     localStorage.setItem('ebook-reader-font-family', fontFamily);
-    settingsCache.fontFamily = fontFamily;
-  }, [fontFamily, isLoaded]);
-
-  useEffect(() => {
-    if (!isLoaded) return;
     localStorage.setItem('ebook-reader-line-height', String(lineHeight));
-    settingsCache.lineHeight = lineHeight;
-  }, [lineHeight, isLoaded]);
-
-  useEffect(() => {
-    if (!isLoaded) return;
     localStorage.setItem('ebook-reader-text-width', textWidth);
+
+    settingsCache.theme = theme;
+    settingsCache.fontSize = fontSize;
+    settingsCache.fontFamily = fontFamily;
+    settingsCache.lineHeight = lineHeight;
     settingsCache.textWidth = textWidth;
-  }, [textWidth, isLoaded]);
+  }, [theme, fontSize, fontFamily, lineHeight, textWidth, isLoaded]);
 
   // Simple scroll position tracking to update progress bar width
   const handleScroll = () => {
@@ -196,17 +180,17 @@ export default function BookReaderClient({
     if (!readerRef.current) return;
     hideTooltip();
 
-    if (!pendingScrollId) {
+    if (!initialPendingScrollId) {
       readerRef.current.scrollTop = 0;
       if (progressBarRef.current) {
         progressBarRef.current.style.width = '0%';
       }
     }
-  }, [initialActiveChapterId, pendingScrollId]);
+  }, [initialActiveChapterId]);
 
   // Handle scrolling to a specific target within a chapter
   useEffect(() => {
-    if (!hasHtml || !pendingScrollId || !readerRef.current) return;
+    if (!parsedBook || !pendingScrollId || !readerRef.current) return;
 
     const timer = setTimeout(() => {
       const element = document.getElementById(pendingScrollId);
@@ -224,7 +208,7 @@ export default function BookReaderClient({
     }, 50);
 
     return () => clearTimeout(timer);
-  }, [pendingScrollId, hasHtml]);
+  }, [pendingScrollId, parsedBook]);
 
   // Navigate through table of contents
   const handleTocClick = (item: TocItem) => {
@@ -361,11 +345,11 @@ export default function BookReaderClient({
       });
     };
 
-    // If activeTocId is in the current chapter and has questions, use it
-    if (activeTocId) {
-      const activeItem = parsedBook.toc.find(t => t.id === activeTocId);
+    // If initialChapterId is in the current chapter and has questions, use it
+    if (initialChapterId) {
+      const activeItem = parsedBook.toc.find(t => t.id === initialChapterId);
       if (activeItem && activeItem.chapterId === currentChapterId && hasQuestions(activeItem)) {
-        return activeTocId;
+        return initialChapterId;
       }
     }
 
@@ -377,7 +361,7 @@ export default function BookReaderClient({
 
   const activeChapterItem = parsedBook?.toc.find(t => t.id === activeChapter?.id);
 
-  const getSubChapters = (): TocItem[] => {
+  const subChapters = useMemo(() => {
     if (!parsedBook || !activeChapter) return [];
     const idx = parsedBook.toc.findIndex(t => t.id === activeChapter.id);
     if (idx === -1) return [];
@@ -385,7 +369,7 @@ export default function BookReaderClient({
     const parentLevelNum = activeChapterItem?.level === 'H1' ? 1 : activeChapterItem?.level === 'H2' ? 2 : 3;
     const targetLevelNum = parentLevelNum + 1;
 
-    const subChapters: TocItem[] = [];
+    const list: TocItem[] = [];
     for (let i = idx + 1; i < parsedBook.toc.length; i++) {
       const nextItem = parsedBook.toc[i];
       const nextLevelNum = nextItem.level === 'H1' ? 1 : nextItem.level === 'H2' ? 2 : 3;
@@ -395,17 +379,14 @@ export default function BookReaderClient({
       }
       
       if (nextLevelNum === targetLevelNum) {
-        subChapters.push(nextItem);
+        list.push(nextItem);
       }
     }
-    return subChapters;
-  };
+    return list;
+  }, [parsedBook, activeChapter, activeChapterItem]);
 
-  const isParentDirectoryPage = (): boolean => {
-    if (!activeChapter || !parsedBook) return false;
-    
-    const subChapters = getSubChapters();
-    if (subChapters.length === 0) return false;
+  const isDirPage = useMemo(() => {
+    if (!activeChapter || !parsedBook || subChapters.length === 0) return false;
 
     const contentWithoutHeadings = activeChapter.content
       .replace(/<h[1-6][^>]*>[\s\S]*?<\/h[1-6]>/gi, '')
@@ -413,7 +394,7 @@ export default function BookReaderClient({
       .trim();
       
     return contentWithoutHeadings.length < 10;
-  };
+  }, [activeChapter, parsedBook, subChapters]);
 
   const questionsTocId = getQuestionsTocId();
 
@@ -500,7 +481,7 @@ export default function BookReaderClient({
               {parsedBook.toc.map((item, idx) => (
                 <li
                   key={`${item.id}-${idx}`}
-                  className={`${styles.tocItem} ${styles[`level${item.level}`]} ${activeTocId === item.id ? styles.activeTocItem : ''
+                  className={`${styles.tocItem} ${styles[`level${item.level}`]} ${initialChapterId === item.id ? styles.activeTocItem : ''
                     }`}
                 >
                   <Link
@@ -708,14 +689,14 @@ export default function BookReaderClient({
             )}
 
             <article
-              className={`${styles.articleContent} ${isParentDirectoryPage() ? styles.directoryArticle : ''}`}
+              className={`${styles.articleContent} ${isDirPage ? styles.directoryArticle : ''}`}
               dangerouslySetInnerHTML={{ __html: activeChapter.content }}
             />
 
-            {isParentDirectoryPage() && (
+            {isDirPage && (
               <div className={styles.directoryContainer}>
                 <div className={styles.directoryGrid}>
-                  {getSubChapters().map((item) => (
+                  {subChapters.map((item) => (
                     <Link
                       key={item.id}
                       href={`/ebooks/${book.id}/read/${item.id}`}
