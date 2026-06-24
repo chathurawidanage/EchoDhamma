@@ -1,6 +1,8 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import * as cheerio from 'cheerio';
+import definitionsData from '../data/definitions.json';
+import { Definition } from '@/types';
 
 export interface TocItem {
   id: string;
@@ -22,11 +24,104 @@ export interface ParsedBook {
   author: string;
 }
 
+function injectDefinitions($: cheerio.CheerioAPI) {
+  const definitions = definitionsData as Record<string, Definition>;
+  const termToKey: Record<string, string> = {};
+  const matchStrings: string[] = [];
+
+  for (const [key, def] of Object.entries(definitions)) {
+    if (!termToKey[key]) {
+      termToKey[key] = key;
+      matchStrings.push(key);
+    }
+    if (def.matches) {
+      for (const match of def.matches) {
+        if (!termToKey[match]) {
+          termToKey[match] = key;
+          matchStrings.push(match);
+        }
+      }
+    }
+  }
+
+  // Sort matches by length descending to match longest first
+  matchStrings.sort((a, b) => b.length - a.length);
+
+  if (matchStrings.length === 0) return;
+
+  const escapeRegExp = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const pattern = `(?<![\\u0D80-\\u0DFF])(${matchStrings.map(escapeRegExp).join('|')})(?![\\u0D80-\\u0DFF])`;
+  const regex = new RegExp(pattern, 'g');
+
+  const ignoreTags = new Set([
+    'a', 'script', 'style', 'head', 'title', 'meta', 'button', 'iframe',
+    'h1', 'h2', 'h3', 'h4', 'h5', 'h6'
+  ]);
+
+  function walk(node: any) {
+    if (!node) return;
+
+    if (node.type === 'tag') {
+      const tagName = node.name.toLowerCase();
+      if (ignoreTags.has(tagName)) {
+        return;
+      }
+      if (node.attribs && node.attribs.class && node.attribs.class.includes('def-term')) {
+        return;
+      }
+    }
+
+    if (node.type === 'text') {
+      const text = node.data;
+      if (text && regex.test(text)) {
+        regex.lastIndex = 0; // Reset index for replace
+        const parent = node.parent;
+        if (parent) {
+          const escapedText = escapeHtml(text);
+          const replacedHtml = escapedText.replace(regex, (match) => {
+            const canonicalKey = termToKey[match];
+            return `<span class="def-term" data-term="${canonicalKey}">${match}</span>`;
+          });
+          
+          if (replacedHtml !== escapedText) {
+            $(node).replaceWith($(replacedHtml));
+          }
+        }
+      }
+      return;
+    }
+
+    if (node.children) {
+      const children = [...node.children];
+      for (const child of children) {
+        walk(child);
+      }
+    }
+  }
+
+  function escapeHtml(unsafe: string) {
+    return unsafe
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  $('body').each((_, bodyEl) => {
+    walk(bodyEl);
+  });
+}
+
 export async function parseBookHtml(htmlUrl: string): Promise<ParsedBook> {
   // htmlUrl is like "/ebooks/Abi_Dharmaye_Moolika_Karunu/Abi_Dharmaye_Moolika_Karunu.html"
   const filePath = path.join(process.cwd(), 'public', htmlUrl);
   const rawHtml = await fs.readFile(filePath, 'utf-8');
   const $ = cheerio.load(rawHtml);
+
+  // Inject definition terms into text nodes
+  injectDefinitions($);
+
 
   const title = $('title').text().trim() || 'Dhamma Book';
   const author = $('meta[name="author"]').attr('content')?.trim() || 'රේරුකානේ චන්දවිමල හිමි';

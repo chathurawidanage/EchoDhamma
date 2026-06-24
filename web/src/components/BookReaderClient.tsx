@@ -3,10 +3,14 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Ebook } from '@/types';
+import { Ebook, Definition } from '@/types';
 import { DownloadIcon, ChevronLeftIcon, ChevronRightIcon, SettingsIcon } from '@/components/Icons';
 import { ParsedBook, TocItem } from '@/lib/ebookParser';
 import styles from '@/app/ebooks/[book_id]/read/page.module.css';
+import definitionsData from '@/data/definitions.json';
+
+const definitions = definitionsData as Record<string, Definition>;
+
 
 interface BookReaderClientProps {
   book: Ebook;
@@ -32,6 +36,70 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
   const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
   const [pendingScrollId, setPendingScrollId] = useState<string | null>(null);
   const [activeTocId, setActiveTocId] = useState<string | null>(null);
+
+  // Tooltip State
+  const [tooltip, setTooltip] = useState<{
+    term: string;
+    translation?: string;
+    definition: string;
+    language: string;
+    top: number;
+    left: number;
+    visible: boolean;
+    persistent: boolean;
+  } | null>(null);
+
+  const tooltipRef = useRef<HTMLDivElement>(null);
+
+  const hideTooltip = () => {
+    setTooltip(null);
+  };
+
+  const showTooltipForElement = (el: HTMLElement, termKey: string, persistent = false) => {
+    const def = definitions[termKey];
+    if (!def || !readerRef.current) return;
+
+    const container = readerRef.current;
+    const containerRect = container.getBoundingClientRect();
+    const rect = el.getBoundingClientRect();
+
+    const left = rect.left - containerRect.left + container.scrollLeft + rect.width / 2;
+    const top = rect.top - containerRect.top + container.scrollTop;
+
+    setTooltip({
+      term: def.term || termKey,
+      translation: def.translation,
+      definition: def.definition,
+      language: def.language,
+      left,
+      top,
+      visible: true,
+      persistent,
+    });
+  };
+
+  // Adjust tooltip positioning to prevent viewport overflow
+  useLayoutEffect(() => {
+    if (tooltip && tooltipRef.current && readerRef.current) {
+      const tooltipEl = tooltipRef.current;
+      const containerEl = readerRef.current;
+      const containerRect = containerEl.getBoundingClientRect();
+      const tooltipRect = tooltipEl.getBoundingClientRect();
+
+      let offset = 0;
+      if (tooltipRect.left < containerRect.left + 12) {
+        offset = (containerRect.left + 12) - tooltipRect.left;
+      } else if (tooltipRect.right > containerRect.right - 12) {
+        offset = (containerRect.right - 12) - tooltipRect.right;
+      }
+
+      if (offset !== 0) {
+        tooltipEl.style.transform = `translate(calc(-50% + ${offset}px), -100%)`;
+      } else {
+        tooltipEl.style.transform = 'translate(-50%, -100%)';
+      }
+    }
+  }, [tooltip]);
 
   const readerRef = useRef<HTMLDivElement>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
@@ -114,6 +182,7 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
   // Sync scroll position tracking and active section highlighting
   const handleScroll = () => {
     if (!readerRef.current) return;
+
     const { scrollTop, scrollHeight, clientHeight } = readerRef.current;
 
     // Save scroll offset for resuming in the same chapter (debounced to avoid blocking main thread)
@@ -239,6 +308,8 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
   useEffect(() => {
     if (!hasHtml || !readerRef.current) return;
 
+    hideTooltip();
+
     // If there is a pending scroll ID, let the other effect handle it.
     // Do NOT restore the old saved scroll position.
     if (pendingScrollId) {
@@ -332,9 +403,29 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
     router.replace(`?${params.toString()}`, { scroll: false });
   };
 
-  // Handle in-book link interceptions
+  // Handle in-book link interceptions and term clicks
   const handleContentClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
+
+    // Check if clicked on a definition term
+    const defSpan = target.closest('.def-term') as HTMLElement;
+    if (defSpan) {
+      e.preventDefault();
+      e.stopPropagation();
+      const termKey = defSpan.getAttribute('data-term');
+      if (termKey) {
+        const canonicalDef = definitions[termKey];
+        const canonicalTerm = canonicalDef ? canonicalDef.term : termKey;
+        // Toggle or open persistent tooltip
+        if (tooltip && tooltip.persistent && tooltip.term === canonicalTerm) {
+          hideTooltip();
+        } else {
+          showTooltipForElement(defSpan, termKey, true);
+        }
+      }
+      return;
+    }
+
     const anchor = target.closest('a');
     if (anchor) {
       const href = anchor.getAttribute('href');
@@ -364,6 +455,11 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
             }
           }
         }
+      }
+    } else {
+      // Clicked elsewhere - close tooltip if open
+      if (tooltip) {
+        hideTooltip();
       }
     }
   };
@@ -699,7 +795,10 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
           ref={readerRef}
           onScroll={handleScroll}
         >
-          <div className={styles.readingArea} onClick={handleContentClick}>
+          <div
+            className={styles.readingArea}
+            onClick={handleContentClick}
+          >
             {/* Title / Cover Header if first page */}
             {activeChapter.id === 'titlepage' && (
               <div className={styles.chapterCover}>
@@ -736,6 +835,38 @@ export default function BookReaderClient({ book, parsedBook }: BookReaderClientP
               </button>
             </div>
           </div>
+
+          {/* Tooltip render */}
+          {tooltip && tooltip.visible && (
+            <div
+              ref={tooltipRef}
+              className={`${styles.tooltip} ${tooltip.persistent ? styles.persistent : ''}`}
+              style={{
+                top: `${tooltip.top}px`,
+                left: `${tooltip.left}px`,
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className={styles.tooltipHeader}>
+                <div className={styles.tooltipMeta}>
+                  <span className={styles.tooltipTerm}>{tooltip.term}</span>
+                  <span className={`${styles.badge} ${styles[tooltip.language]}`}>
+                    {tooltip.language === 'pali' ? 'පාලි' : tooltip.language === 'sanskrit' ? 'සංස්කෘත' : 'සිංහල'}
+                  </span>
+                </div>
+                {tooltip.persistent && (
+                  <button className={styles.tooltipCloseBtn} onClick={hideTooltip} title="වසන්න (Close)">
+                    ×
+                  </button>
+                )}
+              </div>
+              {tooltip.translation && (
+                <div className={styles.tooltipTranslation}>{tooltip.translation}</div>
+              )}
+              <div className={styles.tooltipDefinition}>{tooltip.definition}</div>
+              <div className={styles.tooltipArrow} />
+            </div>
+          )}
         </main>
       </div>
     </div>

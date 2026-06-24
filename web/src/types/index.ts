@@ -96,3 +96,12 @@ export interface Ebook {
   epub_url?: string;
   html_url?: string;
 }
+
+export interface Definition {
+  term: string;
+  translation?: string;
+  definition: string;
+  language: 'pali' | 'sanskrit' | 'sinhala';
+  matches?: string[];
+}
+
