@@ -113,7 +113,24 @@ export default function BookReaderClient({
 
   const readerRef = useRef<HTMLDivElement>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
+  const tocNavRef = useRef<HTMLElement>(null);
   const router = useRouter();
+
+  // On desktop the TOC sidebar is always visible. When the active item is
+  // outside the nav's visible area, center it instantly. No scroll if already visible.
+  useEffect(() => {
+    const nav = tocNavRef.current;
+    if (!nav || !initialChapterId) return;
+    const activeEl = nav.querySelector<HTMLElement>(`[data-toc-id="${CSS.escape(initialChapterId)}"]`);
+    if (!activeEl) return;
+    const navTop = nav.scrollTop;
+    const navBottom = navTop + nav.clientHeight;
+    const itemTop = activeEl.offsetTop;
+    const itemBottom = itemTop + activeEl.offsetHeight;
+    if (itemTop < navTop || itemBottom > navBottom) {
+      nav.scrollTop = itemTop - nav.clientHeight / 2 + activeEl.offsetHeight / 2;
+    }
+  }, [initialChapterId]);
 
   // Load settings on mount
   useEffect(() => {
@@ -477,11 +494,12 @@ export default function BookReaderClient({
             <h3>පටුන</h3>
             <button className={styles.closeBtn} onClick={() => setSidebarOpen(false)}>×</button>
           </div>
-          <nav className={styles.tocNav}>
+          <nav className={styles.tocNav} ref={tocNavRef}>
             <ul>
               {parsedBook.toc.map((item, idx) => (
                 <li
                   key={`${item.id}-${idx}`}
+                  data-toc-id={item.id}
                   className={`${styles.tocItem} ${styles[`level${item.level}`]} ${initialChapterId === item.id ? styles.activeTocItem : ''
                     }`}
                 >
