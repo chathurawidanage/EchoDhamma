@@ -20,8 +20,12 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
   const [qaQuestions, setQaQuestions] = useState<Question[]>([]);
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState<number>(0);
   const [selectedOptionIdx, setSelectedOptionIdx] = useState<number | null>(null);
+  const [selectedOptionIndices, setSelectedOptionIndices] = useState<number[]>([]);
+  const [wordBuilderSequence, setWordBuilderSequence] = useState<string[]>([]);
+  const [hasSubmitted, setHasSubmitted] = useState<boolean>(false);
   const [correctCount, setCorrectCount] = useState<number>(0);
   const [incorrectCount, setIncorrectCount] = useState<number>(0);
+  const [skippedCount, setSkippedCount] = useState<number>(0);
   const [sessionCompleted, setSessionCompleted] = useState<boolean>(false);
 
   // Reader/Aesthetics Settings State
@@ -151,24 +155,51 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
       }
     });
 
-    const shuffled = [...gatheredQuestions].sort(() => Math.random() - 0.5);
+    const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+    const shuffled = isLocalhost ? [...gatheredQuestions] : [...gatheredQuestions].sort(() => Math.random() - 0.5);
 
     const processed = shuffled.map(q => {
-      const correctText = q.options[q.correctAnswerIndex];
-      const shuffledOpts = [...q.options].sort(() => Math.random() - 0.5);
-      const newCorrectIdx = shuffledOpts.indexOf(correctText);
-      return {
-        ...q,
-        options: shuffledOpts,
-        correctAnswerIndex: newCorrectIdx
-      };
+      if (q.type === 'wordbuilder') {
+        const words = q.words ? [...q.words] : [];
+        return {
+          ...q,
+          words
+        };
+      } else if (q.type === 'multiselect') {
+        if (!q.options || !q.correctAnswerIndices) return q;
+        const correctTexts = q.correctAnswerIndices.map(idx => q.options![idx]);
+        const shuffledOpts = [...q.options].sort(() => Math.random() - 0.5);
+        const newCorrectIndices = correctTexts
+          .map(txt => shuffledOpts.indexOf(txt))
+          .filter(idx => idx !== -1);
+        return {
+          ...q,
+          options: shuffledOpts,
+          correctAnswerIndices: newCorrectIndices
+        };
+      } else {
+        if (!q.options || q.correctAnswerIndex === undefined) return q;
+        const correctText = q.options[q.correctAnswerIndex];
+        const shuffledOpts = [...q.options].sort(() => Math.random() - 0.5);
+        const newCorrectIdx = shuffledOpts.indexOf(correctText);
+        return {
+          ...q,
+          options: shuffledOpts,
+          correctAnswerIndex: newCorrectIdx
+        };
+      }
     });
 
     setQaQuestions(processed);
     setCurrentQuestionIdx(0);
     setSelectedOptionIdx(null);
+    setSelectedOptionIndices([]);
+    setWordBuilderSequence([]);
+    setHasSubmitted(false);
     setCorrectCount(0);
     setIncorrectCount(0);
+    setSkippedCount(0);
     setSessionCompleted(false);
   };
 
@@ -191,13 +222,82 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
     }
   };
 
+  const handleMultiselectToggle = (idx: number) => {
+    if (hasSubmitted) return;
+
+    setSelectedOptionIndices(prev => {
+      if (prev.includes(idx)) {
+        return prev.filter(i => i !== idx);
+      } else {
+        return [...prev, idx];
+      }
+    });
+  };
+
+  const handleWordTap = (word: string) => {
+    if (hasSubmitted) return;
+    setWordBuilderSequence(prev => [...prev, word]);
+  };
+
+  const handleWordRemoveLast = () => {
+    if (hasSubmitted) return;
+    setWordBuilderSequence(prev => prev.slice(0, -1));
+  };
+
+  const handleWordReset = () => {
+    if (hasSubmitted) return;
+    setWordBuilderSequence([]);
+  };
+
+  const handleSubmitAnswer = () => {
+    if (hasSubmitted) return;
+
+    const question = qaQuestions[currentQuestionIdx];
+    if (!question) return;
+
+    setHasSubmitted(true);
+
+    if (question.type === 'multiselect') {
+      const correctIndices = question.correctAnswerIndices || [];
+      const sortedSelections = [...selectedOptionIndices].sort();
+      const sortedCorrect = [...correctIndices].sort();
+      
+      const isCorrect = sortedSelections.length === sortedCorrect.length &&
+        sortedSelections.every((val, index) => val === sortedCorrect[index]);
+
+      if (isCorrect) {
+        setCorrectCount(prev => prev + 1);
+      } else {
+        setIncorrectCount(prev => prev + 1);
+      }
+    } else if (question.type === 'wordbuilder') {
+      const correctSeq = question.correctWordSequence || [];
+      const isCorrect = wordBuilderSequence.length === correctSeq.length &&
+        wordBuilderSequence.every((val, index) => val === correctSeq[index]);
+
+      if (isCorrect) {
+        setCorrectCount(prev => prev + 1);
+      } else {
+        setIncorrectCount(prev => prev + 1);
+      }
+    }
+  };
+
   const handleNextQuestion = () => {
     if (currentQuestionIdx < qaQuestions.length - 1) {
       setCurrentQuestionIdx(prev => prev + 1);
       setSelectedOptionIdx(null);
+      setSelectedOptionIndices([]);
+      setWordBuilderSequence([]);
+      setHasSubmitted(false);
     } else {
       setSessionCompleted(true);
     }
+  };
+
+  const handleSkipQuestion = () => {
+    setSkippedCount(prev => prev + 1);
+    handleNextQuestion();
   };
 
   const renderQuestionView = () => {
@@ -206,6 +306,300 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
 
     const activeTocItem = parsedBook.toc.find(t => t.id === activeTocId);
     const categoryTitle = activeTocItem ? activeTocItem.title : 'ප්‍රශ්නෝත්තර';
+
+    const renderWordBuilderView = () => {
+      const activeSequence = wordBuilderSequence;
+      const wordPool = question.words || [];
+      const correctSeq = question.correctWordSequence || [];
+
+      const getUsedCount = (word: string) => {
+        return activeSequence.filter(w => w === word).length;
+      };
+
+      const getPoolCount = (word: string) => {
+        return wordPool.filter(w => w === word).length;
+      };
+
+      const isAnswerCorrect = activeSequence.join(' ') === correctSeq.join(' ');
+
+      return (
+        <div className={styles.qaCard} key={question.id}>
+          <div className={styles.qaHeader}>
+            <div className={styles.qaCategoryWrapper}>
+              <span className={styles.qaCategory}>{categoryTitle}</span>
+              {question.fromBook && (
+                <span className={styles.qaBookBadge}>පොතෙන්</span>
+              )}
+            </div>
+            <span className={styles.qaProgress}>
+              ප්‍රශ්න {qaQuestions.length} න් {currentQuestionIdx + 1}
+            </span>
+          </div>
+
+          <h3 className={styles.qaQuestion}>{question.question}</h3>
+
+          <div className={styles.qaWorkspaceHeader}>
+            <button 
+              className={styles.qaControlBtn} 
+              onClick={handleWordRemoveLast} 
+              disabled={activeSequence.length === 0 || hasSubmitted}
+              title="අවසන් වචනය මකන්න"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path>
+                <line x1="18" y1="9" x2="12" y2="15"></line>
+                <line x1="12" y1="9" x2="18" y2="15"></line>
+              </svg>
+              මකන්න
+            </button>
+            <button 
+              className={styles.qaControlBtn} 
+              onClick={handleWordReset} 
+              disabled={activeSequence.length === 0 || hasSubmitted}
+              title="නැවත සකසන්න"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+              </svg>
+              නැවත මුලට
+            </button>
+          </div>
+
+          <div className={`${styles.qaWorkspace} ${
+            hasSubmitted ? (
+              isAnswerCorrect ? styles.qaOptionCorrect : styles.qaOptionIncorrect
+            ) : ''
+          }`}>
+            {activeSequence.length > 0 ? (
+              activeSequence.map((word, idx) => (
+                <span key={idx} className={styles.qaWordChip} style={{ cursor: 'default' }}>
+                  {word}
+                </span>
+              ))
+            ) : (
+              <span className={styles.qaWorkspacePlaceholder}>
+                {question.placeholder || "පහත වචන ක්ලික් කර නිවැරදි පිළිතුර මෙතැන සකසන්න..."}
+              </span>
+            )}
+          </div>
+
+          {!hasSubmitted && (
+            <>
+              <div className={styles.qaWordPoolLabel}>වචන තටාකය (Word Pool)</div>
+              <div className={styles.qaWordPool}>
+                {wordPool.map((word, idx) => {
+                  const usedCount = getUsedCount(word);
+                  const poolCount = getPoolCount(word);
+                  const isUsedUp = usedCount >= poolCount;
+                  
+                  return (
+                    <button
+                      key={idx}
+                      className={`${styles.qaWordChip} ${isUsedUp ? styles.qaWordChipDisabled : ''}`}
+                      onClick={() => handleWordTap(word)}
+                      disabled={isUsedUp || hasSubmitted}
+                    >
+                      {word}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {!hasSubmitted && (
+            <div className={styles.qaSubmitSection}>
+              <button 
+                className={styles.qaSubmitBtn}
+                onClick={handleSubmitAnswer}
+                disabled={activeSequence.length === 0}
+              >
+                පිළිතුර පරීක්ෂා කරන්න
+              </button>
+            </div>
+          )}
+
+          {hasSubmitted && (
+            <div className={styles.qaExplanation}>
+              <div className={styles.qaExplanationTitle}>
+                {isAnswerCorrect ? '✓ නිවැරදියි!' : '✗ වැරදියි! නිවැරදි පිළිතුර:'}
+              </div>
+              {!isAnswerCorrect && (
+                <p style={{ fontWeight: 600, color: 'var(--text-reader)', marginBottom: '1rem', fontSize: '1.05rem' }}>
+                  {correctSeq.join(' ')}
+                </p>
+              )}
+              <div className={styles.qaExplanationTitle} style={{ marginTop: '1rem' }}>පැහැදිලි කිරීම</div>
+              <p className={styles.qaExplanationText}>{question.explanation}</p>
+            </div>
+          )}
+
+          <div className={styles.qaFooter}>
+            {!hasSubmitted && (
+              <button className={styles.qaSkipBtn} onClick={handleSkipQuestion}>
+                මඟහරින්න
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '0.25rem' }}>
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </button>
+            )}
+            {hasSubmitted && (
+              <button className={styles.qaNextBtn} onClick={handleNextQuestion}>
+                {currentQuestionIdx < qaQuestions.length - 1 ? 'මීළඟ ප්‍රශ්නය' : 'අවසන් කරන්න'}
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '0.25rem' }}>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                  <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    const renderMultiselectView = () => {
+      const options = question.options || [];
+      const correctIndices = question.correctAnswerIndices || [];
+      const selected = selectedOptionIndices;
+
+      return (
+        <div className={styles.qaCard} key={question.id}>
+          <div className={styles.qaHeader}>
+            <div className={styles.qaCategoryWrapper}>
+              <span className={styles.qaCategory}>{categoryTitle}</span>
+              {question.fromBook && (
+                <span className={styles.qaBookBadge}>පොතෙන්</span>
+              )}
+            </div>
+            <span className={styles.qaProgress}>
+              ප්‍රශ්න {qaQuestions.length} න් {currentQuestionIdx + 1}
+            </span>
+          </div>
+
+          <h3 className={styles.qaQuestion}>{question.question}</h3>
+
+          <div className={styles.qaOptions}>
+            {options.map((option, idx) => {
+              const isSelected = selected.includes(idx);
+              const isCorrect = correctIndices.includes(idx);
+
+              let optionClass = styles.qaOption;
+
+              if (hasSubmitted) {
+                if (isSelected && isCorrect) {
+                  optionClass += ` ${styles.qaOptionCorrect}`;
+                } else if (isSelected && !isCorrect) {
+                  optionClass += ` ${styles.qaOptionIncorrect}`;
+                } else if (!isSelected && isCorrect) {
+                  optionClass += ` ${styles.qaOptionMissed}`;
+                } else {
+                  optionClass += ` ${styles.qaOptionDimmed}`;
+                }
+              } else {
+                if (isSelected) {
+                  optionClass += ` ${styles.qaOptionChecked}`;
+                }
+              }
+
+              return (
+                <button
+                  key={idx}
+                  className={optionClass}
+                  onClick={() => handleMultiselectToggle(idx)}
+                  disabled={hasSubmitted}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <span className={styles.qaCheckbox}>
+                      {isSelected && (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                      )}
+                      {!isSelected && hasSubmitted && isCorrect && (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#10b981' }}>
+                          <line x1="12" y1="5" x2="12" y2="19"></line>
+                          <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                      )}
+                    </span>
+                    <span>{option}</span>
+                  </div>
+                  {hasSubmitted && isSelected && isCorrect && (
+                    <span className={styles.qaIcon} style={{ color: '#10b981' }}>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </span>
+                  )}
+                  {hasSubmitted && isSelected && !isCorrect && (
+                    <span className={styles.qaIcon} style={{ color: '#ef4444' }}>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                    </span>
+                  )}
+                  {hasSubmitted && !isSelected && isCorrect && (
+                    <span className={styles.qaIcon} style={{ color: '#10b981' }}>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {!hasSubmitted && (
+            <div className={styles.qaSubmitSection}>
+              <button 
+                className={styles.qaSubmitBtn}
+                onClick={handleSubmitAnswer}
+                disabled={selected.length === 0}
+              >
+                පිළිතුර පරීක්ෂා කරන්න
+              </button>
+            </div>
+          )}
+
+          {hasSubmitted && (
+            <div className={styles.qaExplanation}>
+              <div className={styles.qaExplanationTitle}>පැහැදිලි කිරීම</div>
+              <p className={styles.qaExplanationText}>{question.explanation}</p>
+            </div>
+          )}
+
+          <div className={styles.qaFooter}>
+            {!hasSubmitted && (
+              <button className={styles.qaSkipBtn} onClick={handleSkipQuestion}>
+                මඟහරින්න
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '0.25rem' }}>
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </button>
+            )}
+            {hasSubmitted && (
+              <button className={styles.qaNextBtn} onClick={handleNextQuestion}>
+                {currentQuestionIdx < qaQuestions.length - 1 ? 'මීළඟ ප්‍රශ්නය' : 'අවසන් කරන්න'}
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '0.25rem' }}>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                  <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    if (question.type === 'wordbuilder') {
+      return renderWordBuilderView();
+    }
+
+    if (question.type === 'multiselect') {
+      return renderMultiselectView();
+    }
 
     return (
       <div className={styles.qaCard} key={question.id}>
@@ -224,7 +618,7 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
         <h3 className={styles.qaQuestion}>{question.question}</h3>
 
         <div className={styles.qaOptions}>
-          {question.options.map((option, idx) => {
+          {question.options?.map((option, idx) => {
             const isSelected = selectedOptionIdx === idx;
             const isCorrect = idx === question.correctAnswerIndex;
             const hasAnswered = selectedOptionIdx !== null;
@@ -276,6 +670,14 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
         )}
 
         <div className={styles.qaFooter}>
+          {selectedOptionIdx === null && (
+            <button className={styles.qaSkipBtn} onClick={handleSkipQuestion}>
+              මඟහරින්න
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '0.25rem' }}>
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
+          )}
           {selectedOptionIdx !== null && (
             <button className={styles.qaNextBtn} onClick={handleNextQuestion}>
               {currentQuestionIdx < qaQuestions.length - 1 ? 'මීළඟ ප්‍රශ්නය' : 'අවසන් කරන්න'}
@@ -326,15 +728,19 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
           <div className={styles.qaStats}>
             <div className={styles.qaStatItem}>
               <span className={`${styles.qaStatVal} ${styles.qaStatValCorrect}`}>{correctCount}</span>
-              <span className={styles.qaStatLabel}>නිවැරදි පිළිතුරු</span>
+              <span className={styles.qaStatLabel}>නිවැරදි</span>
             </div>
             <div className={styles.qaStatItem}>
               <span className={`${styles.qaStatVal} ${styles.qaStatValIncorrect}`}>{incorrectCount}</span>
-              <span className={styles.qaStatLabel}>වැරදි පිළිතුරු</span>
+              <span className={styles.qaStatLabel}>වැරදි</span>
+            </div>
+            <div className={styles.qaStatItem}>
+              <span className={styles.qaStatVal} style={{ color: 'var(--text-reader-muted)' }}>{skippedCount}</span>
+              <span className={styles.qaStatLabel}>මඟහැරී</span>
             </div>
             <div className={styles.qaStatItem}>
               <span className={styles.qaStatVal}>{totalQuestions}</span>
-              <span className={styles.qaStatLabel}>මුළු ප්‍රශ්න ගණන</span>
+              <span className={styles.qaStatLabel}>එකතුව</span>
             </div>
           </div>
 

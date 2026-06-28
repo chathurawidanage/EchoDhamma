@@ -108,11 +108,16 @@ export interface Definition {
 
 export interface Question {
   id: string;
+  type?: 'mcq' | 'multiselect' | 'wordbuilder';
   question: string;
-  options: string[];
-  correctAnswerIndex: number;
+  options?: string[];
+  correctAnswerIndex?: number;
+  correctAnswerIndices?: number[];
+  words?: string[];
+  correctWordSequence?: string[];
   explanation: string;
   fromBook?: boolean;
+  placeholder?: string;
 }
 
 export type BookQuestions = Record<string, Question[]>; // Keyed by TOC anchor ID

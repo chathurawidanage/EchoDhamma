@@ -1133,19 +1133,27 @@
 }
 
 .qaOptionCorrect {
-  background-color: rgba(16, 185, 129, 0.15) !important;
+  background-color: rgba(16, 185, 129, 0.08) !important;
   border-color: #10b981 !important;
-  box-shadow: 0 0 10px rgba(16, 185, 129, 0.1);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.05);
 }
 
 .qaOptionIncorrect {
-  background-color: rgba(239, 68, 68, 0.15) !important;
+  background-color: rgba(239, 68, 68, 0.08) !important;
   border-color: #ef4444 !important;
-  box-shadow: 0 0 10px rgba(239, 68, 68, 0.1);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.05);
+}
+
+.qaOptionMissed {
+  background-color: rgba(16, 185, 129, 0.05) !important;
+  border-color: #10b981 !important;
+  border-style: dashed !important;
+  border-width: 1.5px !important;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.03);
 }
 
 .qaOptionDimmed {
-  opacity: 0.5;
+  opacity: 0.4;
 }
 
 .qaIcon {
@@ -1268,7 +1276,9 @@
 
 .qaStats {
   display: flex;
-  gap: 2rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1.5rem;
   margin-bottom: 2.5rem;
 }
 
@@ -1457,4 +1467,211 @@
 .directoryCard:hover .directoryCardChevron {
   color: var(--accent-gold);
   transform: translateX(3px);
+}
+
+/* Choose All That Apply / Checkbox styles */
+.qaCheckbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--text-reader-muted);
+  border-radius: 4px;
+  margin-right: 1rem;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.qaOptionChecked {
+  border-color: var(--accent-gold) !important;
+  background-color: rgba(212, 163, 89, 0.05) !important;
+}
+
+.qaOptionChecked .qaCheckbox {
+  background-color: var(--accent-gold);
+  border-color: var(--accent-gold);
+  color: var(--bg-reader);
+}
+
+.qaOptionCorrect .qaCheckbox {
+  background-color: #10b981 !important;
+  border-color: #10b981 !important;
+  color: white !important;
+}
+
+.qaOptionIncorrect .qaCheckbox {
+  background-color: #ef4444 !important;
+  border-color: #ef4444 !important;
+  color: white !important;
+}
+
+.qaOptionMissed .qaCheckbox {
+  border-color: #10b981 !important;
+  border-style: dashed !important;
+  background-color: transparent !important;
+}
+
+/* Word Builder Styles */
+.qaWorkspace {
+  width: 100%;
+  min-height: 80px;
+  padding: 1.25rem;
+  background-color: rgba(0, 0, 0, 0.01);
+  border: 2px dashed var(--border-reader);
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.dark .qaWorkspace {
+  background-color: rgba(255, 255, 255, 0.01);
+}
+
+.qaWorkspacePlaceholder {
+  color: var(--text-reader-muted);
+  font-size: 0.95rem;
+  font-style: italic;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.qaWorkspaceHeader {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.qaControlBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid var(--border-reader);
+  background-color: transparent;
+  border-radius: 6px;
+  color: var(--text-reader);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.qaControlBtn:hover:not(:disabled) {
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+  background-color: var(--btn-hover-bg);
+}
+
+.qaControlBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.qaWordPoolLabel {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-reader-muted);
+  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+}
+
+.qaWordPool {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--border-reader);
+  border-radius: 8px;
+  background-color: rgba(0, 0, 0, 0.005);
+}
+
+.qaWordChip {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: 1px solid var(--border-reader);
+  background-color: var(--bg-reader);
+  border-radius: 20px;
+  color: var(--text-reader);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+  font-family: inherit;
+}
+
+.qaWordChip:hover:not(:disabled) {
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+.qaWordChipDisabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+.qaSubmitSection {
+  margin-top: 0.5rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: center;
+}
+
+.qaSubmitBtn {
+  padding: 0.8rem 2.25rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  border-radius: 8px;
+  border: none;
+  background-color: var(--accent-gold);
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(212, 163, 89, 0.2);
+  font-family: inherit;
+}
+
+.qaSubmitBtn:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.qaSubmitBtn:disabled {
+  background-color: var(--border-reader);
+  color: var(--text-reader-muted);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.qaSkipBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background-color: transparent;
+  color: var(--text-reader-muted) !important;
+  border: 1px solid var(--border-reader);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.qaSkipBtn:hover:not(:disabled) {
+  border-color: var(--accent-gold);
+  color: var(--accent-gold) !important;
+  background-color: var(--btn-hover-bg);
 }
