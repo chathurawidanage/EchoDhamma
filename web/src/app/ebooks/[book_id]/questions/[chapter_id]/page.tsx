@@ -35,7 +35,9 @@ export async function generateMetadata({ params }: BookQuestionsChapterPageProps
   }
 
   let chapterTitle = 'ප්‍රශ්නෝත්තර';
-  if (book.html_url) {
+  if (chapter_id === 'all') {
+    chapterTitle = 'මුළු පොතෙන්ම ප්‍රශ්න';
+  } else if (book.html_url) {
     try {
       const parsedBook = await parseBookHtml(book.html_url);
       const match = parsedBook.toc.find(t => t.id === chapter_id);

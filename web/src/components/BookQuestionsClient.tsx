@@ -40,13 +40,24 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
 
   const router = useRouter();
 
+  const totalBookQuestions = useMemo(() => {
+    const bookQuestions = parsedBook.questions || {};
+    let total = 0;
+    Object.values(bookQuestions).forEach(list => {
+      if (list && Array.isArray(list)) {
+        total += list.length;
+      }
+    });
+    return total;
+  }, [parsedBook]);
+
   // Helper to determine if a TOC item (and its descendants) has questions
   const hasQuestions = (index: number) => {
     const item = parsedBook.toc[index];
     if (!item) return false;
-    
+
     const currentLevelNum = item.level === 'H1' ? 1 : item.level === 'H2' ? 2 : 3;
-    
+
     // Collect all child/descendant TOC IDs
     const targetIds = [item.id];
     for (let i = index + 1; i < parsedBook.toc.length; i++) {
@@ -57,7 +68,7 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
       }
       targetIds.push(nextItem.id);
     }
-    
+
     // Check if any of these target TOC IDs has questions
     const bookQuestions = parsedBook.questions || {};
     return targetIds.some(id => {
@@ -68,6 +79,7 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
 
   const activeTocId = useMemo(() => {
     if (chapterId) {
+      if (chapterId === 'all') return 'all';
       const match = parsedBook.toc.find(t => t.id === chapterId);
       if (match) return match.id;
     }
@@ -125,35 +137,43 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
 
   // Load and shuffle questions for the selected section
   const loadQuestionsForSection = (tocId: string) => {
-    const tocIndex = parsedBook.toc.findIndex(t => t.id === tocId);
-    if (tocIndex === -1) {
-      setQaQuestions([]);
-      return;
-    }
-
-    const clickedItem = parsedBook.toc[tocIndex];
-    const targetTocIds = [clickedItem.id];
-
-    const clickedLevelOrder = clickedItem.level === 'H1' ? 1 : clickedItem.level === 'H2' ? 2 : 3;
-
-    for (let i = tocIndex + 1; i < parsedBook.toc.length; i++) {
-      const currentItem = parsedBook.toc[i];
-      const currentLevelOrder = currentItem.level === 'H1' ? 1 : currentItem.level === 'H2' ? 2 : 3;
-      if (currentLevelOrder <= clickedLevelOrder) {
-        break;
-      }
-      targetTocIds.push(currentItem.id);
-    }
-
     const bookQuestions = parsedBook.questions || {};
     const gatheredQuestions: Question[] = [];
 
-    targetTocIds.forEach(id => {
-      const list = bookQuestions[id];
-      if (list && Array.isArray(list)) {
-        gatheredQuestions.push(...list);
+    if (tocId === 'all') {
+      Object.values(bookQuestions).forEach(list => {
+        if (list && Array.isArray(list)) {
+          gatheredQuestions.push(...list);
+        }
+      });
+    } else {
+      const tocIndex = parsedBook.toc.findIndex(t => t.id === tocId);
+      if (tocIndex === -1) {
+        setQaQuestions([]);
+        return;
       }
-    });
+
+      const clickedItem = parsedBook.toc[tocIndex];
+      const targetTocIds = [clickedItem.id];
+
+      const clickedLevelOrder = clickedItem.level === 'H1' ? 1 : clickedItem.level === 'H2' ? 2 : 3;
+
+      for (let i = tocIndex + 1; i < parsedBook.toc.length; i++) {
+        const currentItem = parsedBook.toc[i];
+        const currentLevelOrder = currentItem.level === 'H1' ? 1 : currentItem.level === 'H2' ? 2 : 3;
+        if (currentLevelOrder <= clickedLevelOrder) {
+          break;
+        }
+        targetTocIds.push(currentItem.id);
+      }
+
+      targetTocIds.forEach(id => {
+        const list = bookQuestions[id];
+        if (list && Array.isArray(list)) {
+          gatheredQuestions.push(...list);
+        }
+      });
+    }
 
     const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
@@ -261,7 +281,7 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
       const correctIndices = question.correctAnswerIndices || [];
       const sortedSelections = [...selectedOptionIndices].sort();
       const sortedCorrect = [...correctIndices].sort();
-      
+
       const isCorrect = sortedSelections.length === sortedCorrect.length &&
         sortedSelections.every((val, index) => val === sortedCorrect[index]);
 
@@ -305,7 +325,7 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
     if (!question) return null;
 
     const activeTocItem = parsedBook.toc.find(t => t.id === activeTocId);
-    const categoryTitle = activeTocItem ? activeTocItem.title : 'ප්‍රශ්නෝත්තර';
+    const categoryTitle = activeTocId === 'all' ? 'මුළු පොතෙන්' : (activeTocItem ? activeTocItem.title : 'ප්‍රශ්නෝත්තර');
 
     const renderWordBuilderView = () => {
       const activeSequence = wordBuilderSequence;
@@ -339,9 +359,9 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
           <h3 className={styles.qaQuestion}>{question.question}</h3>
 
           <div className={styles.qaWorkspaceHeader}>
-            <button 
-              className={styles.qaControlBtn} 
-              onClick={handleWordRemoveLast} 
+            <button
+              className={styles.qaControlBtn}
+              onClick={handleWordRemoveLast}
               disabled={activeSequence.length === 0 || hasSubmitted}
               title="අවසන් වචනය මකන්න"
             >
@@ -352,9 +372,9 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
               </svg>
               මකන්න
             </button>
-            <button 
-              className={styles.qaControlBtn} 
-              onClick={handleWordReset} 
+            <button
+              className={styles.qaControlBtn}
+              onClick={handleWordReset}
               disabled={activeSequence.length === 0 || hasSubmitted}
               title="නැවත සකසන්න"
             >
@@ -365,11 +385,10 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
             </button>
           </div>
 
-          <div className={`${styles.qaWorkspace} ${
-            hasSubmitted ? (
+          <div className={`${styles.qaWorkspace} ${hasSubmitted ? (
               isAnswerCorrect ? styles.qaOptionCorrect : styles.qaOptionIncorrect
             ) : ''
-          }`}>
+            }`}>
             {activeSequence.length > 0 ? (
               activeSequence.map((word, idx) => (
                 <span key={idx} className={styles.qaWordChip} style={{ cursor: 'default' }}>
@@ -391,7 +410,7 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
                   const usedCount = getUsedCount(word);
                   const poolCount = getPoolCount(word);
                   const isUsedUp = usedCount >= poolCount;
-                  
+
                   return (
                     <button
                       key={idx}
@@ -409,7 +428,7 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
 
           {!hasSubmitted && (
             <div className={styles.qaSubmitSection}>
-              <button 
+              <button
                 className={styles.qaSubmitBtn}
                 onClick={handleSubmitAnswer}
                 disabled={activeSequence.length === 0}
@@ -553,7 +572,7 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
 
           {!hasSubmitted && (
             <div className={styles.qaSubmitSection}>
-              <button 
+              <button
                 className={styles.qaSubmitBtn}
                 onClick={handleSubmitAnswer}
                 disabled={selected.length === 0}
@@ -814,8 +833,8 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
 
         <div className={styles.right}>
           <div className={styles.tabContainer}>
-             <Link
-              href={`/ebooks/${book.id}/read/${activeTocId || 'titlepage'}`}
+            <Link
+              href={`/ebooks/${book.id}/read/${activeTocId === 'all' ? 'titlepage' : (activeTocId || 'titlepage')}`}
               className={styles.tabBtn}
             >
               කියවන්න
@@ -845,6 +864,19 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
           </div>
           <nav className={styles.tocNav}>
             <ul>
+              {totalBookQuestions > 0 && (
+                <li
+                  className={`${styles.tocItem} ${styles.levelH1} ${activeTocId === 'all' ? styles.activeTocItem : ''}`}
+                  style={{ borderBottom: '1px solid var(--border-reader)', paddingBottom: '0.5rem', marginBottom: '0.5rem' }}
+                >
+                  <Link
+                    href={`/ebooks/${book.id}/questions/all`}
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    මුළු පොතෙන්ම ප්‍රශ්න
+                  </Link>
+                </li>
+              )}
               {parsedBook.toc.map((item, idx) => {
                 if (!hasQuestions(idx)) return null;
                 return (
