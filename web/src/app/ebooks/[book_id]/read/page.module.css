@@ -311,13 +311,37 @@
   font-size: 0.85rem;
   color: var(--text-reader-muted);
   transition: var(--transition-fast);
-  display: block;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
   text-decoration: none;
+  box-sizing: border-box;
 }
 
 .tocItem button:hover,
 .tocItem a:hover {
   color: var(--accent-gold);
+  background-color: var(--btn-hover-bg);
+}
+
+.tocQuestionCount {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-reader-muted);
+  background-color: var(--btn-hover-bg);
+  padding: 0.12rem 0.45rem;
+  border-radius: 12px;
+  min-width: 1.5rem;
+  text-align: center;
+  transition: all var(--transition-fast) ease;
+}
+
+.tocItem button:hover .tocQuestionCount,
+.tocItem a:hover .tocQuestionCount,
+.activeTocItem button .tocQuestionCount,
+.activeTocItem a .tocQuestionCount {
+  color: var(--accent-gold) !important;
   background-color: var(--btn-hover-bg);
 }
 

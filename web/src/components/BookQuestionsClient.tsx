@@ -51,10 +51,10 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
     return total;
   }, [parsedBook]);
 
-  // Helper to determine if a TOC item (and its descendants) has questions
-  const hasQuestions = (index: number) => {
+  // Helper to get total number of questions for a TOC item (and its descendants)
+  const getQuestionCount = (index: number) => {
     const item = parsedBook.toc[index];
-    if (!item) return false;
+    if (!item) return 0;
 
     const currentLevelNum = item.level === 'H1' ? 1 : item.level === 'H2' ? 2 : 3;
 
@@ -69,13 +69,22 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
       targetIds.push(nextItem.id);
     }
 
-    // Check if any of these target TOC IDs has questions
     const bookQuestions = parsedBook.questions || {};
-    return targetIds.some(id => {
+    let count = 0;
+    targetIds.forEach(id => {
       const list = bookQuestions[id];
-      return list && Array.isArray(list) && list.length > 0;
+      if (list && Array.isArray(list)) {
+        count += list.length;
+      }
     });
+    return count;
   };
+
+  // Helper to determine if a TOC item (and its descendants) has questions
+  const hasQuestions = (index: number) => {
+    return getQuestionCount(index) > 0;
+  };
+
 
   const activeTocId = useMemo(() => {
     if (chapterId) {
@@ -873,12 +882,14 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
                     href={`/ebooks/${book.id}/questions/all`}
                     onClick={() => setSidebarOpen(false)}
                   >
-                    මුළු පොතෙන්ම ප්‍රශ්න
+                    <span>මුළු පොතෙන්ම ප්‍රශ්න</span>
+                    <span className={styles.tocQuestionCount}>{totalBookQuestions}</span>
                   </Link>
                 </li>
               )}
               {parsedBook.toc.map((item, idx) => {
-                if (!hasQuestions(idx)) return null;
+                const count = getQuestionCount(idx);
+                if (count === 0) return null;
                 return (
                   <li
                     key={`${item.id}-${idx}`}
@@ -889,7 +900,8 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
                       href={`/ebooks/${book.id}/questions/${item.id}`}
                       onClick={() => setSidebarOpen(false)}
                     >
-                      {item.title}
+                      <span>{item.title}</span>
+                      <span className={styles.tocQuestionCount}>{count}</span>
                     </Link>
                   </li>
                 );
