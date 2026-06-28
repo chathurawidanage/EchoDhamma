@@ -19,7 +19,7 @@ interface AudioPlayerContextType {
   duration: number;
   volume: number;
   playbackRate: number;
-  playTrack: (track: PlayerTrack) => void;
+  playTrack: (track: PlayerTrack, startPosition?: number) => void;
   togglePlay: () => void;
   seekTo: (seconds: number) => void;
   setVolume: (vol: number) => void;
@@ -37,6 +37,7 @@ export default function AudioPlayerProvider({ children }: { children: React.Reac
   const [playbackRate, setPlaybackRateState] = useState(1.0); // Default 1.0x speed
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const pendingSeekRef = useRef<number | null>(null);
 
   // Initialize audio element
   useEffect(() => {
@@ -50,12 +51,20 @@ export default function AudioPlayerProvider({ children }: { children: React.Reac
     const onPlay = () => setIsPlaying(true);
     const onPause = () => setIsPlaying(false);
     const onEnded = () => setIsPlaying(false);
+    const onLoadedMetadata = () => {
+      if (pendingSeekRef.current !== null) {
+        audio.currentTime = pendingSeekRef.current;
+        setCurrentTime(pendingSeekRef.current);
+        pendingSeekRef.current = null;
+      }
+    };
 
     audio.addEventListener('timeupdate', onTimeUpdate);
     audio.addEventListener('durationchange', onDurationChange);
     audio.addEventListener('play', onPlay);
     audio.addEventListener('pause', onPause);
     audio.addEventListener('ended', onEnded);
+    audio.addEventListener('loadedmetadata', onLoadedMetadata);
 
     return () => {
       audio.pause();
@@ -64,6 +73,7 @@ export default function AudioPlayerProvider({ children }: { children: React.Reac
       audio.removeEventListener('play', onPlay);
       audio.removeEventListener('pause', onPause);
       audio.removeEventListener('ended', onEnded);
+      audio.removeEventListener('loadedmetadata', onLoadedMetadata);
       audioRef.current = null;
     };
   }, []);
@@ -86,7 +96,7 @@ export default function AudioPlayerProvider({ children }: { children: React.Reac
   };
 
   // Play a specific track
-  const playTrack = (track: PlayerTrack) => {
+  const playTrack = (track: PlayerTrack, startPosition?: number) => {
     if (!audioRef.current) return;
 
     const isSameTrack = currentTrack?.id === track.id;
@@ -94,8 +104,14 @@ export default function AudioPlayerProvider({ children }: { children: React.Reac
     if (!isSameTrack) {
       audioRef.current.src = track.audioUrl;
       setCurrentTrack(track);
-      setCurrentTime(0);
+      setCurrentTime(startPosition || 0);
       setDuration(track.duration || 0);
+
+      if (startPosition !== undefined && startPosition > 0) {
+        pendingSeekRef.current = startPosition;
+      } else {
+        pendingSeekRef.current = null;
+      }
 
       // Track dynamic play event
       if (typeof window !== 'undefined' && (window as any).umami) {
@@ -105,6 +121,11 @@ export default function AudioPlayerProvider({ children }: { children: React.Reac
           duration: track.duration,
         });
       }
+    } else if (startPosition !== undefined) {
+      const maxDuration = audioRef.current.duration || duration || track.duration || 0;
+      const clampedSecs = maxDuration > 0 ? Math.max(0, Math.min(maxDuration, startPosition)) : Math.max(0, startPosition);
+      audioRef.current.currentTime = clampedSecs;
+      setCurrentTime(clampedSecs);
     }
     
     audioRef.current.play()
@@ -128,7 +149,8 @@ export default function AudioPlayerProvider({ children }: { children: React.Reac
   // Seek to specific timeline location
   const seekTo = (seconds: number) => {
     if (!audioRef.current) return;
-    const clampedSecs = Math.max(0, Math.min(duration, seconds));
+    const maxDuration = audioRef.current.duration || duration || (currentTrack ? currentTrack.duration : 0);
+    const clampedSecs = maxDuration > 0 ? Math.max(0, Math.min(maxDuration, seconds)) : Math.max(0, seconds);
     audioRef.current.currentTime = clampedSecs;
     setCurrentTime(clampedSecs);
   };

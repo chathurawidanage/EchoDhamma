@@ -60,7 +60,7 @@ export default function EpisodeDetailView({
   const currentTime = isCurrentEpisode ? globalTime : 0;
   const youtubeEmbedUrl = getYouTubeEmbedUrl(episode.youtube_url);
 
-  const handlePlayEpisode = () => {
+  const handlePlayEpisode = (startPosition?: number) => {
     const artworkUrl = episode.image_url || `${getTheroS3BaseUrl(thero)}/${thero.podcast.image_url}`;
     playTrack({
       id: episode.id,
@@ -70,16 +70,17 @@ export default function EpisodeDetailView({
       theroName: thero.name_sinhala || thero.name,
       theroId: thero.id,
       duration: episode.duration,
-    });
+    }, startPosition);
   };
 
   // Handle seeks from chapter list or transcript clicks
   const handleSeek = (seconds: number) => {
     if (!isCurrentEpisode) {
-      handlePlayEpisode();
+      handlePlayEpisode(seconds);
+    } else {
+      // Seek to destination
+      seekTo(seconds);
     }
-    // Seek to destination
-    seekTo(seconds);
   };
 
   const handleChapterSeek = (seconds: number, chapterTitle: string) => {
@@ -187,7 +188,7 @@ export default function EpisodeDetailView({
         {/* Local player segment */}
         <div className={styles.playerControlsRow}>
           <button
-            onClick={isCurrentEpisode ? togglePlay : handlePlayEpisode}
+            onClick={isCurrentEpisode ? togglePlay : () => handlePlayEpisode()}
             className={`${styles.playBtn} ${isCurrentEpisode && isPlaying ? styles.playingBtn : ''}`}
             id="detail-play-button"
           >
