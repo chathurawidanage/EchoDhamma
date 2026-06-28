@@ -4,6 +4,7 @@ import { fetchPodcastFeed } from '@/utils/rssParser';
 import { getTheroS3BaseUrl } from '@/utils/theros';
 import ebooksData from '@/data/ebooks.json';
 import { Ebook } from '@/types';
+import { parseBookHtml } from '@/lib/ebookParser';
 
 export const revalidate = 86400; // Revalidate sitemap daily (24 hours)
 
@@ -27,14 +28,70 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
-  // Ebooks reading routes
+  // Ebooks reading and questions routes
   for (const book of ebooks) {
+    // Base redirect route
     sitemapEntries.push({
       url: `${baseUrl}/ebooks/${book.id}/read`,
       lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.6,
     });
+
+    if (book.html_url) {
+      try {
+        const parsedBook = await parseBookHtml(book.html_url);
+
+        // Add special chapters if present
+        const specialChapters = ['titlepage', 'colophon'];
+        for (const cid of specialChapters) {
+          if (parsedBook.chapters.some(c => c.id === cid)) {
+            sitemapEntries.push({
+              url: `${baseUrl}/ebooks/${book.id}/read/${cid}`,
+              lastModified: new Date(),
+              changeFrequency: 'monthly',
+              priority: 0.6,
+            });
+          }
+        }
+
+        // Add all TOC item read routes
+        for (const item of parsedBook.toc) {
+          sitemapEntries.push({
+            url: `${baseUrl}/ebooks/${book.id}/read/${item.id}`,
+            lastModified: new Date(),
+            changeFrequency: 'monthly',
+            priority: 0.6,
+          });
+        }
+
+        // Add questions root route if there are any questions
+        const hasQuestions = parsedBook.questions && Object.values(parsedBook.questions).some(q => q && q.length > 0);
+        if (hasQuestions) {
+          sitemapEntries.push({
+            url: `${baseUrl}/ebooks/${book.id}/questions`,
+            lastModified: new Date(),
+            changeFrequency: 'weekly',
+            priority: 0.6,
+          });
+
+          // Add individual TOC item questions routes
+          for (const item of parsedBook.toc) {
+            const list = parsedBook.questions?.[item.id];
+            if (list && Array.isArray(list) && list.length > 0) {
+              sitemapEntries.push({
+                url: `${baseUrl}/ebooks/${book.id}/questions/${item.id}`,
+                lastModified: new Date(),
+                changeFrequency: 'weekly',
+                priority: 0.6,
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.error(`Sitemap: Failed to parse ebook HTML for sitemap: ${book.id}`, err);
+      }
+    }
   }
 
   // Theros and their podcast episodes routes
