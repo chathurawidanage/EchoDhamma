@@ -64,3 +64,39 @@ export async function generateMetadata({ params }: BookQuestionsChapterPageProps
     },
   };
 }
+
+export async function generateStaticParams() {
+  const params: { book_id: string; chapter_id: string }[] = [];
+
+  for (const book of ebooksData as Ebook[]) {
+    if (book.html_url) {
+      try {
+        const parsedBook = await parseBookHtml(book.html_url);
+
+        // Add 'all' questions route if there are any questions in the book
+        const hasQuestions = parsedBook.questions && Object.values(parsedBook.questions).some(q => q && q.length > 0);
+        if (hasQuestions) {
+          params.push({
+            book_id: book.id,
+            chapter_id: 'all',
+          });
+        }
+
+        // Add individual TOC item questions routes
+        for (const item of parsedBook.toc) {
+          const list = parsedBook.questions?.[item.id];
+          if (list && Array.isArray(list) && list.length > 0) {
+            params.push({
+              book_id: book.id,
+              chapter_id: item.id,
+            });
+          }
+        }
+      } catch (err) {
+        console.error(`generateStaticParams: Failed to parse ebook ${book.id} for questions`, err);
+      }
+    }
+  }
+
+  return params;
+}

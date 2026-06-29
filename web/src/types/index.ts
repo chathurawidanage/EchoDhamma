@@ -94,6 +94,7 @@ export interface Ebook {
   cover_url: string;
   pdf_url?: string;
   epub_url?: string;
+  epub_kindle_url?: string;
   html_url?: string;
   has_questions?: boolean;
 }

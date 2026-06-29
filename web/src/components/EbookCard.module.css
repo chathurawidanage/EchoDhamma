@@ -4,6 +4,8 @@
   padding: 1.5rem;
   align-items: stretch;
   height: 100%;
+  min-width: 0;
+  width: 100%;
 }
 
 .coverWrapper {
@@ -160,12 +162,14 @@
 
 .downloadRow {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
   width: 100%;
 }
 
 .downloadBtn {
   flex: 1;
+  min-width: 85px;
   background-color: var(--bg-tertiary);
   color: var(--text-secondary);
   border: 1px solid var(--border-light);
@@ -187,7 +191,6 @@
   background-color: rgba(212, 163, 89, 0.1);
   transform: translateY(-1px);
 }
-
 @media (max-width: 640px) {
   .card {
     flex-direction: column;
@@ -199,5 +202,9 @@
   .coverWrapper {
     width: 120px;
     height: 170px;
+  }
+
+  .bookInfo {
+    width: 100%;
   }
 }

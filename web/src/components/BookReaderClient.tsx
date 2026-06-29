@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useLayoutEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Ebook, Definition } from '@/types';
-import { DownloadIcon, ChevronLeftIcon, ChevronRightIcon, SettingsIcon } from '@/components/Icons';
+import { DownloadIcon, ChevronLeftIcon, ChevronRightIcon, SettingsIcon, HelpCircleIcon } from '@/components/Icons';
 import { ParsedBook, TocItem } from '@/lib/ebookParser';
 import styles from '@/app/ebooks/[book_id]/read/page.module.css';
 import definitionsData from '@/data/definitions.json';
@@ -658,18 +658,29 @@ export default function BookReaderClient({
             </div>
 
             {/* Download Buttons Section */}
-            {(book.epub_url || book.pdf_url) && (
+            {(book.epub_url || book.pdf_url || book.epub_kindle_url) && (
               <div className={styles.settingRow} style={{ flexDirection: 'column', alignItems: 'stretch', gap: '0.6rem', marginTop: '1.2rem', borderTop: '1px solid var(--border-reader)', paddingTop: '1.2rem' }}>
                 <span className={styles.settingLabel} style={{ marginBottom: '0.2rem' }}>ග්‍රන්ථය බාගත කරන්න (Download Book)</span>
-                <div className={styles.btnGroup} style={{ width: '100%', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', width: '100%', gap: '0.5rem' }}>
                   {book.epub_url && (
                     <a
                       href={book.epub_url}
                       download
                       className={styles.settingBtn}
-                      style={{ flex: 1, textDecoration: 'none', textAlign: 'center', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', height: '36px' }}
+                      style={{ flex: '1 1 calc(50% - 0.25rem)', minWidth: '85px', textDecoration: 'none', textAlign: 'center', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', height: '36px', border: '1px solid var(--border-reader)', borderRadius: 'var(--border-radius-sm)' }}
                     >
                       <DownloadIcon size={14} /> EPUB
+                    </a>
+                  )}
+                  {book.epub_kindle_url && (
+                    <a
+                      href={book.epub_kindle_url}
+                      download
+                      className={styles.settingBtn}
+                      style={{ flex: '1 1 calc(50% - 0.25rem)', minWidth: '85px', textDecoration: 'none', textAlign: 'center', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', height: '36px', border: '1px solid var(--border-reader)', borderRadius: 'var(--border-radius-sm)' }}
+                      title="Kindle-optimized EPUB with transliterated English TOC"
+                    >
+                      <DownloadIcon size={14} /> EPUB (Kindle)
                     </a>
                   )}
                   {book.pdf_url && (
@@ -677,7 +688,7 @@ export default function BookReaderClient({
                       href={book.pdf_url}
                       download
                       className={styles.settingBtn}
-                      style={{ flex: 1, textDecoration: 'none', textAlign: 'center', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', height: '36px' }}
+                      style={{ flex: '1 1 calc(50% - 0.25rem)', minWidth: '85px', textDecoration: 'none', textAlign: 'center', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', height: '36px', border: '1px solid var(--border-reader)', borderRadius: 'var(--border-radius-sm)' }}
                     >
                       <DownloadIcon size={14} /> PDF
                     </a>

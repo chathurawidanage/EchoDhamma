@@ -114,9 +114,24 @@ function injectDefinitions($: cheerio.CheerioAPI) {
   });
 }
 
+const bookCache = new Map<string, { parsed: ParsedBook; mtime: number }>();
+
 export async function parseBookHtml(htmlUrl: string): Promise<ParsedBook> {
   // htmlUrl is like "/ebooks/Abi_Dharmaye_Moolika_Karunu/Abi_Dharmaye_Moolika_Karunu.html"
   const filePath = path.join(process.cwd(), 'public', htmlUrl);
+  
+  let mtime = 0;
+  try {
+    const stats = await fs.stat(filePath);
+    mtime = stats.mtimeMs;
+  } catch (e) {
+    // Ignore
+  }
+
+  const cached = bookCache.get(htmlUrl);
+  if (cached && cached.mtime === mtime) {
+    return cached.parsed;
+  }
   const rawHtml = await fs.readFile(filePath, 'utf-8');
   const $ = cheerio.load(rawHtml);
 
@@ -203,10 +218,14 @@ export async function parseBookHtml(htmlUrl: string): Promise<ParsedBook> {
 
     // If there are no TOC IDs in this section, add the entire section as a single chapter
     if (sectionTocIds.size === 0) {
+      const content = section.html() || '';
+      if (content.trim() === '') {
+        return;
+      }
       chapters.push({
         id: sectionCid,
         title: sectionTitle,
-        content: section.html() || '',
+        content,
       });
       section.find('[id]').each((_, child) => {
         const id = $(child).attr('id');
@@ -253,11 +272,14 @@ export async function parseBookHtml(htmlUrl: string): Promise<ParsedBook> {
       if (foundTocId && foundTocId !== currentChapterId) {
         // Save the previous chapter before starting the new one
         if (currentWrapper.children().length > 0 || currentChapterId === sectionCid) {
-          chapters.push({
-            id: currentChapterId,
-            title: currentChapterTitle,
-            content: currentWrapper.html() || '',
-          });
+          const content = currentWrapper.html() || '';
+          if (content.trim() !== '' || currentChapterId === sectionCid) {
+            chapters.push({
+              id: currentChapterId,
+              title: currentChapterTitle,
+              content,
+            });
+          }
         }
 
         // Start the new chapter
@@ -283,11 +305,14 @@ export async function parseBookHtml(htmlUrl: string): Promise<ParsedBook> {
 
     // Save the last chapter of the section
     if (currentWrapper.children().length > 0 || currentChapterId === sectionCid) {
-      chapters.push({
-        id: currentChapterId,
-        title: currentChapterTitle,
-        content: currentWrapper.html() || '',
-      });
+      const content = currentWrapper.html() || '';
+      if (content.trim() !== '' || currentChapterId === sectionCid) {
+        chapters.push({
+          id: currentChapterId,
+          title: currentChapterTitle,
+          content,
+        });
+      }
     }
   });
 
@@ -324,11 +349,14 @@ export async function parseBookHtml(htmlUrl: string): Promise<ParsedBook> {
     // questions directory does not exist, ignore
   }
 
-  return {
+  const parsedBook = {
     toc,
     chapters,
     title,
     author,
     questions,
   };
+
+  bookCache.set(htmlUrl, { parsed: parsedBook, mtime });
+  return parsedBook;
 }

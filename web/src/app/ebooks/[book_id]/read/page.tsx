@@ -35,3 +35,8 @@ export async function generateMetadata({ params }: ReadBookPageProps) {
   };
 }
 
+export async function generateStaticParams() {
+  return (ebooksData as Ebook[]).map((book) => ({
+    book_id: book.id,
+  }));
+}

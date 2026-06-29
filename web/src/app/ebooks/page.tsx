@@ -5,7 +5,7 @@ import Link from 'next/link';
 import ebooksData from '@/data/ebooks.json';
 import { Ebook } from '@/types';
 import EbookCard from '@/components/EbookCard';
-import { SearchIcon } from '@/components/Icons';
+import { SearchIcon, HelpCircleIcon } from '@/components/Icons';
 import styles from './page.module.css';
 
 export default function EbooksPage() {
@@ -39,6 +39,27 @@ export default function EbooksPage() {
           අති පූජ්‍ය රේරුකානේ චන්දවිමල මහා නාහිමියන් විසින් රචිත වටිනා ධර්ම ග්‍රන්ථ ඇතුළු දහම් පොත්පත් මෙහිදී ඔබට කියවීමට සහ භාගත (Download) කර ගැනීමට හැකිය.
         </p>
       </header>
+
+      {/* EPUB versions explanation */}
+      <div className={`${styles.infoCard} glass`}>
+        <span className={styles.infoTitle}>
+          <HelpCircleIcon size={16} className={styles.infoIcon} />
+          EPUB සංස්කරණ බාගත කිරීම් පිළිබඳ උපදෙස්
+        </span>
+        <div className={styles.infoContent}>
+          <p>
+            මෙම වෙබ් අඩවියේ ඇති ඊ-පොත් (Ebooks) කියවීම සඳහා සංස්කරණ 2කින් ලබාගත හැකිය:
+          </p>
+          <ul>
+            <li>
+              <strong>EPUB (Standard)</strong>: Apple Books, Google Play Books, Kobo හෝ වෙනත් සාමාන්‍ය ඊ-පොත් කියවන මෘදුකාංග සඳහා සුදුසු වේ. මෙහි පටුන සිංහල අකුරෙන්ම පවතී.
+            </li>
+            <li>
+              <strong>EPUB (Kindle)</strong>: Amazon Kindle උපාංග සඳහා විශේෂයෙන් සකසා ඇත. Kindle උපාංගවල සිංහල අකුරු සහිත පටුන (Table of Contents) නිවැරදිව පෙන්වීමට නොහැකි බැවින්, මෙම සංස්කරණයේ පටුන ඉංග්‍රීසි අකුරෙන් (Transliterated) සකසා ඇත.
+            </li>
+          </ul>
+        </div>
+      </div>
 
       {/* Search Input bar */}
       <div className={styles.searchRow}>

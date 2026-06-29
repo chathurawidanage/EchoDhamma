@@ -1,12 +1,25 @@
 [
   {
+    "id": "abidharma-margaya",
+    "title": "අභිධර්ම මාර්ගය",
+    "title_transliterated": "Abhidharma Margaya",
+    "author": "අති පූජ්‍ය රේරුකානේ චන්දවිමල මහා නාහිමි",
+    "description": "අභිධර්මයේ එන ගැඹුරු කරුණු ඉතා පැහැදිලිව හා සරලව විස්තර කෙරෙන වටිනා දහම් ග්‍රන්ථයකි.",
+    "cover_url": "/ebooks/Abidharma_Margaya/Abidharma_Margaya.jpg",
+    "epub_url": "/ebooks/Abidharma_Margaya/Abidharma_Margaya.epub",
+    "epub_kindle_url": "/ebooks/Abidharma_Margaya/Abidharma_Margaya_English_TOC.epub",
+    "html_url": "/ebooks/Abidharma_Margaya/Abidharma_Margaya.html",
+    "has_questions": true
+  },
+  {
     "id": "abi-dharmaye-moolika-karunu",
     "title": "අභිධර්මයේ මූලික කරුණු",
     "title_transliterated": "Abhidharmaye Moolika Karunu",
     "author": "අති පූජ්‍ය රේරුකානේ චන්දවිමල මහා නාහිමි",
     "description": "අභිධර්මය පිළිබඳ මූලික කරුණු සරලව හා පැහැදිලිව විස්තර කෙරෙන වටිනා දහම් ග්‍රන්ථයකි.",
     "cover_url": "/ebooks/Abi_Dharmaye_Moolika_Karunu/Abi_Dharmaye_Moolika_Karunu.jpg",
-    "epub_url": "/ebooks/Abi_Dharmaye_Moolika_Karunu/Abi_Dharmaye_Moolika_Karunu.epub",
+    "epub_url": "/ebooks/Abi_Dharmaye_Moolika_Karunu/AbiDharmaye_Moolika_Karunu.epub",
+    "epub_kindle_url": "/ebooks/Abi_Dharmaye_Moolika_Karunu/Abidharmaye_Moolika_Karunu_English_TOC.epub",
     "html_url": "/ebooks/Abi_Dharmaye_Moolika_Karunu/Abi_Dharmaye_Moolika_Karunu.html"
   },
   {
@@ -16,18 +29,19 @@
     "author": "අති පූජ්‍ය රේරුකානේ චන්දවිමල මහා නාහිමි",
     "description": "චතුරාර්ය සත්‍යය පිළිබඳ ගැඹුරු දහම් කරුණු පැහැදිලි කර දෙන සම්භාව්‍ය ධර්ම ග්‍රන්ථයකි.",
     "cover_url": "/ebooks/Chathurarya_Sathyaya/Chathurarya_Sathyaya.jpg",
-    "epub_url": "/ebooks/Chathurarya_Sathyaya/Chathurarya_Sathyaya.epub",
+    "epub_url": "/ebooks/Chathurarya_Sathyaya/Chathurarya_Sathya.epub",
+    "epub_kindle_url": "/ebooks/Chathurarya_Sathyaya/Chathurarya_Sathya_English_TOC.epub",
     "html_url": "/ebooks/Chathurarya_Sathyaya/Chathurarya_Sathyaya.html"
   },
   {
-    "id": "abidharma-margaya",
-    "title": "අභිධර්ම මාර්ගය",
-    "title_transliterated": "Abhidharma Margaya",
+    "id": "wanchaka-ha-chittopaklesha-dharma",
+    "title": "වඤ්චක හා චිත්තෝපක්ලේශ ධර්ම",
+    "title_transliterated": "Wanchaka Ha Chittopaklesha Dharma",
     "author": "අති පූජ්‍ය රේරුකානේ චන්දවිමල මහා නාහිමි",
-    "description": "අභිධර්මයේ එන ගැඹුරු කරුණු ඉතා පැහැදිලිව හා සරලව විස්තර කෙරෙන වටිනා දහම් ග්‍රන්ථයකි.",
-    "cover_url": "/ebooks/Abidharma_Margaya/Abidharma_Margaya.jpg",
-    "epub_url": "/ebooks/Abidharma_Margaya/Abidharma_Margaya.epub",
-    "html_url": "/ebooks/Abidharma_Margaya/Abidharma_Margaya.html",
-    "has_questions": true
+    "description": "වඤ්චක ධර්ම හා කෙලෙස් ධර්මයන් පිළිබඳ ඉතා පැහැදිලිව විස්තර කෙරෙන වටිනා දහම් ග්‍රන්ථයකි.",
+    "cover_url": "/ebooks/Wanchaka_Ha_Chittopaklesha_Dharma/Wanchaka_Ha_Chittopaklesha_Dharma.jpg",
+    "epub_url": "/ebooks/Wanchaka_Ha_Chittopaklesha_Dharma/Wanchaka_Ha_Chittopaklesha_Dharma.epub",
+    "epub_kindle_url": "/ebooks/Wanchaka_Ha_Chittopaklesha_Dharma/Wanchaka_Ha_Chittopaklesha_Dharma_English_TOC.epub",
+    "html_url": "/ebooks/Wanchaka_Ha_Chittopaklesha_Dharma/Wanchaka_Ha_Chittopaklesha_Dharma.html"
   }
 ]

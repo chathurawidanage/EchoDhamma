@@ -104,3 +104,38 @@ export async function generateMetadata({ params }: ReadBookChapterPageProps) {
     },
   };
 }
+
+export async function generateStaticParams() {
+  const params: { book_id: string; chapter_id: string }[] = [];
+
+  for (const book of ebooksData as Ebook[]) {
+    if (book.html_url) {
+      try {
+        const parsedBook = await parseBookHtml(book.html_url);
+
+        // Add special chapters
+        const specialChapters = ['titlepage', 'colophon'];
+        for (const cid of specialChapters) {
+          if (parsedBook.chapters.some(c => c.id === cid)) {
+            params.push({
+              book_id: book.id,
+              chapter_id: cid,
+            });
+          }
+        }
+
+        // Add all TOC items
+        for (const item of parsedBook.toc) {
+          params.push({
+            book_id: book.id,
+            chapter_id: item.id,
+          });
+        }
+      } catch (err) {
+        console.error(`generateStaticParams: Failed to parse ebook ${book.id}`, err);
+      }
+    }
+  }
+
+  return params;
+}

@@ -118,6 +118,24 @@ export default function EbookCard({ ebook }: EbookCardProps) {
                 <DownloadIcon size={14} /> EPUB
               </a>
             )}
+
+            {ebook.epub_kindle_url && (
+              <a
+                href={ebook.epub_kindle_url}
+                download
+                className={`${styles.actionBtn} ${styles.downloadBtn}`}
+                id={`download-epub-kindle-${ebook.id}`}
+                title="Kindle-optimized EPUB with transliterated English TOC"
+                onClick={() => {
+                  const win = window as unknown as { umami?: { track: (event: string, data: Record<string, string>) => void } };
+                  if (typeof window !== 'undefined' && win.umami) {
+                    win.umami.track('Ebook Download', { title: ebook.title, id: ebook.id, format: 'epub-kindle' });
+                  }
+                }}
+              >
+                <DownloadIcon size={14} /> EPUB (Kindle)
+              </a>
+            )}
           </div>
         </div>
       </div>

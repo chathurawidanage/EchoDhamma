@@ -50,3 +50,11 @@ export async function generateMetadata({ params }: BookQuestionsPageProps) {
     },
   };
 }
+
+export async function generateStaticParams() {
+  return (ebooksData as Ebook[])
+    .filter(book => book.html_url)
+    .map((book) => ({
+      book_id: book.id,
+    }));
+}

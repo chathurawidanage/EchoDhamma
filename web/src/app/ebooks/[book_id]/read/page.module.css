@@ -859,6 +859,22 @@
   .navBtn {
     justify-content: center;
   }
+
+  .qaFooter {
+    flex-direction: column-reverse;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .qaFooterActions {
+    width: 100%;
+    justify-content: center;
+    margin-left: 0;
+  }
+
+  .qaEndBtn {
+    margin-top: 0.5rem;
+  }
 }
 
 /* Wide screen / Desktop layout: Keep sidebar permanently open */
@@ -1092,6 +1108,9 @@
 }
 
 .qaBookBadge {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 0.5rem;
   font-size: 0.65rem;
   font-weight: 700;
   background-color: rgba(212, 163, 89, 0.12);
@@ -1214,8 +1233,17 @@
 
 .qaFooter {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   margin-top: auto;
+  gap: 1rem;
+  width: 100%;
+}
+
+.qaFooterActions {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto;
 }
 
 .qaNextBtn {
@@ -1698,4 +1726,26 @@
   border-color: var(--accent-gold);
   color: var(--accent-gold) !important;
   background-color: var(--btn-hover-bg);
+}
+
+.qaEndBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background-color: transparent;
+  color: var(--text-reader-muted) !important;
+  border: none;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  opacity: 0.7;
+}
+
+.qaEndBtn:hover:not(:disabled) {
+  opacity: 1;
+  color: #ef4444 !important;
+  text-decoration: underline;
 }

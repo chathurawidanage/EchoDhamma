@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Ebook, Question } from '@/types';
-import { SettingsIcon, ChevronLeftIcon, DownloadIcon } from '@/components/Icons';
+import { SettingsIcon, ChevronLeftIcon, DownloadIcon, HelpCircleIcon } from '@/components/Icons';
 import { ParsedBook, TocItem } from '@/lib/ebookParser';
 import styles from '@/app/ebooks/[book_id]/read/page.module.css';
 import { settingsCache } from '@/lib/readerSettingsCache';
@@ -39,6 +39,7 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
   const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
 
   const router = useRouter();
+  const readerPaneRef = useRef<HTMLElement>(null);
 
   const totalBookQuestions = useMemo(() => {
     const bookQuestions = parsedBook.questions || {};
@@ -322,11 +323,25 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
     } else {
       setSessionCompleted(true);
     }
+    
+    // Scroll to top
+    if (readerPaneRef.current) {
+      readerPaneRef.current.scrollTop = 0;
+    }
   };
 
   const handleSkipQuestion = () => {
     setSkippedCount(prev => prev + 1);
     handleNextQuestion();
+  };
+
+  const handleEndSession = () => {
+    setSessionCompleted(true);
+    
+    // Scroll to top
+    if (readerPaneRef.current) {
+      readerPaneRef.current.scrollTop = 0;
+    }
   };
 
   const renderQuestionView = () => {
@@ -356,16 +371,18 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
           <div className={styles.qaHeader}>
             <div className={styles.qaCategoryWrapper}>
               <span className={styles.qaCategory}>{categoryTitle}</span>
-              {question.fromBook && (
-                <span className={styles.qaBookBadge}>පොතෙන්</span>
-              )}
             </div>
             <span className={styles.qaProgress}>
               ප්‍රශ්න {qaQuestions.length} න් {currentQuestionIdx + 1}
             </span>
           </div>
 
-          <h3 className={styles.qaQuestion}>{question.question}</h3>
+          <h3 className={styles.qaQuestion}>
+            {question.question}
+            {question.fromBook && (
+              <span className={styles.qaBookBadge}>පොතෙන්</span>
+            )}
+          </h3>
 
           <div className={styles.qaWorkspaceHeader}>
             <button
@@ -463,23 +480,28 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
           )}
 
           <div className={styles.qaFooter}>
-            {!hasSubmitted && (
-              <button className={styles.qaSkipBtn} onClick={handleSkipQuestion}>
-                මඟහරින්න
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '0.25rem' }}>
-                  <polyline points="9 18 15 12 9 6"></polyline>
-                </svg>
-              </button>
-            )}
-            {hasSubmitted && (
-              <button className={styles.qaNextBtn} onClick={handleNextQuestion}>
-                {currentQuestionIdx < qaQuestions.length - 1 ? 'මීළඟ ප්‍රශ්නය' : 'අවසන් කරන්න'}
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '0.25rem' }}>
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                  <polyline points="12 5 19 12 12 19"></polyline>
-                </svg>
-              </button>
-            )}
+            <button className={styles.qaEndBtn} onClick={handleEndSession}>
+              වාරය අවසන් කරන්න
+            </button>
+            <div className={styles.qaFooterActions}>
+              {!hasSubmitted && (
+                <button className={styles.qaSkipBtn} onClick={handleSkipQuestion}>
+                  මඟහරින්න
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '0.25rem' }}>
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                </button>
+              )}
+              {hasSubmitted && (
+                <button className={styles.qaNextBtn} onClick={handleNextQuestion}>
+                  {currentQuestionIdx < qaQuestions.length - 1 ? 'මීළඟ ප්‍රශ්නය' : 'අවසන් කරන්න'}
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '0.25rem' }}>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                  </svg>
+                </button>
+              )}
+            </div>
           </div>
         </div>
       );
@@ -495,16 +517,18 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
           <div className={styles.qaHeader}>
             <div className={styles.qaCategoryWrapper}>
               <span className={styles.qaCategory}>{categoryTitle}</span>
-              {question.fromBook && (
-                <span className={styles.qaBookBadge}>පොතෙන්</span>
-              )}
             </div>
             <span className={styles.qaProgress}>
               ප්‍රශ්න {qaQuestions.length} න් {currentQuestionIdx + 1}
             </span>
           </div>
 
-          <h3 className={styles.qaQuestion}>{question.question}</h3>
+          <h3 className={styles.qaQuestion}>
+            {question.question}
+            {question.fromBook && (
+              <span className={styles.qaBookBadge}>පොතෙන්</span>
+            )}
+          </h3>
 
           <div className={styles.qaOptions}>
             {options.map((option, idx) => {
@@ -599,23 +623,28 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
           )}
 
           <div className={styles.qaFooter}>
-            {!hasSubmitted && (
-              <button className={styles.qaSkipBtn} onClick={handleSkipQuestion}>
-                මඟහරින්න
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '0.25rem' }}>
-                  <polyline points="9 18 15 12 9 6"></polyline>
-                </svg>
-              </button>
-            )}
-            {hasSubmitted && (
-              <button className={styles.qaNextBtn} onClick={handleNextQuestion}>
-                {currentQuestionIdx < qaQuestions.length - 1 ? 'මීළඟ ප්‍රශ්නය' : 'අවසන් කරන්න'}
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '0.25rem' }}>
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                  <polyline points="12 5 19 12 12 19"></polyline>
-                </svg>
-              </button>
-            )}
+            <button className={styles.qaEndBtn} onClick={handleEndSession}>
+              වාරය අවසන් කරන්න
+            </button>
+            <div className={styles.qaFooterActions}>
+              {!hasSubmitted && (
+                <button className={styles.qaSkipBtn} onClick={handleSkipQuestion}>
+                  මඟහරින්න
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '0.25rem' }}>
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                </button>
+              )}
+              {hasSubmitted && (
+                <button className={styles.qaNextBtn} onClick={handleNextQuestion}>
+                  {currentQuestionIdx < qaQuestions.length - 1 ? 'මීළඟ ප්‍රශ්නය' : 'අවසන් කරන්න'}
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '0.25rem' }}>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                  </svg>
+                </button>
+              )}
+            </div>
           </div>
         </div>
       );
@@ -634,16 +663,18 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
         <div className={styles.qaHeader}>
           <div className={styles.qaCategoryWrapper}>
             <span className={styles.qaCategory}>{categoryTitle}</span>
-            {question.fromBook && (
-              <span className={styles.qaBookBadge}>පොතෙන්</span>
-            )}
           </div>
           <span className={styles.qaProgress}>
             ප්‍රශ්න {qaQuestions.length} න් {currentQuestionIdx + 1}
           </span>
         </div>
 
-        <h3 className={styles.qaQuestion}>{question.question}</h3>
+        <h3 className={styles.qaQuestion}>
+          {question.question}
+          {question.fromBook && (
+            <span className={styles.qaBookBadge}>පොතෙන්</span>
+          )}
+        </h3>
 
         <div className={styles.qaOptions}>
           {question.options?.map((option, idx) => {
@@ -698,31 +729,37 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
         )}
 
         <div className={styles.qaFooter}>
-          {selectedOptionIdx === null && (
-            <button className={styles.qaSkipBtn} onClick={handleSkipQuestion}>
-              මඟහරින්න
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '0.25rem' }}>
-                <polyline points="9 18 15 12 9 6"></polyline>
-              </svg>
-            </button>
-          )}
-          {selectedOptionIdx !== null && (
-            <button className={styles.qaNextBtn} onClick={handleNextQuestion}>
-              {currentQuestionIdx < qaQuestions.length - 1 ? 'මීළඟ ප්‍රශ්නය' : 'අවසන් කරන්න'}
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '0.25rem' }}>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-                <polyline points="12 5 19 12 12 19"></polyline>
-              </svg>
-            </button>
-          )}
+          <button className={styles.qaEndBtn} onClick={handleEndSession}>
+            වාරය අවසන් කරන්න
+          </button>
+          <div className={styles.qaFooterActions}>
+            {selectedOptionIdx === null && (
+              <button className={styles.qaSkipBtn} onClick={handleSkipQuestion}>
+                මඟහරින්න
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '0.25rem' }}>
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </button>
+            )}
+            {selectedOptionIdx !== null && (
+              <button className={styles.qaNextBtn} onClick={handleNextQuestion}>
+                {currentQuestionIdx < qaQuestions.length - 1 ? 'මීළඟ ප්‍රශ්නය' : 'අවසන් කරන්න'}
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '0.25rem' }}>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                  <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );
   };
 
   const renderResultsView = () => {
-    const totalQuestions = qaQuestions.length;
-    const scorePct = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
+    const attemptedCount = correctCount + incorrectCount + skippedCount;
+    const totalForResults = attemptedCount > 0 ? attemptedCount : qaQuestions.length;
+    const scorePct = totalForResults > 0 ? Math.round((correctCount / totalForResults) * 100) : 0;
 
     const radius = 60;
     const circumference = 2 * Math.PI * radius;
@@ -767,7 +804,9 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
               <span className={styles.qaStatLabel}>මඟහැරී</span>
             </div>
             <div className={styles.qaStatItem}>
-              <span className={styles.qaStatVal}>{totalQuestions}</span>
+              <span className={styles.qaStatVal}>
+                {attemptedCount === qaQuestions.length ? attemptedCount : `${attemptedCount} / ${qaQuestions.length}`}
+              </span>
               <span className={styles.qaStatLabel}>එකතුව</span>
             </div>
           </div>
@@ -993,18 +1032,29 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
             </div>
 
             {/* Download Buttons Section */}
-            {(book.epub_url || book.pdf_url) && (
+            {(book.epub_url || book.pdf_url || book.epub_kindle_url) && (
               <div className={styles.settingRow} style={{ flexDirection: 'column', alignItems: 'stretch', gap: '0.6rem', marginTop: '1.2rem', borderTop: '1px solid var(--border-reader)', paddingTop: '1.2rem' }}>
                 <span className={styles.settingLabel} style={{ marginBottom: '0.2rem' }}>ග්‍රන්ථය බාගත කරන්න (Download Book)</span>
-                <div className={styles.btnGroup} style={{ width: '100%', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', width: '100%', gap: '0.5rem' }}>
                   {book.epub_url && (
                     <a
                       href={book.epub_url}
                       download
                       className={styles.settingBtn}
-                      style={{ flex: 1, textDecoration: 'none', textAlign: 'center', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', height: '36px' }}
+                      style={{ flex: '1 1 calc(50% - 0.25rem)', minWidth: '85px', textDecoration: 'none', textAlign: 'center', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', height: '36px', border: '1px solid var(--border-reader)', borderRadius: 'var(--border-radius-sm)' }}
                     >
                       <DownloadIcon size={14} /> EPUB
+                    </a>
+                  )}
+                  {book.epub_kindle_url && (
+                    <a
+                      href={book.epub_kindle_url}
+                      download
+                      className={styles.settingBtn}
+                      style={{ flex: '1 1 calc(50% - 0.25rem)', minWidth: '85px', textDecoration: 'none', textAlign: 'center', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', height: '36px', border: '1px solid var(--border-reader)', borderRadius: 'var(--border-radius-sm)' }}
+                      title="Kindle-optimized EPUB with transliterated English TOC"
+                    >
+                      <DownloadIcon size={14} /> EPUB (Kindle)
                     </a>
                   )}
                   {book.pdf_url && (
@@ -1012,7 +1062,7 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
                       href={book.pdf_url}
                       download
                       className={styles.settingBtn}
-                      style={{ flex: 1, textDecoration: 'none', textAlign: 'center', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', height: '36px' }}
+                      style={{ flex: '1 1 calc(50% - 0.25rem)', minWidth: '85px', textDecoration: 'none', textAlign: 'center', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', height: '36px', border: '1px solid var(--border-reader)', borderRadius: 'var(--border-radius-sm)' }}
                     >
                       <DownloadIcon size={14} /> PDF
                     </a>
@@ -1025,6 +1075,7 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
 
         {/* Display Panel */}
         <main
+          ref={readerPaneRef}
           className={`${styles.readerPane} ${fontFamily === 'serif' ? styles.serif : styles.sans}`}
         >
           <div style={{ width: '100%', paddingBottom: '4rem' }}>

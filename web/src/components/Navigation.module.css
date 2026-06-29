@@ -240,10 +240,12 @@
     transform: translateX(100%);
     transition: var(--transition-smooth);
     padding: 5rem 1.5rem 2rem 1.5rem;
+    visibility: hidden;
   }
 
   .drawerOpen {
     transform: translateX(0);
+    visibility: visible;
   }
 
   .mobileNav {
