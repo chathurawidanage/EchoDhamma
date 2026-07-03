@@ -48,7 +48,7 @@ class PodcastSync:
         self.thero_name = thero_config.get("name", self.thero_id)
         self.podcast_config = thero_config["podcast"]
         self.ai_config = thero_config.get("ai_config", {"enabled": False})
-        self.whitelist_config = thero_config.get("whitelist", [])
+        self.whitelist_config = thero_config.get("whitelisted", [])
         self.sync_config = thero_config.get(
             "sync_config", {"max_videos_per_day": DEFAULT_MAX_VIDEOS_PER_DAY}
         )
@@ -167,9 +167,22 @@ class PodcastSync:
         ]
 
         video_items = self.yt_client.get_channel_videos(urls)
-        video_items.sort(key=lambda x: x.get("upload_date") or "99999999")
-
         whitelisted_ids = self._get_expanded_whitelist()
+
+        # Add whitelisted videos that are not in the channel video feeds
+        fetched_ids = {item["id"] for item in video_items}
+        for vid_id in whitelisted_ids:
+            if vid_id not in fetched_ids:
+                video_items.append(
+                    {
+                        "id": vid_id,
+                        "url": f"https://www.youtube.com/watch?v={vid_id}",
+                        "title": None,
+                        "upload_date": None,
+                    }
+                )
+
+        video_items.sort(key=lambda x: x.get("upload_date") or "99999999")
 
         for item in video_items:
             if not self._is_sync_allowed():
