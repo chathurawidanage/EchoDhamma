@@ -10,6 +10,7 @@ export default function UmamiTracker() {
     <Script
       src="https://analytics.damsak.org/script.js"
       data-website-id={GLOBAL_DEFAULT_ID}
+      data-performance="true"
       strategy="afterInteractive"
     />
   );

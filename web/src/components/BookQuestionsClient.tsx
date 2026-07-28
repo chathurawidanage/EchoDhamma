@@ -351,188 +351,127 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
     const activeTocItem = parsedBook.toc.find(t => t.id === activeTocId);
     const categoryTitle = activeTocId === 'all' ? 'මුළු පොතෙන්' : (activeTocItem ? activeTocItem.title : 'ප්‍රශ්නෝත්තර');
 
-    const renderWordBuilderView = () => {
-      const activeSequence = wordBuilderSequence;
-      const wordPool = question.words || [];
-      const correctSeq = question.correctWordSequence || [];
+    // Determine if the current question type has been answered/submitted
+    const isAnswered = question.type === 'wordbuilder' || question.type === 'multiselect'
+      ? hasSubmitted
+      : selectedOptionIdx !== null;
 
-      const getUsedCount = (word: string) => {
-        return activeSequence.filter(w => w === word).length;
-      };
+    // Derived values for word builder questions
+    const activeSequence = wordBuilderSequence;
+    const wordPool = question.words || [];
+    const correctSeq = question.correctWordSequence || [];
+    const isWordBuilderCorrect = activeSequence.join(' ') === correctSeq.join(' ');
 
-      const getPoolCount = (word: string) => {
-        return wordPool.filter(w => w === word).length;
-      };
-
-      const isAnswerCorrect = activeSequence.join(' ') === correctSeq.join(' ');
-
-      return (
-        <div className={styles.qaCard} key={question.id}>
-          <div className={styles.qaHeader}>
-            <div className={styles.qaCategoryWrapper}>
-              <span className={styles.qaCategory}>{categoryTitle}</span>
-            </div>
-            <span className={styles.qaProgress}>
-              ප්‍රශ්න {qaQuestions.length} න් {currentQuestionIdx + 1}
-            </span>
-          </div>
-
-          <h3 className={styles.qaQuestion}>
-            {question.question}
-            {question.fromBook && (
-              <span className={styles.qaBookBadge}>පොතෙන්</span>
-            )}
-          </h3>
-
-          <div className={styles.qaWorkspaceHeader}>
-            <button
-              className={styles.qaControlBtn}
-              onClick={handleWordRemoveLast}
-              disabled={activeSequence.length === 0 || hasSubmitted}
-              title="අවසන් වචනය මකන්න"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path>
-                <line x1="18" y1="9" x2="12" y2="15"></line>
-                <line x1="12" y1="9" x2="18" y2="15"></line>
-              </svg>
-              මකන්න
-            </button>
-            <button
-              className={styles.qaControlBtn}
-              onClick={handleWordReset}
-              disabled={activeSequence.length === 0 || hasSubmitted}
-              title="නැවත සකසන්න"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
-              </svg>
-              නැවත මුලට
-            </button>
-          </div>
-
-          <div className={`${styles.qaWorkspace} ${hasSubmitted ? (
-              isAnswerCorrect ? styles.qaOptionCorrect : styles.qaOptionIncorrect
-            ) : ''
-            }`}>
-            {activeSequence.length > 0 ? (
-              activeSequence.map((word, idx) => (
-                <span key={idx} className={styles.qaWordChip} style={{ cursor: 'default' }}>
-                  {word}
-                </span>
-              ))
-            ) : (
-              <span className={styles.qaWorkspacePlaceholder}>
-                {question.placeholder || "පහත වචන ක්ලික් කර නිවැරදි පිළිතුර මෙතැන සකසන්න..."}
-              </span>
-            )}
-          </div>
-
-          {!hasSubmitted && (
-            <>
-              <div className={styles.qaWordPoolLabel}>වචන තටාකය (Word Pool)</div>
-              <div className={styles.qaWordPool}>
-                {wordPool.map((word, idx) => {
-                  const usedCount = getUsedCount(word);
-                  const poolCount = getPoolCount(word);
-                  const isUsedUp = usedCount >= poolCount;
-
-                  return (
-                    <button
-                      key={idx}
-                      className={`${styles.qaWordChip} ${isUsedUp ? styles.qaWordChipDisabled : ''}`}
-                      onClick={() => handleWordTap(word)}
-                      disabled={isUsedUp || hasSubmitted}
-                    >
-                      {word}
-                    </button>
-                  );
-                })}
-              </div>
-            </>
-          )}
-
-          {!hasSubmitted && (
-            <div className={styles.qaSubmitSection}>
-              <button
-                className={styles.qaSubmitBtn}
-                onClick={handleSubmitAnswer}
-                disabled={activeSequence.length === 0}
-              >
-                පිළිතුර පරීක්ෂා කරන්න
-              </button>
-            </div>
-          )}
-
-          {hasSubmitted && (
-            <div className={styles.qaExplanation}>
-              <div className={styles.qaExplanationTitle}>
-                {isAnswerCorrect ? '✓ නිවැරදියි!' : '✗ වැරදියි! නිවැරදි පිළිතුර:'}
-              </div>
-              {!isAnswerCorrect && (
-                <p style={{ fontWeight: 600, color: 'var(--text-reader)', marginBottom: '1rem', fontSize: '1.05rem' }}>
-                  {correctSeq.join(' ')}
-                </p>
-              )}
-              <div className={styles.qaExplanationTitle} style={{ marginTop: '1rem' }}>පැහැදිලි කිරීම</div>
-              <p className={styles.qaExplanationText}>{question.explanation}</p>
-            </div>
-          )}
-
-          <div className={styles.qaFooter}>
-            <button className={styles.qaEndBtn} onClick={handleEndSession}>
-              වාරය අවසන් කරන්න
-            </button>
-            <div className={styles.qaFooterActions}>
-              {!hasSubmitted && (
-                <button className={styles.qaSkipBtn} onClick={handleSkipQuestion}>
-                  මඟහරින්න
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '0.25rem' }}>
-                    <polyline points="9 18 15 12 9 6"></polyline>
-                  </svg>
-                </button>
-              )}
-              {hasSubmitted && (
-                <button className={styles.qaNextBtn} onClick={handleNextQuestion}>
-                  {currentQuestionIdx < qaQuestions.length - 1 ? 'මීළඟ ප්‍රශ්නය' : 'අවසන් කරන්න'}
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '0.25rem' }}>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                    <polyline points="12 5 19 12 12 19"></polyline>
-                  </svg>
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      );
+    const getUsedCount = (word: string) => {
+      return activeSequence.filter(w => w === word).length;
     };
 
-    const renderMultiselectView = () => {
-      const options = question.options || [];
-      const correctIndices = question.correctAnswerIndices || [];
-      const selected = selectedOptionIndices;
+    const getPoolCount = (word: string) => {
+      return wordPool.filter(w => w === word).length;
+    };
 
-      return (
-        <div className={styles.qaCard} key={question.id}>
-          <div className={styles.qaHeader}>
-            <div className={styles.qaCategoryWrapper}>
-              <span className={styles.qaCategory}>{categoryTitle}</span>
-            </div>
-            <span className={styles.qaProgress}>
-              ප්‍රශ්න {qaQuestions.length} න් {currentQuestionIdx + 1}
-            </span>
+    // Derived values for multi-select questions
+    const multiselectOptions = question.options || [];
+    const correctIndices = question.correctAnswerIndices || [];
+
+    return (
+      <div className={styles.qaCard} key={question.id}>
+        {/* Header */}
+        <div className={styles.qaHeader}>
+          <div className={styles.qaCategoryWrapper}>
+            <span className={styles.qaCategory}>{categoryTitle}</span>
           </div>
+          <span className={styles.qaProgress}>
+            ප්‍රශ්න {qaQuestions.length} න් {currentQuestionIdx + 1}
+          </span>
+        </div>
 
-          <h3 className={styles.qaQuestion}>
-            {question.question}
-            {question.fromBook && (
-              <span className={styles.qaBookBadge}>පොතෙන්</span>
+        {/* Question text */}
+        <h3 className={styles.qaQuestion}>
+          {question.question}
+          {question.fromBook && (
+            <span className={styles.qaBookBadge}>පොතෙන්</span>
+          )}
+        </h3>
+
+        {/* 1. Word Builder View */}
+        {question.type === 'wordbuilder' && (
+          <>
+            <div className={styles.qaWorkspaceHeader}>
+              <button
+                className={styles.qaControlBtn}
+                onClick={handleWordRemoveLast}
+                disabled={activeSequence.length === 0 || hasSubmitted}
+                title="අවසන් වචනය මකන්න"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path>
+                  <line x1="18" y1="9" x2="12" y2="15"></line>
+                  <line x1="12" y1="9" x2="18" y2="15"></line>
+                </svg>
+                මකන්න
+              </button>
+              <button
+                className={styles.qaControlBtn}
+                onClick={handleWordReset}
+                disabled={activeSequence.length === 0 || hasSubmitted}
+                title="නැවත සකසන්න"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+                </svg>
+                නැවත මුලට
+              </button>
+            </div>
+
+            <div className={`${styles.qaWorkspace} ${hasSubmitted ? (
+                isWordBuilderCorrect ? styles.qaOptionCorrect : styles.qaOptionIncorrect
+              ) : ''
+              }`}>
+              {activeSequence.length > 0 ? (
+                activeSequence.map((word, idx) => (
+                  <span key={idx} className={styles.qaWordChip} style={{ cursor: 'default' }}>
+                    {word}
+                  </span>
+                ))
+              ) : (
+                <span className={styles.qaWorkspacePlaceholder}>
+                  {question.placeholder || "පහත වචන ක්ලික් කර නිවැරදි පිළිතුර මෙතැන සකසන්න..."}
+                </span>
+              )}
+            </div>
+
+            {!hasSubmitted && (
+              <>
+                <div className={styles.qaWordPoolLabel}>වචන තටාකය (Word Pool)</div>
+                <div className={styles.qaWordPool}>
+                  {wordPool.map((word, idx) => {
+                    const usedCount = getUsedCount(word);
+                    const poolCount = getPoolCount(word);
+                    const isUsedUp = usedCount >= poolCount;
+
+                    return (
+                      <button
+                        key={idx}
+                        className={`${styles.qaWordChip} ${isUsedUp ? styles.qaWordChipDisabled : ''}`}
+                        onClick={() => handleWordTap(word)}
+                        disabled={isUsedUp || hasSubmitted}
+                      >
+                        {word}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
             )}
-          </h3>
+          </>
+        )}
 
+        {/* 2. Multiselect View */}
+        {question.type === 'multiselect' && (
           <div className={styles.qaOptions}>
-            {options.map((option, idx) => {
-              const isSelected = selected.includes(idx);
+            {multiselectOptions.map((option, idx) => {
+              const isSelected = selectedOptionIndices.includes(idx);
               const isCorrect = correctIndices.includes(idx);
 
               let optionClass = styles.qaOption;
@@ -602,138 +541,98 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
               );
             })}
           </div>
+        )}
 
-          {!hasSubmitted && (
-            <div className={styles.qaSubmitSection}>
-              <button
-                className={styles.qaSubmitBtn}
-                onClick={handleSubmitAnswer}
-                disabled={selected.length === 0}
-              >
-                පිළිතුර පරීක්ෂා කරන්න
-              </button>
-            </div>
-          )}
+        {/* 3. Single-select (Standard) View */}
+        {question.type !== 'wordbuilder' && question.type !== 'multiselect' && (
+          <div className={styles.qaOptions}>
+            {question.options?.map((option, idx) => {
+              const isSelected = selectedOptionIdx === idx;
+              const isCorrect = idx === question.correctAnswerIndex;
+              const hasAnswered = selectedOptionIdx !== null;
 
-          {hasSubmitted && (
-            <div className={styles.qaExplanation}>
-              <div className={styles.qaExplanationTitle}>පැහැදිලි කිරීම</div>
-              <p className={styles.qaExplanationText}>{question.explanation}</p>
-            </div>
-          )}
-
-          <div className={styles.qaFooter}>
-            <button className={styles.qaEndBtn} onClick={handleEndSession}>
-              වාරය අවසන් කරන්න
-            </button>
-            <div className={styles.qaFooterActions}>
-              {!hasSubmitted && (
-                <button className={styles.qaSkipBtn} onClick={handleSkipQuestion}>
-                  මඟහරින්න
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '0.25rem' }}>
-                    <polyline points="9 18 15 12 9 6"></polyline>
-                  </svg>
-                </button>
-              )}
-              {hasSubmitted && (
-                <button className={styles.qaNextBtn} onClick={handleNextQuestion}>
-                  {currentQuestionIdx < qaQuestions.length - 1 ? 'මීළඟ ප්‍රශ්නය' : 'අවසන් කරන්න'}
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '0.25rem' }}>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                    <polyline points="12 5 19 12 12 19"></polyline>
-                  </svg>
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      );
-    };
-
-    if (question.type === 'wordbuilder') {
-      return renderWordBuilderView();
-    }
-
-    if (question.type === 'multiselect') {
-      return renderMultiselectView();
-    }
-
-    return (
-      <div className={styles.qaCard} key={question.id}>
-        <div className={styles.qaHeader}>
-          <div className={styles.qaCategoryWrapper}>
-            <span className={styles.qaCategory}>{categoryTitle}</span>
-          </div>
-          <span className={styles.qaProgress}>
-            ප්‍රශ්න {qaQuestions.length} න් {currentQuestionIdx + 1}
-          </span>
-        </div>
-
-        <h3 className={styles.qaQuestion}>
-          {question.question}
-          {question.fromBook && (
-            <span className={styles.qaBookBadge}>පොතෙන්</span>
-          )}
-        </h3>
-
-        <div className={styles.qaOptions}>
-          {question.options?.map((option, idx) => {
-            const isSelected = selectedOptionIdx === idx;
-            const isCorrect = idx === question.correctAnswerIndex;
-            const hasAnswered = selectedOptionIdx !== null;
-
-            let optionClass = styles.qaOption;
-            if (hasAnswered) {
-              if (isCorrect) {
-                optionClass += ` ${styles.qaOptionCorrect}`;
-              } else if (isSelected) {
-                optionClass += ` ${styles.qaOptionIncorrect}`;
-              } else {
-                optionClass += ` ${styles.qaOptionDimmed}`;
+              let optionClass = styles.qaOption;
+              if (hasAnswered) {
+                if (isCorrect) {
+                  optionClass += ` ${styles.qaOptionCorrect}`;
+                } else if (isSelected) {
+                  optionClass += ` ${styles.qaOptionIncorrect}`;
+                } else {
+                  optionClass += ` ${styles.qaOptionDimmed}`;
+                }
               }
-            }
 
-            return (
-              <button
-                key={idx}
-                className={optionClass}
-                onClick={() => handleOptionSelect(idx)}
-                disabled={hasAnswered}
-              >
-                <span>{option}</span>
-                {hasAnswered && isCorrect && (
-                  <span className={styles.qaIcon} style={{ color: '#10b981' }}>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                  </span>
-                )}
-                {hasAnswered && isSelected && !isCorrect && (
-                  <span className={styles.qaIcon} style={{ color: '#ef4444' }}>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="18" y1="6" x2="6" y2="18"></line>
-                      <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+              return (
+                <button
+                  key={idx}
+                  className={optionClass}
+                  onClick={() => handleOptionSelect(idx)}
+                  disabled={hasAnswered}
+                >
+                  <span>{option}</span>
+                  {hasAnswered && isCorrect && (
+                    <span className={styles.qaIcon} style={{ color: '#10b981' }}>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </span>
+                  )}
+                  {hasAnswered && isSelected && !isCorrect && (
+                    <span className={styles.qaIcon} style={{ color: '#ef4444' }}>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
-        {selectedOptionIdx !== null && (
+        {/* Submit Section (Only for types requiring manual verification click) */}
+        {!hasSubmitted && (question.type === 'wordbuilder' || question.type === 'multiselect') && (
+          <div className={styles.qaSubmitSection}>
+            <button
+              className={styles.qaSubmitBtn}
+              onClick={handleSubmitAnswer}
+              disabled={question.type === 'wordbuilder' ? activeSequence.length === 0 : selectedOptionIndices.length === 0}
+            >
+              පිළිතුර පරීක්ෂා කරන්න
+            </button>
+          </div>
+        )}
+
+        {/* Explanation Section */}
+        {isAnswered && (
           <div className={styles.qaExplanation}>
-            <div className={styles.qaExplanationTitle}>පැහැදිලි කිරීම</div>
+            {question.type === 'wordbuilder' ? (
+              <>
+                <div className={styles.qaExplanationTitle}>
+                  {isWordBuilderCorrect ? '✓ නිවැරදියි!' : '✗ වැරදියි! නිවැරදි පිළිතුර:'}
+                </div>
+                {!isWordBuilderCorrect && (
+                  <p style={{ fontWeight: 600, color: 'var(--text-reader)', marginBottom: '1rem', fontSize: '1.05rem' }}>
+                    {correctSeq.join(' ')}
+                  </p>
+                )}
+                <div className={styles.qaExplanationTitle} style={{ marginTop: '1rem' }}>පැහැදිලි කිරීම</div>
+              </>
+            ) : (
+              <div className={styles.qaExplanationTitle}>පැහැදිලි කිරීම</div>
+            )}
             <p className={styles.qaExplanationText}>{question.explanation}</p>
           </div>
         )}
 
+        {/* Footer */}
         <div className={styles.qaFooter}>
           <button className={styles.qaEndBtn} onClick={handleEndSession}>
             වාරය අවසන් කරන්න
           </button>
           <div className={styles.qaFooterActions}>
-            {selectedOptionIdx === null && (
+            {!isAnswered && (
               <button className={styles.qaSkipBtn} onClick={handleSkipQuestion}>
                 මඟහරින්න
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '0.25rem' }}>
@@ -741,7 +640,7 @@ export default function BookQuestionsClient({ book, parsedBook, chapterId }: Boo
                 </svg>
               </button>
             )}
-            {selectedOptionIdx !== null && (
+            {isAnswered && (
               <button className={styles.qaNextBtn} onClick={handleNextQuestion}>
                 {currentQuestionIdx < qaQuestions.length - 1 ? 'මීළඟ ප්‍රශ්නය' : 'අවසන් කරන්න'}
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '0.25rem' }}>
