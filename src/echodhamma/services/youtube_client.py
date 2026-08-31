@@ -1,4 +1,5 @@
 import logging
+from itertools import zip_longest
 import yt_dlp
 
 logger = logging.getLogger(__name__)
@@ -23,26 +24,27 @@ class YouTubeClient:
     def get_channel_videos(self, channel_urls):
         """
         Fetches basic video info from a list of channel URLs.
+        Interleaves videos across multiple channels so latest videos across all channels are processed first.
         Returns a list of dicts with id, url, title, upload_date.
         """
-        video_items = []
-
         # Ensure input is a list
         if isinstance(channel_urls, str):
             channel_urls = [channel_urls]
 
+        channel_videos_list = []
         with yt_dlp.YoutubeDL(dict(self._get_base_opts(), extract_flat=True)) as ydl:
             for url in channel_urls:
                 if not url:
                     continue
                 logger.info(f"Fetching videos from: {url}")
+                channel_items = []
                 try:
                     info = ydl.extract_info(url, download=False)
                     entries = info.get("entries", [])
-                    logger.info(f"Found {len(entries)} videos.")
+                    logger.info(f"Found {len(entries)} videos in {url}.")
                     for entry in entries:
                         if entry and "id" in entry:
-                            video_items.append(
+                            channel_items.append(
                                 {
                                     "id": entry["id"],
                                     "url": entry.get("url")
@@ -53,6 +55,16 @@ class YouTubeClient:
                             )
                 except Exception as e:
                     logger.error(f"Error fetching channel {url}: {e}", exc_info=True)
+                channel_videos_list.append(channel_items)
+
+        # Interleave videos across channels (round-robin)
+        video_items = []
+        seen_ids = set()
+        for items_tuple in zip_longest(*channel_videos_list):
+            for item in items_tuple:
+                if item is not None and item["id"] not in seen_ids:
+                    seen_ids.add(item["id"])
+                    video_items.append(item)
 
         return video_items
 

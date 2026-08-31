@@ -182,8 +182,6 @@ class PodcastSync:
                     }
                 )
 
-        video_items.sort(key=lambda x: x.get("upload_date") or "99999999")
-
         for item in video_items:
             if not self._is_sync_allowed():
                 break
