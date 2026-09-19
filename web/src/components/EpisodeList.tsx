@@ -1,29 +1,36 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
+import Link from 'next/link';
 import { Episode } from '@/types';
 import EpisodeCard from './EpisodeCard';
 import { SearchIcon, ChevronLeftIcon, ChevronRightIcon } from './Icons';
 import styles from './EpisodeList.module.css';
 
+const ITEMS_PER_PAGE = 24;
+
 interface EpisodeListProps {
   episodes: Episode[];
   theroId: string;
+  currentPage?: number;
 }
 
-export default function EpisodeList({ episodes, theroId }: EpisodeListProps) {
+export default function EpisodeList({ episodes, theroId, currentPage = 1 }: EpisodeListProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(24);
+  const [searchPage, setSearchPage] = useState(1);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const isSearching = searchQuery.trim().length > 0;
+
   // Filter episodes based on title or description search
-  const filteredEpisodes = episodes.filter((episode) => {
-    const query = searchQuery.toLowerCase();
-    const titleMatch = (episode.display_title || episode.title || '').toLowerCase().includes(query);
-    const descMatch = (episode.description || '').toLowerCase().includes(query);
-    return titleMatch || descMatch;
-  });
+  const filteredEpisodes = isSearching
+    ? episodes.filter((episode) => {
+        const query = searchQuery.toLowerCase();
+        const titleMatch = (episode.display_title || episode.title || '').toLowerCase().includes(query);
+        const descMatch = (episode.description || '').toLowerCase().includes(query);
+        return titleMatch || descMatch;
+      })
+    : episodes;
 
   // Deduplicate episodes by ID to prevent duplicate React keys
   const seenIds = new Set<string>();
@@ -36,40 +43,34 @@ export default function EpisodeList({ episodes, theroId }: EpisodeListProps) {
   });
 
   const totalItems = uniqueEpisodes.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
 
-  // Ensure current page is valid when totalPages changes
-  useEffect(() => {
-    if (currentPage > totalPages && totalPages > 0) {
-      setCurrentPage(totalPages);
-    }
-  }, [totalPages, currentPage]);
-
-  // Handle page change with smooth scroll to top of list
-  const handlePageChange = (page: number) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
-      if (containerRef.current) {
-        containerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }
-  };
+  // Active page depends on whether we are searching or in standard URL pagination mode
+  const activePage = isSearching
+    ? Math.min(Math.max(1, searchPage), totalPages || 1)
+    : Math.min(Math.max(1, currentPage), totalPages || 1);
 
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
-    setCurrentPage(1);
+    setSearchPage(1);
   };
 
-  const handleItemsPerPageChange = (value: number) => {
-    setItemsPerPage(value);
-    setCurrentPage(1);
+  const handleSearchPageChange = (page: number) => {
+    setSearchPage(page);
+    if (containerRef.current) {
+      containerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   };
 
   // Get paginated slice
   const paginatedEpisodes = uniqueEpisodes.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    (activePage - 1) * ITEMS_PER_PAGE,
+    activePage * ITEMS_PER_PAGE
   );
+
+  const getPageUrl = (pageNum: number) => {
+    return pageNum === 1 ? `/podcast/${theroId}` : `/podcast/${theroId}?page=${pageNum}`;
+  };
 
   // Generate page numbers array with ellipses
   const getPageNumbers = () => {
@@ -80,22 +81,22 @@ export default function EpisodeList({ episodes, theroId }: EpisodeListProps) {
       }
     } else {
       pages.push(1);
-      if (currentPage > 3) {
+      if (activePage > 3) {
         pages.push('...');
       }
-      const start = Math.max(2, currentPage - 1);
-      const end = Math.min(totalPages - 1, currentPage + 1);
+      const start = Math.max(2, activePage - 1);
+      const end = Math.min(totalPages - 1, activePage + 1);
       let adjustedStart = start;
       let adjustedEnd = end;
-      if (currentPage <= 3) {
+      if (activePage <= 3) {
         adjustedEnd = 4;
-      } else if (currentPage >= totalPages - 2) {
+      } else if (activePage >= totalPages - 2) {
         adjustedStart = totalPages - 3;
       }
       for (let i = adjustedStart; i <= adjustedEnd; i++) {
         pages.push(i);
       }
-      if (currentPage < totalPages - 2) {
+      if (activePage < totalPages - 2) {
         pages.push('...');
       }
       pages.push(totalPages);
@@ -130,7 +131,7 @@ export default function EpisodeList({ episodes, theroId }: EpisodeListProps) {
       <div className={styles.resultsMeta}>
         Found {totalItems} {totalItems === 1 ? 'episode' : 'episodes'}
         {searchQuery && ` matching "${searchQuery}"`}
-        {totalPages > 1 && ` (Showing page ${currentPage} of ${totalPages})`}
+        {totalPages > 1 && ` (Showing page ${activePage} of ${totalPages})`}
       </div>
 
       {paginatedEpisodes.length > 0 ? (
@@ -147,30 +148,33 @@ export default function EpisodeList({ episodes, theroId }: EpisodeListProps) {
 
           {totalPages > 1 && (
             <div className={styles.paginationControls}>
-              <div className={styles.perPageSelector}>
-                <span>පෙන්වන ප්‍රමාණය:</span>
-                <select
-                  value={itemsPerPage}
-                  onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
-                  className={`${styles.selectInput} glass`}
-                >
-                  <option value={12}>12</option>
-                  <option value={24}>24</option>
-                  <option value={48}>48</option>
-                  <option value={96}>96</option>
-                </select>
-              </div>
-
               <div className={styles.pageButtons}>
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className={`${styles.pageBtn} ${styles.navBtn} glass`}
-                  aria-label="Previous page"
-                >
-                  <ChevronLeftIcon size={18} />
-                </button>
+                {/* Previous Page Button */}
+                {isSearching ? (
+                  <button
+                    onClick={() => handleSearchPageChange(activePage - 1)}
+                    disabled={activePage === 1}
+                    className={`${styles.pageBtn} ${styles.navBtn} ${activePage === 1 ? styles.disabledBtn : ''}`}
+                    aria-label="Previous page"
+                  >
+                    <ChevronLeftIcon size={18} />
+                  </button>
+                ) : activePage > 1 ? (
+                  <Link
+                    href={getPageUrl(activePage - 1)}
+                    scroll={true}
+                    className={`${styles.pageBtn} ${styles.navBtn}`}
+                    aria-label="Previous page"
+                  >
+                    <ChevronLeftIcon size={18} />
+                  </Link>
+                ) : (
+                  <span className={`${styles.pageBtn} ${styles.navBtn} ${styles.disabledBtn}`} aria-hidden="true">
+                    <ChevronLeftIcon size={18} />
+                  </span>
+                )}
 
+                {/* Page Numbers */}
                 {pageNumbers.map((pageNum, idx) => {
                   if (pageNum === '...') {
                     return (
@@ -179,25 +183,58 @@ export default function EpisodeList({ episodes, theroId }: EpisodeListProps) {
                       </span>
                     );
                   }
+
+                  const num = pageNum as number;
+                  const isActive = activePage === num;
+
+                  if (isSearching) {
+                    return (
+                      <button
+                        key={`page-${num}`}
+                        onClick={() => handleSearchPageChange(num)}
+                        className={`${styles.pageBtn} ${isActive ? styles.activePage : ''}`}
+                      >
+                        {num}
+                      </button>
+                    );
+                  }
+
                   return (
-                    <button
-                      key={`page-${pageNum}`}
-                      onClick={() => handlePageChange(pageNum as number)}
-                      className={`${styles.pageBtn} ${currentPage === pageNum ? styles.activePage : ''} glass`}
+                    <Link
+                      key={`page-${num}`}
+                      href={getPageUrl(num)}
+                      scroll={true}
+                      className={`${styles.pageBtn} ${isActive ? styles.activePage : ''}`}
                     >
-                      {pageNum}
-                    </button>
+                      {num}
+                    </Link>
                   );
                 })}
 
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className={`${styles.pageBtn} ${styles.navBtn} glass`}
-                  aria-label="Next page"
-                >
-                  <ChevronRightIcon size={18} />
-                </button>
+                {/* Next Page Button */}
+                {isSearching ? (
+                  <button
+                    onClick={() => handleSearchPageChange(activePage + 1)}
+                    disabled={activePage === totalPages}
+                    className={`${styles.pageBtn} ${styles.navBtn} ${activePage === totalPages ? styles.disabledBtn : ''}`}
+                    aria-label="Next page"
+                  >
+                    <ChevronRightIcon size={18} />
+                  </button>
+                ) : activePage < totalPages ? (
+                  <Link
+                    href={getPageUrl(activePage + 1)}
+                    scroll={true}
+                    className={`${styles.pageBtn} ${styles.navBtn}`}
+                    aria-label="Next page"
+                  >
+                    <ChevronRightIcon size={18} />
+                  </Link>
+                ) : (
+                  <span className={`${styles.pageBtn} ${styles.navBtn} ${styles.disabledBtn}`} aria-hidden="true">
+                    <ChevronRightIcon size={18} />
+                  </span>
+                )}
               </div>
             </div>
           )}

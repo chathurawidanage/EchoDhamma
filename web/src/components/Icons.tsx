@@ -128,10 +128,11 @@ export function SpotifyIcon({ size = 16, ...props }: IconProps) {
 // --- Apple Podcast Icon ---
 export function ApplePodcastIcon({ size = 16, ...props }: IconProps) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <circle cx="12" cy="12" r="10" />
-      <circle cx="12" cy="12" r="4" />
-      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10Z" />
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="currentColor" {...props}>
+      <path d="M9.5 15.5c0 -1.2 1 -2 2.5 -2s2.5 0.8 2.5 2C14.5 18 14 23 12 23s-2.5 -5 -2.5 -7.5Z" />
+      <path fillRule="evenodd" clipRule="evenodd" d="M3.25 11a8.75 8.75 0 1 1 12.513 7.902 17.468 17.468 0 0 1 -0.335 1.76c3.975 -1.41 6.822 -5.203 6.822 -9.662C22.25 5.34 17.66 0.75 12 0.75S1.75 5.34 1.75 11c0 4.459 2.847 8.253 6.822 9.663l-0.03 -0.125a17.481 17.481 0 0 1 -0.305 -1.636A8.75 8.75 0 0 1 3.25 11Z" />
+      <path fillRule="evenodd" clipRule="evenodd" d="M6.75 11a5.25 5.25 0 1 1 9.119 3.549c0.086 0.301 0.131 0.62 0.131 0.951 0 0.288 -0.006 0.609 -0.02 0.953a6.75 6.75 0 1 0 -7.96 0c-0.014 -0.344 -0.02 -0.665 -0.02 -0.953 0 -0.331 0.045 -0.65 0.131 -0.951A5.231 5.231 0 0 1 6.75 11Z" />
+      <path d="M9.75 10.25a2.25 2.25 0 1 0 4.5 0 2.25 2.25 0 1 0 -4.5 0" />
     </svg>
   );
 }
@@ -173,9 +174,8 @@ export function AmazonMusicIcon({ size = 16, ...props }: IconProps) {
 // --- Pocket Casts Icon ---
 export function PocketCastsIcon({ size = 16, ...props }: IconProps) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <circle cx="12" cy="12" r="10" />
-      <path d="M8 12a4 4 0 1 1 8 0" />
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="currentColor" {...props}>
+      <path d="M12 0C5.372 0 0 5.372 0 12s5.372 12 12 12 12 -5.372 12 -12S18.628 0 12 0zm3.564 12c0 -1.968 -1.596 -3.564 -3.564 -3.564S8.436 10.031 8.436 12c0 1.968 1.595 3.564 3.564 3.564V17.6c-3.093 0 -5.6 -2.507 -5.6 -5.6 0 -3.093 2.507 -5.6 5.6 -5.6 3.093 0 5.6 2.507 5.6 5.6h-2.036zM19 12c0 -3.866 -3.134 -7 -7 -7s-7 3.134 -7 7 3.134 7 7 7v2.333c-5.155 0 -9.333 -4.179 -9.333 -9.333 0 -5.155 4.179 -9.333 9.333 -9.333 5.155 0 9.333 4.179 9.333 9.333H19z" />
     </svg>
   );
 }

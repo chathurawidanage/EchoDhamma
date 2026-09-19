@@ -22,10 +22,14 @@ export async function generateStaticParams() {
 
 interface TheroPageProps {
   params: Promise<{ thero_id: string }>;
+  searchParams?: Promise<{ page?: string }>;
 }
 
-export default async function TheroPage({ params }: TheroPageProps) {
+export default async function TheroPage({ params, searchParams }: TheroPageProps) {
   const { thero_id } = await params;
+  const { page } = (await searchParams) || {};
+  const currentPage = Math.max(1, parseInt(page || '1', 10));
+
   const thero = getTheroById(thero_id);
 
   if (!thero) {
@@ -51,106 +55,179 @@ export default async function TheroPage({ params }: TheroPageProps) {
   const appleUrl = providers.apple || `https://podcasts.apple.com/us/search?term=${queryTitle}`;
   const amazonUrl = providers.amazon || `https://music.amazon.com/search/${queryTitle}`;
 
+  const displayName = thero.name_sinhala 
+    ? `${thero.name_sinhala} (${thero.name})` 
+    : thero.name;
+
+  const logoUrl = thero.podcast.image_url.startsWith('http')
+    ? thero.podcast.image_url
+    : `${getTheroS3BaseUrl(thero)}/${thero.podcast.image_url}`;
+
+  const seriesUrl = `https://damsak.org/podcast/${thero.id}`;
+
+  // Structured Data (JSON-LD) for PodcastSeries and full ItemList crawl discovery
+  const graphNodes: any[] = [
+    {
+      '@type': 'PodcastSeries',
+      '@id': `${seriesUrl}#series`,
+      url: seriesUrl,
+      name: displayName,
+      description: thero.podcast.description,
+      image: logoUrl,
+      author: {
+        '@type': 'Person',
+        name: displayName,
+      },
+      webFeed: rssUrl,
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'මුල් පිටුව',
+          item: 'https://damsak.org',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: displayName,
+          item: seriesUrl,
+        },
+      ],
+    },
+    {
+      '@type': 'ItemList',
+      name: `${displayName} - සියලු ධර්ම දේශනා එකතුව`,
+      numberOfItems: episodes.length,
+      itemListElement: episodes.map((ep, idx) => ({
+        '@type': 'ListItem',
+        position: idx + 1,
+        name: ep.display_title || ep.title,
+        url: `https://damsak.org/podcast/${thero.id}/${ep.id}`,
+      })),
+    },
+  ];
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': graphNodes,
+  };
+
   return (
-    <div className={styles.container}>
-      <header className={styles.header}>
-        <Link href="/" className={styles.backLink}>
-          ← මුල් පිටුවට <span className="english-sub">Back to Home</span>
-        </Link>
-      </header>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <div className={styles.container}>
+        <header className={styles.header}>
+          <Link href="/" className={styles.backLink}>
+            ← මුල් පිටුවට <span className="english-sub">Back to Home</span>
+          </Link>
+        </header>
 
-      <div className={styles.profileSection}>
-        <div className={styles.avatar}>
-          {thero.podcast.image_url ? (
-            <img 
-              src={thero.podcast.image_url.startsWith('http') ? thero.podcast.image_url : `${getTheroS3BaseUrl(thero)}/${thero.podcast.image_url}`} 
-              alt={thero.name_sinhala || thero.name}
-              className={styles.avatarImg}
-            />
-          ) : (
-            initialLetters
-          )}
-        </div>
-        
-        <div className={styles.profileInfo}>
-          <h1 className={styles.theroName}>
-            {thero.name_sinhala || thero.name}
-            {thero.name_sinhala && (
-              <span className={styles.englishNameSub}>{thero.name}</span>
-            )}
-          </h1>
-          <p className={styles.podcastDesc}>{thero.podcast.description}</p>
-          
-          <div className={styles.platformRow}>
-            {thero.youtube_channel_urls?.[0] && (
-              <a 
-                href={thero.youtube_channel_urls[0]} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className={`${styles.platformBtn} ${styles.youtube}`}
-                id="platform-youtube-btn"
-              >
-                <YoutubeIcon size={16} /> watch on youtube
-              </a>
-            )}
-            
-            <a 
-              href={spotifyUrl} 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className={`${styles.platformBtn} ${styles.spotify}`}
-              id="platform-spotify-btn"
-            >
-              <SpotifyIcon size={16} /> Spotify
-            </a>
-            
-            <a 
-              href={appleUrl} 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className={`${styles.platformBtn} ${styles.apple}`}
-              id="platform-apple-btn"
-            >
-              <ApplePodcastIcon size={16} /> Apple Podcast
-            </a>
-
-            <a 
-              href={amazonUrl} 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className={`${styles.platformBtn} ${styles.amazon}`}
-              id="platform-amazon-btn"
-            >
-              <AmazonMusicIcon size={16} /> Amazon Music
-            </a>
-
-            {providers.pocketcasts && (
-              <a 
-                href={providers.pocketcasts} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className={`${styles.platformBtn} ${styles.pocket}`}
-                id="platform-pocket-btn"
-              >
-                <PocketCastsIcon size={16} /> Pocket Casts
-              </a>
+        <div className={styles.profileSection}>
+          <div className={styles.avatar}>
+            {thero.podcast.image_url ? (
+              <img 
+                src={logoUrl} 
+                alt={thero.name_sinhala || thero.name}
+                className={styles.avatarImg}
+              />
+            ) : (
+              initialLetters
             )}
           </div>
-        </div>
-      </div>
+          
+          <div className={styles.profileInfo}>
+            <h1 className={styles.theroName}>
+              {thero.name_sinhala || thero.name}
+              {thero.name_sinhala && (
+                <span className={styles.englishNameSub}>{thero.name}</span>
+              )}
+            </h1>
+            <p className={styles.podcastDesc}>{thero.podcast.description}</p>
+            
+            <div className={styles.platformRow}>
+              {thero.youtube_channel_urls?.[0] && (
+                <a 
+                  href={thero.youtube_channel_urls[0]} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className={`${styles.platformBtn} ${styles.youtube}`}
+                  id="platform-youtube-btn"
+                >
+                  <YoutubeIcon size={16} /> watch on youtube
+                </a>
+              )}
+              
+              <a 
+                href={spotifyUrl} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className={`${styles.platformBtn} ${styles.spotify}`}
+                id="platform-spotify-btn"
+              >
+                <SpotifyIcon size={16} /> Spotify
+              </a>
+              
+              <a 
+                href={appleUrl} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className={`${styles.platformBtn} ${styles.apple}`}
+                id="platform-apple-btn"
+              >
+                <ApplePodcastIcon size={16} /> Apple Podcast
+              </a>
 
-      <section className={styles.episodesSection}>
-        <h4 className={styles.sectionTitle}>
-          ධර්ම දේශනා එකතුව <span className="english-sub">Episodes</span>
-        </h4>
-        <EpisodeList episodes={episodes} theroId={thero_id} />
-      </section>
-    </div>
+              <a 
+                href={amazonUrl} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className={`${styles.platformBtn} ${styles.amazon}`}
+                id="platform-amazon-btn"
+              >
+                <AmazonMusicIcon size={16} /> Amazon Music
+              </a>
+
+              {providers.pocketcasts && (
+                <a 
+                  href={providers.pocketcasts} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className={`${styles.platformBtn} ${styles.pocket}`}
+                  id="platform-pocket-btn"
+                >
+                  <PocketCastsIcon size={16} /> Pocket Casts
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <section className={styles.episodesSection}>
+          <h4 className={styles.sectionTitle}>
+            ධර්ම දේශනා එකතුව <span className="english-sub">Episodes</span>
+          </h4>
+          <EpisodeList 
+            episodes={episodes} 
+            theroId={thero_id} 
+            currentPage={currentPage}
+          />
+        </section>
+      </div>
+    </>
   );
 }
 
-export async function generateMetadata({ params }: TheroPageProps) {
+export async function generateMetadata({ params, searchParams }: TheroPageProps) {
   const { thero_id } = await params;
+  const { page } = (await searchParams) || {};
+  const pageNum = Math.max(1, parseInt(page || '1', 10));
+
   const thero = getTheroById(thero_id);
   if (!thero) {
     return { title: 'Thero Not Found' };
@@ -163,16 +240,19 @@ export async function generateMetadata({ params }: TheroPageProps) {
   const displayName = thero.name_sinhala 
     ? `${thero.name_sinhala} (${thero.name})` 
     : thero.name;
-  const pagePath = `/podcast/${thero_id}`;
+  const pagePath = pageNum > 1 ? `/podcast/${thero_id}?page=${pageNum}` : `/podcast/${thero_id}`;
+  const titleText = pageNum > 1 
+    ? `${displayName} - පිටුව ${pageNum} | DamSak.org`
+    : `${displayName} | DamSak.org`;
 
   return {
-    title: `${displayName} | DamSak.org`,
+    title: titleText,
     description: thero.podcast.description.substring(0, 160),
     alternates: {
       canonical: pagePath,
     },
     openGraph: {
-      title: `${displayName} | DamSak.org`,
+      title: titleText,
       description: thero.podcast.description.substring(0, 160),
       url: pagePath,
       images: [
@@ -186,7 +266,7 @@ export async function generateMetadata({ params }: TheroPageProps) {
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${displayName} | DamSak.org`,
+      title: titleText,
       description: thero.podcast.description.substring(0, 160),
       images: [logoUrl],
     },
