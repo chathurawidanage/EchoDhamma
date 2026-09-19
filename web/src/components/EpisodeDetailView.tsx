@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { Episode, TheroConfig, ChapterData } from '@/types';
 import ChaptersList from './ChaptersList';
@@ -83,6 +84,41 @@ export default function EpisodeDetailView({
     }
   };
 
+  // Handle URL timestamp deep linking (#t=... or ?t=...) from Google search Key Moments / Q&A snippets
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const parseTimestamp = (): number | null => {
+      const hash = window.location.hash;
+      const searchParams = new URLSearchParams(window.location.search);
+      const tParam = searchParams.get('t');
+      if (tParam) {
+        const secs = parseInt(tParam, 10);
+        if (!isNaN(secs) && secs >= 0) return secs;
+      }
+      if (hash && hash.startsWith('#t=')) {
+        const secs = parseInt(hash.replace('#t=', ''), 10);
+        if (!isNaN(secs) && secs >= 0) return secs;
+      }
+      return null;
+    };
+
+    const initialSecs = parseTimestamp();
+    if (initialSecs !== null) {
+      handlePlayEpisode(initialSecs);
+    }
+
+    const onHashChange = () => {
+      const secs = parseTimestamp();
+      if (secs !== null) {
+        handleSeek(secs);
+      }
+    };
+
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, [episode.id]);
+
   const handleChapterSeek = (seconds: number, chapterTitle: string) => {
     handleSeek(seconds);
     if (typeof window !== 'undefined' && (window as any).umami) {
@@ -163,9 +199,23 @@ export default function EpisodeDetailView({
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <Link href={`/podcast/${thero.id}`} className={styles.backLink}>
-          ← දේශනා ලැයිස්තුවට
-        </Link>
+        <nav aria-label="Breadcrumb" className={styles.breadcrumbNav}>
+          <ol className={styles.breadcrumbList}>
+            <li>
+              <Link href="/" className={styles.breadcrumbLink}>මුල් පිටුව</Link>
+            </li>
+            <li className={styles.breadcrumbSeparator}>›</li>
+            <li>
+              <Link href={`/podcast/${thero.id}`} className={styles.breadcrumbLink}>
+                {thero.name_sinhala || thero.name}
+              </Link>
+            </li>
+            <li className={styles.breadcrumbSeparator}>›</li>
+            <li className={styles.breadcrumbCurrent} aria-current="page">
+              {episode.display_title || episode.title}
+            </li>
+          </ol>
+        </nav>
       </header>
 
       <div className={styles.heroLayout}>
@@ -263,9 +313,9 @@ export default function EpisodeDetailView({
         <div className={styles.leftCol}>
           {youtubeEmbedUrl && (
             <div className={`${styles.card} ${styles.videoCard} glass`}>
-              <h4 className={`${styles.sectionHeading} ${styles.videoCardHeading}`}>
+              <h2 className={`${styles.sectionHeading} ${styles.videoCardHeading}`}>
                 දේශනාවේ වීඩියෝව <span className="english-sub">Watch Video</span>
-              </h4>
+              </h2>
               <div className={styles.videoContainer}>
                 <iframe
                   src={youtubeEmbedUrl}
@@ -278,9 +328,9 @@ export default function EpisodeDetailView({
           )}
 
           <div className={`${styles.card} glass`}>
-            <h4 className={styles.sectionHeading}>
+            <h2 className={styles.sectionHeading}>
               දේශනාවේ විස්තරය <span className="english-sub">Episode Summary</span>
-            </h4>
+            </h2>
             <div
               className={styles.summaryContent}
               onClick={handleDescriptionClick}
@@ -289,10 +339,10 @@ export default function EpisodeDetailView({
           </div>
 
           {transcript && (
-            <div className={`${styles.card} glass`} style={{ display: 'none' }}>
-              <h4 className={styles.sectionHeading}>
+            <div className={`${styles.card} glass`}>
+              <h2 className={styles.sectionHeading}>
                 දේශනාවේ පිටපත <span className="english-sub">Transcript timeline</span>
-              </h4>
+              </h2>
               <TranscriptViewer
                 transcriptText={transcript}
                 currentTime={currentTime}
@@ -305,9 +355,9 @@ export default function EpisodeDetailView({
         {chapters && chapters.chapters?.length > 0 && (
           <div className={styles.rightCol}>
             <div className={`${styles.card} glass ${styles.stickyChapters}`}>
-              <h4 className={styles.sectionHeading}>
+              <h2 className={styles.sectionHeading}>
                 දේශනාවේ ප්‍රධාන මාතෘකා <span className="english-sub">Chapters</span>
-              </h4>
+              </h2>
               <ChaptersList
                 chapters={chapters.chapters}
                 currentTime={currentTime}

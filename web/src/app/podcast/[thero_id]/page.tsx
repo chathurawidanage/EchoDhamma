@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { getTheroById } from '@/utils/theros.server';
+import { getTheros, getTheroById } from '@/utils/theros.server';
 import { getTheroS3BaseUrl } from '@/utils/theros';
 import { fetchPodcastFeed } from '@/utils/rssParser';
 import EpisodeList from '@/components/EpisodeList';
@@ -12,6 +12,13 @@ import {
   PocketCastsIcon
 } from '@/components/Icons';
 import styles from './page.module.css';
+
+export const revalidate = 3600;
+
+export async function generateStaticParams() {
+  const theros = getTheros();
+  return theros.map((t) => ({ thero_id: t.id }));
+}
 
 interface TheroPageProps {
   params: Promise<{ thero_id: string }>;
@@ -156,14 +163,26 @@ export async function generateMetadata({ params }: TheroPageProps) {
   const displayName = thero.name_sinhala 
     ? `${thero.name_sinhala} (${thero.name})` 
     : thero.name;
+  const pagePath = `/podcast/${thero_id}`;
 
   return {
     title: `${displayName} | DamSak.org`,
     description: thero.podcast.description.substring(0, 160),
+    alternates: {
+      canonical: pagePath,
+    },
     openGraph: {
       title: `${displayName} | DamSak.org`,
       description: thero.podcast.description.substring(0, 160),
-      images: [{ url: logoUrl }],
+      url: pagePath,
+      images: [
+        {
+          url: logoUrl,
+          width: 1200,
+          height: 1200,
+          alt: displayName,
+        },
+      ],
     },
     twitter: {
       card: 'summary_large_image',
