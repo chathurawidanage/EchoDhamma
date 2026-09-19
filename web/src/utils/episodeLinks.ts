@@ -23,7 +23,8 @@ export async function getAppleEpisodeLinks(appleShowUrl: string): Promise<Record
 
     const lookupUrl = `https://itunes.apple.com/lookup?id=${showId}&entity=podcastEpisode&limit=200`;
     try {
-      const res = await fetch(lookupUrl, { next: { revalidate: 3600 } });
+      // Bypass Next.js 2MB data cache limit; in-memory appleCache manages caching
+      const res = await fetch(lookupUrl, { cache: 'no-store' });
       if (!res.ok) return {};
       const data = await res.json();
       const mapping: Record<string, string> = {};
@@ -71,12 +72,12 @@ export async function getPocketCastsEpisodeLinks(pocketCastsUrl: string): Promis
       const redirectRes = await fetch(pocketCastsUrl, {
         method: 'HEAD',
         redirect: 'manual',
-        next: { revalidate: 86400 } // Redirects are stable, cache for 24h
+        cache: 'no-store',
       });
       
       let targetUrl = redirectRes.headers.get('location') || '';
       if (!targetUrl) {
-        const textRes = await fetch(pocketCastsUrl, { next: { revalidate: 86400 } });
+        const textRes = await fetch(pocketCastsUrl, { cache: 'no-store' });
         const text = await textRes.text();
         const uuidMatch = text.match(/podcast\/[^/]+\/([a-f0-9-]{36})/);
         if (uuidMatch) {
@@ -101,7 +102,7 @@ export async function getPocketCastsEpisodeLinks(pocketCastsUrl: string): Promis
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         },
-        next: { revalidate: 3600 } // Cache pages for 1 hour
+        cache: 'no-store',
       });
       
       if (!pageRes.ok) return {};
@@ -185,7 +186,7 @@ export async function getSpotifyEpisodeLinks(spotifyShowUrl: string): Promise<Re
           'Authorization': `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`
         },
         body: 'grant_type=client_credentials',
-        next: { revalidate: 3000 } // Token is valid for 1h, cache for 50 minutes
+        cache: 'no-store',
       });
       
       if (!tokenRes.ok) return {};
@@ -198,7 +199,7 @@ export async function getSpotifyEpisodeLinks(spotifyShowUrl: string): Promise<Re
         headers: {
           'Authorization': `Bearer ${token}`
         },
-        next: { revalidate: 3600 }
+        cache: 'no-store',
       });
       
       if (!episodesRes.ok) return {};

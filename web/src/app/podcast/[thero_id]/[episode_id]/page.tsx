@@ -158,7 +158,7 @@ export default async function EpisodePage({ params }: EpisodePageProps) {
         name: ch.title,
         acceptedAnswer: {
           '@type': 'Answer',
-          text: `මෙම පැනයට අදාළ ධර්ම දේශනා පිළිතුර ශ්‍රව්‍ය ඛණ්ඩයේ ${timeLabel} සිට සාකච්ඡා වේ. (The answer to this question is discussed in the audio talk starting at ${timeLabel}).`,
+          text: `මෙම පැනයට අදාළ පිළිතුර ධර්ම දේශනාවේ ${timeLabel} සිට සාකච්ඡා වේ.`,
           url: `https://damsak.org/podcast/${thero.id}/${episode.id}#t=${ch.startTime}`,
         },
       };
@@ -170,7 +170,7 @@ export default async function EpisodePage({ params }: EpisodePageProps) {
     '@id': `https://damsak.org/podcast/${thero.id}/${episode.id}#episode`,
     url: `https://damsak.org/podcast/${thero.id}/${episode.id}`,
     name: episodeTitle,
-    description: cleanedDesc.substring(0, 300),
+    description: cleanedDesc,
     datePublished: episode.pub_date ? new Date(episode.pub_date).toISOString() : undefined,
     timeRequired: episode.duration ? formatIsoDuration(episode.duration) : undefined,
     image: logoUrl,
