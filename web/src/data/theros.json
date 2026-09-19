@@ -56,7 +56,9 @@
     "name": "Ven. Hasalaka Seelawimala Thero",
     "name_sinhala": "හසලක සීලවිමල ස්වාමීන් වහන්සේ",
     "rss": "https://files.widanage.com/hasalaka-seelawimala-thero/podcast.xml",
-    "blocklist": [],
+    "blocklist": [
+      "kuh4czpZXps"
+    ],
     "whitelisted": [],
     "known_series": [],
     "youtube_channel_urls": [
@@ -122,9 +124,11 @@
     "blocklist": [
       "ePgY335Vk5M",
       "-_4dRyTls10",
-      "YWeIuVR7o2s"
+      "YWeIuVR7o2s",
+      "YPUAuY4OSLs"
     ],
     "whitelisted": [
+      "hxBQdjBbMTM",
       "PLDkufrwzs8aUn-nwvOXn9gtDiBwEhBTGm",
       "PLDkufrwzs8aUNrdxmlbQwyUFAkH4XHNfd",
       "PLDkufrwzs8aWSx4CC6nOKFP40ThodUIvF",
