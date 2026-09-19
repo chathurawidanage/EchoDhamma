@@ -125,6 +125,13 @@
   animation: fadeIn 0.3s ease;
 }
 
+:global(.light-theme) .targetedSectionCard {
+  background: linear-gradient(135deg, rgba(180, 83, 9, 0.08) 0%, #fdfbf7 100%);
+  border: 1px solid rgba(180, 83, 9, 0.25);
+  border-left: 4px solid var(--accent-gold);
+  box-shadow: 0 8px 24px -4px rgba(67, 52, 34, 0.1), 0 0 16px rgba(180, 83, 9, 0.05);
+}
+
 .targetedHeaderRow {
   display: flex;
   align-items: center;
@@ -164,6 +171,11 @@
   font-family: monospace;
 }
 
+:global(.light-theme) .targetedTimeBadge {
+  background: rgba(180, 83, 9, 0.08);
+  border-color: rgba(180, 83, 9, 0.22);
+}
+
 .closeCalloutBtn {
   background: transparent;
   border: none;
@@ -179,6 +191,10 @@
 .closeCalloutBtn:hover {
   color: var(--text-primary);
   background: rgba(255, 255, 255, 0.08);
+}
+
+:global(.light-theme) .closeCalloutBtn:hover {
+  background: rgba(67, 52, 34, 0.08);
 }
 
 .targetedBody {
@@ -232,6 +248,14 @@
   box-shadow: 0 6px 24px rgba(217, 145, 22, 0.45);
 }
 
+:global(.light-theme) .playSectionBtn {
+  box-shadow: 0 4px 14px rgba(180, 83, 9, 0.25);
+}
+
+:global(.light-theme) .playSectionBtn:hover {
+  box-shadow: 0 6px 20px rgba(180, 83, 9, 0.35);
+}
+
 .playFromStartBtn {
   background: rgba(255, 255, 255, 0.04);
   color: var(--text-secondary);
@@ -248,6 +272,18 @@
   color: var(--text-primary);
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(255, 255, 255, 0.2);
+}
+
+:global(.light-theme) .playFromStartBtn {
+  background: rgba(67, 52, 34, 0.05);
+  color: var(--text-primary);
+  border: 1px solid rgba(67, 52, 34, 0.18);
+}
+
+:global(.light-theme) .playFromStartBtn:hover {
+  background: rgba(67, 52, 34, 0.1);
+  color: var(--accent-gold);
+  border-color: var(--accent-gold);
 }
 
 @keyframes fadeIn {

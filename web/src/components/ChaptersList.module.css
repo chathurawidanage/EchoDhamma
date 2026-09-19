@@ -82,6 +82,12 @@
   text-transform: uppercase;
 }
 
+:global(.light-theme) .qaBadge {
+  background-color: rgba(147, 51, 234, 0.1);
+  color: #7e22ce;
+  border-color: rgba(147, 51, 234, 0.25);
+}
+
 .title {
   font-size: 0.95rem;
   font-weight: 600;
