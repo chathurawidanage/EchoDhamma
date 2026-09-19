@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Episode, TheroConfig, ChapterData } from '@/types';
 import ChaptersList from './ChaptersList';
@@ -33,12 +33,14 @@ interface EpisodeDetailViewProps {
   };
 }
 
-function getYouTubeEmbedUrl(url?: string): string | null {
+function getYouTubeEmbedUrl(url?: string, startSeconds?: number | null): string | null {
   if (!url) return null;
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
   const match = url.match(regExp);
   const videoId = (match && match[2].length === 11) ? match[2] : null;
-  return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+  if (!videoId) return null;
+  const startParam = startSeconds && startSeconds > 0 ? `?start=${startSeconds}` : '';
+  return `https://www.youtube.com/embed/${videoId}${startParam}`;
 }
 
 export default function EpisodeDetailView({
@@ -48,6 +50,9 @@ export default function EpisodeDetailView({
   transcript,
   directLinks,
 }: EpisodeDetailViewProps) {
+  const [targetTimestamp, setTargetTimestamp] = useState<number | null>(null);
+  const [hasPlayedSection, setHasPlayedSection] = useState(false);
+
   const {
     currentTrack,
     isPlaying,
@@ -58,8 +63,16 @@ export default function EpisodeDetailView({
   } = useAudioPlayer();
 
   const isCurrentEpisode = currentTrack?.id === episode.id;
-  const currentTime = isCurrentEpisode ? globalTime : 0;
-  const youtubeEmbedUrl = getYouTubeEmbedUrl(episode.youtube_url);
+  const currentTime = isCurrentEpisode ? globalTime : (targetTimestamp ?? 0);
+  const youtubeEmbedUrl = getYouTubeEmbedUrl(episode.youtube_url, targetTimestamp);
+
+  // Match target timestamp to a specific chapter/Q&A if available
+  const matchedChapter = targetTimestamp !== null
+    ? chapters?.chapters?.find((c, idx, arr) => {
+        const next = arr[idx + 1];
+        return targetTimestamp >= c.startTime && (!next || targetTimestamp < next.startTime);
+      })
+    : null;
 
   const handlePlayEpisode = (startPosition?: number) => {
     const artworkUrl = episode.image_url || `${getTheroS3BaseUrl(thero)}/${thero.podcast.image_url}`;
@@ -72,6 +85,22 @@ export default function EpisodeDetailView({
       theroId: thero.id,
       duration: episode.duration,
     }, startPosition);
+  };
+
+  const handlePlaySection = (seconds: number) => {
+    setHasPlayedSection(true);
+    handlePlayEpisode(seconds);
+    if (typeof window !== 'undefined' && window.location.hash) {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+  };
+
+  const handleDismissSection = () => {
+    setHasPlayedSection(true);
+    setTargetTimestamp(null);
+    if (typeof window !== 'undefined' && window.location.hash) {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
   };
 
   // Handle seeks from chapter list or transcript clicks
@@ -91,27 +120,35 @@ export default function EpisodeDetailView({
     const parseTimestamp = (): number | null => {
       const hash = window.location.hash;
       const searchParams = new URLSearchParams(window.location.search);
+      let parsed: number | null = null;
       const tParam = searchParams.get('t');
       if (tParam) {
-        const secs = parseInt(tParam, 10);
-        if (!isNaN(secs) && secs >= 0) return secs;
+        const val = parseInt(tParam, 10);
+        if (!isNaN(val) && val >= 0) parsed = val;
       }
-      if (hash && hash.startsWith('#t=')) {
-        const secs = parseInt(hash.replace('#t=', ''), 10);
-        if (!isNaN(secs) && secs >= 0) return secs;
+      if (parsed === null && hash && hash.startsWith('#t=')) {
+        const val = parseInt(hash.replace('#t=', ''), 10);
+        if (!isNaN(val) && val >= 0) parsed = val;
       }
-      return null;
+
+      // If timestamp is beyond the episode duration, ignore it
+      if (parsed !== null && episode.duration && episode.duration > 0 && parsed > episode.duration) {
+        return null;
+      }
+
+      return parsed;
     };
 
     const initialSecs = parseTimestamp();
     if (initialSecs !== null) {
-      handlePlayEpisode(initialSecs);
+      setTargetTimestamp(initialSecs);
     }
 
     const onHashChange = () => {
       const secs = parseTimestamp();
       if (secs !== null) {
-        handleSeek(secs);
+        setTargetTimestamp(secs);
+        setHasPlayedSection(false);
       }
     };
 
@@ -120,6 +157,7 @@ export default function EpisodeDetailView({
   }, [episode.id]);
 
   const handleChapterSeek = (seconds: number, chapterTitle: string) => {
+    setHasPlayedSection(true);
     handleSeek(seconds);
     if (typeof window !== 'undefined' && (window as any).umami) {
       (window as any).umami.track('Chapter Clicked', {
@@ -132,6 +170,7 @@ export default function EpisodeDetailView({
   };
 
   const handleTranscriptSeek = (seconds: number) => {
+    setHasPlayedSection(true);
     handleSeek(seconds);
     if (typeof window !== 'undefined' && (window as any).umami) {
       (window as any).umami.track('Transcript Clicked', {
@@ -143,6 +182,7 @@ export default function EpisodeDetailView({
   };
 
   const handleDescriptionTimestampSeek = (seconds: number, timestampText: string) => {
+    setHasPlayedSection(true);
     handleSeek(seconds);
     if (typeof window !== 'undefined' && (window as any).umami) {
       (window as any).umami.track('Description Timestamp Clicked', {
@@ -235,24 +275,76 @@ export default function EpisodeDetailView({
           )}
         </span>
 
-        {/* Local player segment */}
-        <div className={styles.playerControlsRow}>
-          <button
-            onClick={isCurrentEpisode ? togglePlay : () => handlePlayEpisode()}
-            className={`${styles.playBtn} ${isCurrentEpisode && isPlaying ? styles.playingBtn : ''}`}
-            id="detail-play-button"
-          >
-            {isCurrentEpisode && isPlaying ? (
-              <>
-                <PauseIcon size={14} /> දේශනාව නවත්වන්න (Pause)
-              </>
-            ) : (
-              <>
-                <PlayIcon size={14} /> දේශනාව ශ්‍රවණය කරන්න (Play)
-              </>
-            )}
-          </button>
-        </div>
+        {/* Targeted Section Callout for deep links */}
+        {targetTimestamp !== null && !hasPlayedSection ? (
+          <div className={styles.targetedSectionCard}>
+            <div className={styles.targetedHeaderRow}>
+              <div className={styles.targetedBadgeGroup}>
+                <span className={styles.targetedBadge}>
+                  {matchedChapter?.is_qa ? 'Q&A සාකච්ඡාව' : 'තෝරාගත් කොටස'}
+                </span>
+                <span className={styles.targetedTimeBadge}>
+                  <ClockIcon size={13} /> {matchedChapter?.start_time_str || formatDuration(targetTimestamp)}
+                </span>
+              </div>
+              <button
+                onClick={handleDismissSection}
+                className={styles.closeCalloutBtn}
+                title="සම්පූර්ණ දේශනාව පෙන්වන්න"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className={styles.targetedBody}>
+              <h2 className={styles.targetedTitle}>
+                {matchedChapter ? matchedChapter.title : `වේලාව ${formatDuration(targetTimestamp)} හි අන්තර්ගතය`}
+              </h2>
+              {matchedChapter?.description && (
+                <p className={styles.targetedDesc}>{matchedChapter.description}</p>
+              )}
+            </div>
+
+            <div className={styles.targetedActionRow}>
+              <button
+                onClick={() => handlePlaySection(targetTimestamp)}
+                className={styles.playSectionBtn}
+                id="play-section-button"
+              >
+                <PlayIcon size={15} /> මෙම කොටස ශ්‍රවණය කරන්න
+              </button>
+              <button
+                onClick={() => {
+                  setHasPlayedSection(true);
+                  handlePlayEpisode(0);
+                }}
+                className={styles.playFromStartBtn}
+              >
+                මුල සිට ශ්‍රවණය කරන්න
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* Standard Local player segment when not arriving with an unplayed timed link */
+          <div className={styles.playerControlsRow}>
+            <button
+              onClick={isCurrentEpisode ? togglePlay : () => handlePlayEpisode()}
+              className={`${styles.playBtn} ${isCurrentEpisode && isPlaying ? styles.playingBtn : ''}`}
+              id="detail-play-button"
+            >
+              {isCurrentEpisode && isPlaying ? (
+                <>
+                  <PauseIcon size={14} /> දේශනාව නවත්වන්න
+                </>
+              ) : (
+                <>
+                  <PlayIcon size={14} /> දේශනාව ශ්‍රවණය කරන්න
+                </>
+              )}
+            </button>
+          </div>
+        )}
 
         {/* External Platform Links */}
         <div className={styles.platformSection}>
