@@ -24,7 +24,81 @@ export default async function BookQuestionsChapterPage({ params }: BookQuestions
     notFound();
   }
 
-  return <BookQuestionsClient book={book} parsedBook={parsedBook} chapterId={chapter_id} />;
+  let chapterTitle = 'ප්‍රශ්නෝත්තර';
+  if (chapter_id === 'all') {
+    chapterTitle = 'මුළු පොතෙන්ම ප්‍රශ්න';
+  } else {
+    const match = parsedBook.toc.find(t => t.id === chapter_id);
+    if (match) {
+      chapterTitle = match.title;
+    } else {
+      const chapterMatch = parsedBook.chapters.find(c => c.id === chapter_id);
+      if (chapterMatch) {
+        chapterTitle = chapterMatch.title;
+      }
+    }
+  }
+
+  const pagePath = `/ebooks/${book_id}/questions/${chapter_id}`;
+  const pageUrl = `https://damsak.org${pagePath}`;
+  const bookUrl = `https://damsak.org/ebooks/${book.id}/read/titlepage`;
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          {
+            '@type': 'ListItem',
+            position: 1,
+            name: 'මුල් පිටුව',
+            item: 'https://damsak.org',
+          },
+          {
+            '@type': 'ListItem',
+            position: 2,
+            name: 'දහම් පොත් එකතුව',
+            item: 'https://damsak.org/ebooks',
+          },
+          {
+            '@type': 'ListItem',
+            position: 3,
+            name: book.title,
+            item: bookUrl,
+          },
+          {
+            '@type': 'ListItem',
+            position: 4,
+            name: `ප්‍රශ්නෝත්තර: ${chapterTitle}`,
+            item: pageUrl,
+          },
+        ],
+      },
+      {
+        '@type': 'Quiz',
+        name: `ප්‍රශ්නෝත්තර: ${chapterTitle} - ${book.title}`,
+        description: `ප්‍රශ්නෝත්තර - ${book.title} - ${chapterTitle}`,
+        educationalUse: 'assessment',
+        inLanguage: 'si',
+        about: {
+          '@type': 'Book',
+          name: book.title,
+          url: bookUrl,
+        },
+      },
+    ],
+  };
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <BookQuestionsClient book={book} parsedBook={parsedBook} chapterId={chapter_id} />
+    </>
+  );
 }
 
 export async function generateMetadata({ params }: BookQuestionsChapterPageProps) {
@@ -54,13 +128,25 @@ export async function generateMetadata({ params }: BookQuestionsChapterPageProps
     }
   }
 
+  const pagePath = `/ebooks/${book_id}/questions/${chapter_id}`;
+
   return {
     title: `ප්‍රශ්නෝත්තර: ${chapterTitle} - ${book.title} | DamSak.org`,
     description: `ප්‍රශ්නෝත්තර - ${book.title} - ${chapterTitle}: ${book.description.substring(0, 120)}`,
+    alternates: {
+      canonical: pagePath,
+    },
     openGraph: {
       title: `ප්‍රශ්නෝත්තර: ${chapterTitle} - ${book.title}`,
       description: book.description.substring(0, 160),
+      url: pagePath,
       images: [{ url: book.cover_url }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `ප්‍රශ්නෝත්තර: ${chapterTitle} - ${book.title} | DamSak.org`,
+      description: book.description.substring(0, 160),
+      images: [book.cover_url],
     },
   };
 }

@@ -30,14 +30,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // Ebooks reading and questions routes
   for (const book of ebooks) {
-    // Base redirect route
-    sitemapEntries.push({
-      url: `${baseUrl}/ebooks/${book.id}/read`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.6,
-    });
-
     if (book.html_url) {
       try {
         const parsedBook = await parseBookHtml(book.html_url);
@@ -50,7 +42,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
               url: `${baseUrl}/ebooks/${book.id}/read/${cid}`,
               lastModified: new Date(),
               changeFrequency: 'monthly',
-              priority: 0.6,
+              priority: cid === 'titlepage' ? 0.7 : 0.6,
             });
           }
         }
@@ -65,11 +57,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           });
         }
 
-        // Add questions root route if there are any questions
+        // Add questions routes for chapters that have questions
         const hasQuestions = parsedBook.questions && Object.values(parsedBook.questions).some(q => q && q.length > 0);
         if (hasQuestions) {
+          // Add 'all' questions route if present
           sitemapEntries.push({
-            url: `${baseUrl}/ebooks/${book.id}/questions`,
+            url: `${baseUrl}/ebooks/${book.id}/questions/all`,
             lastModified: new Date(),
             changeFrequency: 'weekly',
             priority: 0.6,

@@ -7,8 +7,37 @@ import styles from './page.module.css';
 export default function HomePage() {
   const theros = getTheros();
 
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebSite',
+        '@id': 'https://damsak.org/#website',
+        url: 'https://damsak.org',
+        name: 'DamSak.org',
+        description: 'නිර්මල ශ්‍රී සද්ධර්ම ප්‍රතිධ්වනිය - උසස් ප්‍රමිතියේ Audio Podcasts සහ ඊ-පොත් (Ebooks)',
+        inLanguage: 'si',
+      },
+      {
+        '@type': 'Organization',
+        '@id': 'https://damsak.org/#organization',
+        name: 'DamSak.org',
+        url: 'https://damsak.org',
+        logo: {
+          '@type': 'ImageObject',
+          url: 'https://damsak.org/logo-full.png',
+        },
+      },
+    ],
+  };
+
   return (
-    <div className={styles.container}>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <div className={styles.container}>
       <main className={styles.main}>
         <section className={styles.heroSection}>
           <div className={styles.heroGlow}></div>
@@ -100,6 +129,7 @@ export default function HomePage() {
       <footer className={styles.footer}>
         <p>© {new Date().getFullYear()} DamSak.org. සියලු සත්වයෝ සුවපත් වෙත්වා.</p>
       </footer>
-    </div>
+      </div>
+    </>
   );
 }

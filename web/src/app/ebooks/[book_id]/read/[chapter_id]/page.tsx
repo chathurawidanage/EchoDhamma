@@ -32,13 +32,16 @@ export default async function ReadBookChapterPage({ params }: ReadBookChapterPag
   // Resolve containing chapter and element scroll anchors on the server
   let activeChapterId = 'titlepage';
   let pendingScrollId: string | null = null;
+  let chapterTitle = 'කියවන්න';
 
   const chapterMatch = parsedBook.chapters.find(c => c.id === chapter_id);
   if (chapterMatch) {
     activeChapterId = chapterMatch.id;
+    chapterTitle = chapterMatch.title;
   } else {
     const match = parsedBook.toc.find(t => t.id === chapter_id);
     if (match) {
+      chapterTitle = match.title;
       const hasSplitChapter = parsedBook.chapters.some(c => c.id === match.id);
       if (hasSplitChapter) {
         activeChapterId = match.id;
@@ -58,14 +61,81 @@ export default async function ReadBookChapterPage({ params }: ReadBookChapterPag
     }
   }
 
+  const pagePath = `/ebooks/${book_id}/read/${chapter_id}`;
+  const pageUrl = `https://damsak.org${pagePath}`;
+  const bookUrl = `https://damsak.org/ebooks/${book.id}/read/titlepage`;
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Book',
+        '@id': `${bookUrl}#book`,
+        name: book.title,
+        author: {
+          '@type': 'Person',
+          name: book.author,
+        },
+        description: book.description,
+        image: `https://damsak.org${book.cover_url}`,
+        inLanguage: 'si',
+        url: bookUrl,
+      },
+      {
+        '@type': 'Chapter',
+        '@id': `${pageUrl}#chapter`,
+        name: chapterTitle,
+        isPartOf: {
+          '@id': `${bookUrl}#book`,
+        },
+        url: pageUrl,
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          {
+            '@type': 'ListItem',
+            position: 1,
+            name: 'මුල් පිටුව',
+            item: 'https://damsak.org',
+          },
+          {
+            '@type': 'ListItem',
+            position: 2,
+            name: 'දහම් පොත් එකතුව',
+            item: 'https://damsak.org/ebooks',
+          },
+          {
+            '@type': 'ListItem',
+            position: 3,
+            name: book.title,
+            item: bookUrl,
+          },
+          {
+            '@type': 'ListItem',
+            position: 4,
+            name: chapterTitle,
+            item: pageUrl,
+          },
+        ],
+      },
+    ],
+  };
+
   return (
-    <BookReaderClient
-      book={book}
-      parsedBook={parsedBook}
-      initialActiveChapterId={activeChapterId}
-      initialPendingScrollId={pendingScrollId}
-      initialChapterId={chapter_id}
-    />
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <BookReaderClient
+        book={book}
+        parsedBook={parsedBook}
+        initialActiveChapterId={activeChapterId}
+        initialPendingScrollId={pendingScrollId}
+        initialChapterId={chapter_id}
+      />
+    </>
   );
 }
 
@@ -94,13 +164,26 @@ export async function generateMetadata({ params }: ReadBookChapterPageProps) {
     }
   }
 
+  const pagePath = `/ebooks/${book_id}/read/${chapter_id}`;
+
   return {
     title: `${chapterTitle} - ${book.title} | DamSak.org`,
     description: `${book.title} - ${chapterTitle}: ${book.description.substring(0, 120)}`,
+    alternates: {
+      canonical: pagePath,
+    },
     openGraph: {
       title: `${chapterTitle} - ${book.title}`,
       description: book.description.substring(0, 160),
+      url: pagePath,
+      type: 'article',
       images: [{ url: book.cover_url }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${chapterTitle} - ${book.title} | DamSak.org`,
+      description: book.description.substring(0, 160),
+      images: [book.cover_url],
     },
   };
 }
