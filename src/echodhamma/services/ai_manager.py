@@ -36,7 +36,7 @@ class AIManager:
         # Initialize the new GenAI client
         self.client = genai.Client(api_key=api_key)
 
-        self.model_name = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
+        self.model_name = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
 
         # Initialize Prompt Service
 
