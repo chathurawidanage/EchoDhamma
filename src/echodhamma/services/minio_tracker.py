@@ -300,21 +300,54 @@ class MinioTracker:
 
         for record in data["Records"]:
             # Only track ObjectAccessed (read/GET) events
-            event_name = record.get("eventName", "")
-            if "ObjectAccessed" not in event_name:
+            event_name = (
+                record.get("eventName")
+                or record.get("event")
+                or data.get("EventName")
+                or ""
+            )
+            api_info = (
+                record.get("api", {}) if isinstance(record.get("api"), dict) else {}
+            )
+            api_name = api_info.get("name", "")
+            trigger = record.get("trigger", "")
+
+            is_access_event = (
+                "ObjectAccessed" in event_name
+                or api_name == "s3:GetObject"
+                or trigger == "s3:GetObject"
+            )
+            if not is_access_event:
                 logger.debug(f"Skipping non-access event: {event_name}")
                 continue
 
-            # Safety check for expected structure
-            if "s3" not in record or "object" not in record["s3"]:
-                logger.warning(
-                    f"Skipping record due to missing s3 or object metadata: {record}"
-                )
+            # If API status is reported, ensure it succeeded
+            api_status = api_info.get("status")
+            if api_status and str(api_status).lower() not in ("success", "ok"):
+                logger.debug(f"Skipping unsuccessful API access: {api_status}")
                 continue
 
-            # Extract basic info
-            s3_info = record["s3"]
-            file_key = s3_info["object"]["key"]
+            # Extract basic info (supports S3 notification & MinIO audit formats)
+            s3_info = (
+                record.get("s3", {}) if isinstance(record.get("s3"), dict) else {}
+            )
+            s3_object = (
+                s3_info.get("object", {})
+                if isinstance(s3_info.get("object"), dict)
+                else {}
+            )
+            s3_bucket = (
+                s3_info.get("bucket", {})
+                if isinstance(s3_info.get("bucket"), dict)
+                else {}
+            )
+
+            file_key = s3_object.get("key") or api_info.get("object")
+            if not file_key:
+                logger.warning(
+                    f"Skipping record due to missing object metadata: {record}"
+                )
+                continue
 
             # 1. Only track MP3s
             if not file_key.endswith(".mp3"):
@@ -322,16 +355,49 @@ class MinioTracker:
                 continue
 
             # Handle bucket name safely
-            bucket_name = "unknown"
-            if "bucket" in s3_info and "name" in s3_info["bucket"]:
-                bucket_name = s3_info["bucket"]["name"]
+            bucket_name = (
+                s3_bucket.get("name")
+                or api_info.get("bucket")
+                or "unknown"
+            )
 
             # Get request parameters safely
-            request_params = record.get("requestParameters", {})
-            client_ip = request_params.get("sourceIPAddress", "0.0.0.0")
-            # Extract visitor User-Agent from source
-            source_info = record.get("source", {})
-            user_agent = source_info.get("userAgent")
+            request_params = (
+                record.get("requestParameters", {})
+                if isinstance(record.get("requestParameters"), dict)
+                else {}
+            )
+            request_query = (
+                record.get("requestQuery", {})
+                if isinstance(record.get("requestQuery"), dict)
+                else {}
+            )
+
+            client_ip = (
+                request_params.get("sourceIPAddress")
+                or request_query.get("x-real-ip")
+                or request_query.get("x-forwarded-for")
+                or record.get("remotehost")
+                or "0.0.0.0"
+            )
+            if isinstance(client_ip, str):
+                if "," in client_ip:
+                    client_ip = client_ip.split(",")[0].strip()
+                if ":" in client_ip and client_ip.count(":") == 1:
+                    client_ip = client_ip.split(":")[0]
+
+            # Extract visitor User-Agent from source or direct field
+            source_info = (
+                record.get("source", {})
+                if isinstance(record.get("source"), dict)
+                else {}
+            )
+            user_agent = (
+                record.get("userAgent")
+                or source_info.get("userAgent")
+                or request_params.get("userAgent")
+                or request_query.get("user-agent")
+            )
 
             # Skip events triggered by scripts/tools (boto3, botocore, minio clients, rclone, curl, etc.)
             if user_agent and isinstance(user_agent, str):
@@ -358,8 +424,20 @@ class MinioTracker:
                 continue
 
             # Exclude metadata checks (e.g. range requests downloading less than 500 KB)
-            response_elements = record.get("responseElements", {})
-            content_length_str = response_elements.get("content-length")
+            response_elements = (
+                record.get("responseElements", {})
+                if isinstance(record.get("responseElements"), dict)
+                else {}
+            )
+            response_header = (
+                record.get("responseHeader", {})
+                if isinstance(record.get("responseHeader"), dict)
+                else {}
+            )
+            content_length_str = (
+                response_elements.get("content-length")
+                or response_header.get("content-length")
+            )
             if content_length_str:
                 try:
                     content_length = int(content_length_str)
@@ -369,6 +447,26 @@ class MinioTracker:
                         )
                         continue
                 except ValueError:
+                    pass
+
+            range_header = request_query.get("range") or record.get(
+                "requestHeaders", {}
+            ).get("range")
+            if (
+                range_header
+                and isinstance(range_header, str)
+                and range_header.startswith("bytes=")
+            ):
+                try:
+                    parts = range_header.replace("bytes=", "").split("-")
+                    if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
+                        range_bytes = int(parts[1]) - int(parts[0]) + 1
+                        if range_bytes < 500 * 1024:
+                            logger.info(
+                                f"Skipping metadata range check ({range_bytes} bytes from range header) for {file_key}"
+                            )
+                            continue
+                except Exception:
                     pass
 
             logger.info(
