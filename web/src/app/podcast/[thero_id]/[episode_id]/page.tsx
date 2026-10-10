@@ -127,7 +127,9 @@ export default async function EpisodePage({ params }: EpisodePageProps) {
     ? thero.podcast.image_url
     : `${getTheroS3BaseUrl(thero)}/${thero.podcast.image_url}`;
   const logoUrl = episode.image_url || theroLogo;
-  const episodeTitle = episode.display_title || episode.title;
+  const seriesName = episode.series_name;
+  const episodeNumber = episode.episode_number;
+  const cleanTitle = episode.clean_title || episode.display_title || episode.title;
   const displayName = thero.name_sinhala
     ? `${thero.name_sinhala} (${thero.name})`
     : thero.name;
@@ -169,7 +171,7 @@ export default async function EpisodePage({ params }: EpisodePageProps) {
     '@type': 'PodcastEpisode',
     '@id': `https://damsak.org/podcast/${thero.id}/${episode.id}#episode`,
     url: `https://damsak.org/podcast/${thero.id}/${episode.id}`,
-    name: episodeTitle,
+    name: cleanTitle,
     description: cleanedDesc,
     datePublished: episode.pub_date ? new Date(episode.pub_date).toISOString() : undefined,
     timeRequired: episode.duration ? formatIsoDuration(episode.duration) : undefined,
@@ -182,13 +184,14 @@ export default async function EpisodePage({ params }: EpisodePageProps) {
     },
     partOfSeries: {
       '@type': 'PodcastSeries',
-      name: displayName,
+      name: seriesName ? `${displayName} - ${seriesName}` : displayName,
       url: `https://damsak.org/podcast/${thero.id}`,
     },
     author: {
       '@type': 'Person',
       name: displayName,
     },
+    ...(episodeNumber && !isNaN(Number(episodeNumber)) ? { episodeNumber: Number(episodeNumber) } : {}),
   };
 
   if (clips.length > 0) {
@@ -215,7 +218,7 @@ export default async function EpisodePage({ params }: EpisodePageProps) {
         {
           '@type': 'ListItem',
           position: 3,
-          name: episodeTitle,
+          name: cleanTitle,
           item: `https://damsak.org/podcast/${thero.id}/${episode.id}`,
         },
       ],
@@ -261,8 +264,8 @@ export async function generateMetadata({ params }: EpisodePageProps) {
   const displayName = thero.name_sinhala 
     ? `${thero.name_sinhala} (${thero.name})` 
     : thero.name;
-  const episodeTitle = episode.display_title || episode.title;
-  const titleText = `${episodeTitle} - ${displayName} | DamSak.org`;
+  const cleanTitle = episode.clean_title || episode.display_title || episode.title;
+  const titleText = `${cleanTitle} - ${displayName} | DamSak.org`;
 
   const cleanedDesc = cleanDescription(episode.description || thero.podcast.description);
   const descText = cleanedDesc.length > 160 ? `${cleanedDesc.substring(0, 157)}...` : cleanedDesc;
@@ -290,7 +293,7 @@ export async function generateMetadata({ params }: EpisodePageProps) {
           url: logoUrl,
           width: 1200,
           height: 1200,
-          alt: episodeTitle,
+          alt: `${displayName} - ${cleanTitle}`,
         },
       ],
     },

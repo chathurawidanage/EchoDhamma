@@ -74,11 +74,19 @@ export default function EpisodeDetailView({
       })
     : null;
 
+  const seriesName = episode.series_name;
+  const episodeNumber = episode.episode_number;
+  const cleanTitle = episode.clean_title || episode.display_title || episode.title;
+
+  const theroLogo = thero.podcast.image_url.startsWith('http')
+    ? thero.podcast.image_url
+    : `${getTheroS3BaseUrl(thero)}/${thero.podcast.image_url}`;
+  const artworkUrl = episode.image_url || theroLogo;
+
   const handlePlayEpisode = (startPosition?: number) => {
-    const artworkUrl = episode.image_url || `${getTheroS3BaseUrl(thero)}/${thero.podcast.image_url}`;
     playTrack({
       id: episode.id,
-      title: episode.display_title || episode.title,
+      title: cleanTitle,
       audioUrl: episode.s3_audio_url || episode.url,
       imageUrl: artworkUrl,
       theroName: thero.name_sinhala || thero.name,
@@ -227,7 +235,7 @@ export default function EpisodeDetailView({
     }
   };
 
-  const queryTitle = encodeURIComponent(episode.display_title || episode.title);
+  const queryTitle = encodeURIComponent(cleanTitle);
   const providers = thero.podcast.providers || {};
 
   const youtubeUrl = episode.youtube_url || `https://www.youtube.com/results?search_query=${queryTitle}`;
@@ -252,28 +260,58 @@ export default function EpisodeDetailView({
             </li>
             <li className={styles.breadcrumbSeparator}>›</li>
             <li className={styles.breadcrumbCurrent} aria-current="page">
-              {episode.display_title || episode.title}
+              {cleanTitle}
             </li>
           </ol>
         </nav>
       </header>
 
       <div className={styles.heroLayout}>
-        <div className={styles.metaInfo}>
-          <span className={styles.date}>{formatDate(episode.pub_date)}</span>
-          <span className={styles.separator}>•</span>
-          <span className={styles.duration}>
-            <ClockIcon size={14} /> {formatDuration(episode.duration)}
-          </span>
-        </div>
+        <div className={styles.heroMain}>
+          <div className={styles.artworkContainer}>
+            <img
+              src={artworkUrl}
+              alt={`${thero.name_sinhala || thero.name} - ${cleanTitle}`}
+              className={styles.heroArtwork}
+              width={140}
+              height={140}
+              fetchPriority="high"
+            />
+          </div>
 
-        <h1 className={styles.title}>{episode.display_title || episode.title}</h1>
-        <span className={styles.speaker}>
-          {thero.name_sinhala || thero.name}
-          {thero.name_sinhala && (
-            <span className={styles.englishNameSmall}> ({thero.name})</span>
-          )}
-        </span>
+          <div className={styles.heroContent}>
+            <div className={styles.metaInfo}>
+              <span className={styles.date}>{formatDate(episode.pub_date)}</span>
+              <span className={styles.separator}>•</span>
+              <span className={styles.duration}>
+                <ClockIcon size={14} /> {formatDuration(episode.duration)}
+              </span>
+
+              {seriesName && (
+                <>
+                  <span className={styles.separator}>•</span>
+                  <span className={styles.seriesBadge}>
+                    {seriesName}
+                  </span>
+                </>
+              )}
+
+              {episodeNumber && (
+                <span className={styles.episodeNumberBadge}>
+                  #{episodeNumber}
+                </span>
+              )}
+            </div>
+
+            <h1 className={styles.title}>{cleanTitle}</h1>
+            <span className={styles.speaker}>
+              {thero.name_sinhala || thero.name}
+              {thero.name_sinhala && (
+                <span className={styles.englishNameSmall}> ({thero.name})</span>
+              )}
+            </span>
+          </div>
+        </div>
 
         {/* Targeted Section Callout for deep links */}
         {targetTimestamp !== null && !hasPlayedSection ? (
@@ -411,7 +449,7 @@ export default function EpisodeDetailView({
               <div className={styles.videoContainer}>
                 <iframe
                   src={youtubeEmbedUrl}
-                  title={`${episode.display_title || episode.title} - YouTube`}
+                  title={`${cleanTitle} - YouTube`}
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowFullScreen
                 ></iframe>

@@ -11,6 +11,10 @@ interface EpisodeCardProps {
 }
 
 export default function EpisodeCard({ episode, theroId }: EpisodeCardProps) {
+  const seriesName = episode.series_name;
+  const episodeNumber = episode.episode_number;
+  const cleanTitle = episode.clean_title || episode.display_title || episode.title;
+
   // Strip any inline HTML tag highlights in case they are set in descriptions
   const cleanDescription = episode.description
     ? episode.description.replace(/<[^>]*>/g, '').substring(0, 150) + '...'
@@ -30,9 +34,24 @@ export default function EpisodeCard({ episode, theroId }: EpisodeCardProps) {
           </Badge>
         </div>
 
-        <h4 className={styles.title} title={episode.display_title || episode.title}>
-          {episode.display_title || episode.title}
+        <h4 className={styles.title} title={cleanTitle}>
+          {cleanTitle}
         </h4>
+
+        {(seriesName || episodeNumber) && (
+          <div className={styles.seriesRow}>
+            {seriesName && (
+              <span className={styles.seriesTag} title={seriesName}>
+                {seriesName}
+              </span>
+            )}
+            {episodeNumber && (
+              <span className={styles.episodeTag}>
+                #{episodeNumber}
+              </span>
+            )}
+          </div>
+        )}
 
         <p className={styles.description}>{cleanDescription}</p>
 

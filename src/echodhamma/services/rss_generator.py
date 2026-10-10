@@ -83,6 +83,52 @@ class RSSGenerator:
             title = item.get("display_title") or item.get("title") or "No Title"
             add_tag(rss_item, "title", title)
 
+            clean_title = item.get("clean_title")
+            series_name = item.get("series") or item.get("series_name")
+            episode_number = item.get("episode_number")
+
+            if not clean_title and title:
+                m = re.match(r"^\[(.*?)\]\s*(.*)$", title.strip())
+                if m:
+                    prefix = m.group(1).strip()
+                    clean_title = m.group(2).strip() or title
+                    if not series_name:
+                        if "|" in prefix:
+                            parts = [p.strip() for p in prefix.split("|", 1)]
+                            series_name = parts[0]
+                            if episode_number is None and len(parts) > 1:
+                                episode_number = parts[1]
+                        elif prefix.isdigit():
+                            if episode_number is None:
+                                episode_number = prefix
+                        else:
+                            series_name = prefix
+
+            if clean_title:
+                add_tag(
+                    rss_item,
+                    "{http://www.itunes.com/dtds/podcast-1.0.dtd}title",
+                    clean_title,
+                )
+
+            if episode_number is not None:
+                try:
+                    ep_num = int(episode_number)
+                    add_tag(
+                        rss_item,
+                        "{http://www.itunes.com/dtds/podcast-1.0.dtd}episode",
+                        str(ep_num),
+                    )
+                except ValueError:
+                    add_tag(
+                        rss_item,
+                        "{http://www.itunes.com/dtds/podcast-1.0.dtd}episode",
+                        str(episode_number),
+                    )
+
+            if series_name:
+                add_tag(rss_item, "series", series_name)
+
             desc = item.get("description", "")
             add_tag(rss_item, "description", f"%%CDATA_START%%{desc}%%CDATA_END%%")
 

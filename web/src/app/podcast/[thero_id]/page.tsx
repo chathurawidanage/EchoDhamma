@@ -104,7 +104,7 @@ export default async function TheroPage({ params, searchParams }: TheroPageProps
       itemListElement: episodes.map((ep, idx) => ({
         '@type': 'ListItem',
         position: idx + 1,
-        name: ep.display_title || ep.title,
+        name: ep.clean_title || ep.display_title || ep.title,
         url: `https://damsak.org/podcast/${thero.id}/${ep.id}`,
       })),
     },

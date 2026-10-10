@@ -43,7 +43,7 @@ export default function Navigation({ theros }: NavigationProps) {
   const isPodcastActive = (theroId: string) => pathname === `/podcast/${theroId}` || pathname?.startsWith(`/podcast/${theroId}/`);
 
   return (
-    <header className={`${styles.header} glass`}>
+    <header className={`${styles.header} glass`} data-nosnippet>
       <div className={styles.headerContent}>
         <Link href="/" className={styles.logoLink}>
           <img src="/logo-icon.png" alt="DamSak.org Logo" className={styles.logoIcon} />
@@ -63,13 +63,13 @@ export default function Navigation({ theros }: NavigationProps) {
               <span className={styles.linkIcon}><HomeIcon size={18} /></span> මුල් පිටුව
             </Link>
 
-            <div className={styles.dropdown}>
+            <div className={styles.dropdown} data-nosnippet>
               <button
                 className={`${styles.navLink} ${styles.dropdownTrigger} ${pathname?.startsWith('/podcast') ? styles.active : ''}`}
               >
                 <span className={styles.linkIcon}><PodcastIcon size={18} /></span> ධර්ම දේශනා <span className={styles.arrow}>▼</span>
               </button>
-              <div className={`${styles.dropdownContent} glass`}>
+              <div className={`${styles.dropdownContent} glass`} data-nosnippet>
                 {theros.map((thero) => (
                   <Link
                     key={thero.id}
@@ -81,6 +81,8 @@ export default function Navigation({ theros }: NavigationProps) {
                         src={thero.podcast.image_url.startsWith('http') ? thero.podcast.image_url : `${getTheroS3BaseUrl(thero)}/${thero.podcast.image_url}`}
                         alt={thero.name_sinhala || thero.name}
                         className={styles.dropdownTheroImage}
+                        loading="lazy"
+                        data-nosnippet
                       />
                     )}
                     <span>{thero.name_sinhala || thero.name.replace('Ven. ', '')}</span>
@@ -147,6 +149,8 @@ export default function Navigation({ theros }: NavigationProps) {
                       src={thero.podcast.image_url.startsWith('http') ? thero.podcast.image_url : `${getTheroS3BaseUrl(thero)}/${thero.podcast.image_url}`}
                       alt={thero.name_sinhala || thero.name}
                       className={styles.mobileTheroImage}
+                      loading="lazy"
+                      data-nosnippet
                     />
                   ) : (
                     <span className={styles.linkIcon}><PodcastIcon size={18} /></span>

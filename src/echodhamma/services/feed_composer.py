@@ -91,6 +91,7 @@ class FeedComposer:
             if ai_data and ai_data.get("title_components"):
                 if skip_title_rewrite:
                     res["display_title"] = original_title
+                    res["clean_title"] = original_title
                     description += f"<b>{original_title}</b><br/><br/>"
                 else:
                     forced_series_path = video_series_map.get(video_id)
@@ -101,27 +102,38 @@ class FeedComposer:
                         forced_series_path=forced_series_path,
                     )
 
+                    topic_summary = ai_data["title_components"].get("topic_summary")
+                    series_path = extracted.get("series_match_path")
+                    episode_num = (
+                        str(extracted.get("episode_number"))
+                        if extracted.get("episode_number") is not None
+                        else None
+                    )
+
                     # 1. Short Title for Feed
                     display_title = format_display_title(
                         original_title,
-                        series_path=extracted.get("series_match_path"),
-                        episode_number=str(extracted.get("episode_number"))
-                        if extracted.get("episode_number") is not None
-                        else None,
-                        topic_summary=ai_data["title_components"].get("topic_summary"),
+                        series_path=series_path,
+                        episode_number=episode_num,
+                        topic_summary=topic_summary,
                     )
 
                     # 2. Full Title for Description
                     hierarchical_title = format_hierarchical_title(
                         original_title,
-                        series_path=extracted.get("series_match_path"),
-                        episode_number=str(extracted.get("episode_number"))
-                        if extracted.get("episode_number") is not None
-                        else None,
-                        topic_summary=ai_data["title_components"].get("topic_summary"),
+                        series_path=series_path,
+                        episode_number=episode_num,
+                        topic_summary=topic_summary,
                     )
 
                     res["display_title"] = display_title
+                    res["clean_title"] = topic_summary or original_title
+                    if series_path and len(series_path) > 0:
+                        res["series"] = series_path[-1]
+                        res["series_name"] = series_path[-1]
+                    if episode_num is not None:
+                        res["episode_number"] = episode_num
+
                     description += f"<b>{hierarchical_title}</b><br/><br/>"
 
             # Append AI description

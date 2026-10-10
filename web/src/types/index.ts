@@ -72,6 +72,9 @@ export interface Episode {
   id: string;
   title: string;
   display_title?: string;
+  clean_title?: string;
+  series_name?: string;
+  episode_number?: string;
   description: string;
   url: string;
   s3_audio_url?: string;

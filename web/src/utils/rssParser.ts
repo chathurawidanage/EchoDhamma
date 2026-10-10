@@ -98,17 +98,25 @@ export function parsePodcastFeed(xmlText: string): Episode[] {
       }
     }
 
+    const rawTitle = item.title || 'No Title';
+    const itunesTitle = typeof item['itunes:title'] === 'string' ? item['itunes:title'].trim() : undefined;
+    const itunesEpisode = item['itunes:episode'] !== undefined ? String(item['itunes:episode']).trim() : undefined;
+    const seriesTag = typeof item.series === 'string' ? item.series.trim() : undefined;
+
     const episode: Episode = {
       id,
-      title: item.title || 'No Title',
-      display_title: item.title || '',
+      title: rawTitle,
+      display_title: rawTitle,
+      clean_title: itunesTitle || rawTitle,
+      series_name: seriesTag,
+      episode_number: itunesEpisode,
       description,
       url: enclosureUrl,
       s3_audio_url: enclosureUrl,
       length_bytes: Number(item.enclosure?.['@_length']) || 0,
       pub_date: item.pubDate || '',
       duration: durationSeconds,
-      image_url: imageHref || channel.image?.url || '',
+      image_url: imageHref || channel['itunes:image']?.['@_href'] || channel.image?.url || '',
       youtube_url: youtubeUrl || undefined,
     };
 
