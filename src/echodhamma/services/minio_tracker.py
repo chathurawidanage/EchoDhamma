@@ -23,7 +23,9 @@ class MinioTracker:
             raise ValueError(
                 "LISTENS_TRACKER_UMAMI_WEBSITE_ID environment variable is required but not set"
             )
-        self.dedupe_window = int(os.getenv("DEDUPE_WINDOW", 10800))  # 3 hour in seconds
+        self.dedupe_window = int(
+            os.getenv("DEDUPE_WINDOW", 86400)
+        )  # 24 hours in seconds (IAB standard)
         self.download_cache = {}
         self.hostname = os.getenv("TRACKING_HOSTNAME", "no.op")
         # Separate executor for lightweight tracking tasks
@@ -217,55 +219,179 @@ class MinioTracker:
 
         return any(keyword in ua_lower for keyword in crawler_keywords)
 
-    def evaluate_session_action(self, ip, file_key):
+    def _parse_range_header(self, range_header):
         """
-        Evaluates the session state for this IP and file download.
+        Parses an HTTP Range header (e.g. 'bytes=0-1802166' or 'bytes=0-').
+        Returns (start_byte, end_byte, length) or (None, None, None).
+        """
+        if not range_header or not isinstance(range_header, str):
+            return None, None, None
+        if not range_header.startswith("bytes="):
+            return None, None, None
+        try:
+            spec = range_header.replace("bytes=", "").strip()
+            parts = spec.split("-")
+            if len(parts) == 2:
+                start_str, end_str = parts[0].strip(), parts[1].strip()
+                start = int(start_str) if start_str.isdigit() else None
+                end = int(end_str) if end_str.isdigit() else None
+                length = (
+                    (end - start + 1)
+                    if (start is not None and end is not None)
+                    else None
+                )
+                return start, end, length
+        except Exception:
+            pass
+        return None, None, None
+
+    def evaluate_session_action(
+        self,
+        ip,
+        user_agent="Unknown",
+        file_key=None,
+        range_header=None,
+        content_length=None,
+    ):
+        """
+        Evaluates the session state for this IP, User-Agent, and file download.
+        Adheres to IAB Podcast Measurement Guidelines v2.1:
+        - Bounded initial range requests (e.g. Safari pre-buffering 1.8 MB) are
+          marked as pending and NOT immediately counted as plays.
+        - Play confirmation occurs when subsequent chunks are requested or
+          playback progresses past the initial buffer.
+        - Full downloads (unbounded or >= 5 MB at once) are confirmed immediately.
+        - Active streams receive heartbeats every 60s to extend visit duration.
+        - Deduplication window default is 24 hours (86400s).
+
         Returns:
-            "pageview" - if it is a new listen session (should send pageview).
-            "heartbeat" - if it is an active streaming session that has progressed
-                          by at least 60 seconds (should send heartbeat event).
-            "skip" - if it is a duplicate range request within the throttle window.
+            "play" - confirmed active play or full episode download.
+            "heartbeat" - active streaming session progression (>= 60s since last heartbeat).
+            "skip" - initial pre-buffer chunk, duplicate request, or throttled range request.
         """
+        # Support backward compatibility if called as evaluate_session_action(ip, file_key)
+        if file_key is None:
+            file_key = user_agent
+            user_agent = "Unknown"
+
         current_time = time.time()
-        cache_key = (ip, file_key)
+        ua_key = (user_agent or "unknown").strip().lower()[:100]
+        cache_key = (ip, ua_key, file_key)
+
+        start_byte, end_byte, range_bytes = self._parse_range_header(range_header)
+
+        # Detect full file downloads vs bounded partial range pre-buffers
+        is_full_or_large_request = False
+        if range_header is None:
+            # Full file requested without Range header
+            is_full_or_large_request = True
+        elif start_byte == 0 and end_byte is None:
+            # Open-ended range request (bytes=0-) downloading entire stream/file
+            is_full_or_large_request = True
+        elif range_bytes is not None and range_bytes >= 5 * 1024 * 1024:
+            # Single range request downloading >= 5 MB
+            is_full_or_large_request = True
+        elif content_length is not None and content_length >= 5 * 1024 * 1024:
+            is_full_or_large_request = True
 
         session = self.download_cache.get(cache_key)
 
+        # 1. New Session
         if session is None:
-            # First time seeing this download
-            self.download_cache[cache_key] = {
-                "start_time": current_time,
-                "last_log_time": current_time,
-                "last_activity_time": current_time,
-            }
-            # Clean up cache occasionally to prevent memory bloat
-            if len(self.download_cache) > 5000:
-                self.clean_cache(current_time)
-            return "pageview"
+            if is_full_or_large_request:
+                # Full file download (e.g. podcast app offline sync)
+                self.download_cache[cache_key] = {
+                    "start_time": current_time,
+                    "last_heartbeat_time": current_time,
+                    "last_activity_time": current_time,
+                    "confirmed": True,
+                    "chunks_count": 1,
+                }
+                if len(self.download_cache) > 5000:
+                    self.clean_cache(current_time)
+                return "play"
+            else:
+                # Initial bounded pre-buffer chunk (e.g. Safari bytes=0-1802166)
+                # Hold in pending state without logging to Umami
+                self.download_cache[cache_key] = {
+                    "start_time": current_time,
+                    "last_heartbeat_time": current_time,
+                    "last_activity_time": current_time,
+                    "confirmed": False,
+                    "chunks_count": 1,
+                    "first_range_end": end_byte or 0,
+                }
+                if len(self.download_cache) > 5000:
+                    self.clean_cache(current_time)
+                logger.info(
+                    f"Pending session recorded for {file_key} from {ip} "
+                    f"(initial buffer: {range_header}). Waiting for play confirmation."
+                )
+                return "skip"
 
-        # Check if session has been inactive for longer than the deduplication window
+        # 2. Existing Session: Check if expired past dedupe_window
         if current_time - session["last_activity_time"] > self.dedupe_window:
             session["start_time"] = current_time
-            session["last_log_time"] = current_time
+            session["last_heartbeat_time"] = current_time
             session["last_activity_time"] = current_time
-            return "pageview"
+            session["chunks_count"] = 1
+            if is_full_or_large_request:
+                session["confirmed"] = True
+                return "play"
+            else:
+                session["confirmed"] = False
+                session["first_range_end"] = end_byte or 0
+                return "skip"
 
-        # Update last activity time
+        # Update activity timestamp
         session["last_activity_time"] = current_time
+        session["chunks_count"] = session.get("chunks_count", 0) + 1
 
-        # If it's an active streaming session, send a heartbeat every 60 seconds
-        if current_time - session["last_log_time"] >= 60:
-            session["last_log_time"] = current_time
+        # 3. Session is not yet confirmed (was an initial pre-buffer)
+        if not session.get("confirmed", False):
+            is_subsequent_chunk = start_byte is not None and start_byte > 0
+            has_multiple_chunks = session["chunks_count"] >= 2
+            time_elapsed = current_time - session["start_time"]
+
+            # Confirm play if client requests beyond byte 0 or makes multiple requests over time
+            if (
+                is_full_or_large_request
+                or is_subsequent_chunk
+                or (has_multiple_chunks and time_elapsed >= 2)
+            ):
+                session["confirmed"] = True
+                session["last_heartbeat_time"] = current_time
+                logger.info(
+                    f"Confirmed active play for {file_key} from {ip} "
+                    f"(chunk {session['chunks_count']}, range={range_header}, elapsed={time_elapsed:.1f}s)"
+                )
+                return "play"
+
+            return "skip"
+
+        # 4. Session is ALREADY confirmed: Check for heartbeat
+        if current_time - session.get("last_heartbeat_time", 0) >= 60:
+            session["last_heartbeat_time"] = current_time
             return "heartbeat"
 
         return "skip"
 
     def clean_cache(self, now):
         """Remove expired entries from cache."""
+        unconfirmed_ttl = min(3600, self.dedupe_window)
         self.download_cache = {
             k: v
             for k, v in self.download_cache.items()
-            if now - v["last_activity_time"] < self.dedupe_window
+            if (
+                (
+                    v.get("confirmed", False)
+                    and now - v["last_activity_time"] < self.dedupe_window
+                )
+                or (
+                    not v.get("confirmed", False)
+                    and now - v["last_activity_time"] < unconfirmed_ttl
+                )
+            )
         }
 
     def _log_download_async(self, payload, headers, file_key):
@@ -438,6 +564,7 @@ class MinioTracker:
                 response_elements.get("content-length")
                 or response_header.get("content-length")
             )
+            content_length = None
             if content_length_str:
                 try:
                     content_length = int(content_length_str)
@@ -447,7 +574,7 @@ class MinioTracker:
                         )
                         continue
                 except ValueError:
-                    pass
+                    content_length = None
 
             range_header = request_query.get("range") or record.get(
                 "requestHeaders", {}
@@ -479,11 +606,17 @@ class MinioTracker:
                     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/119.0.0.0"
                 )
 
-            # 2. SESSION TRACKING & DEDUPLICATION
-            action = self.evaluate_session_action(client_ip, file_key)
+            # 2. SESSION TRACKING & DEDUPLICATION (IAB v2.1 stream confirmation)
+            action = self.evaluate_session_action(
+                client_ip,
+                user_agent,
+                file_key,
+                range_header=range_header,
+                content_length=content_length,
+            )
             if action == "skip":
                 logger.info(
-                    f"Skipping duplicate range request for file_key={file_key} from client_ip={client_ip}"
+                    f"Skipping unconfirmed buffer or duplicate range request for file_key={file_key} from client_ip={client_ip}"
                 )
                 continue
 
