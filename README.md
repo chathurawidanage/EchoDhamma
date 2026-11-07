@@ -82,6 +82,7 @@ Each Thero has its own JSON configuration file. Key fields include:
 | `ai_config.check_podcast_friendly` | Use AI to determine podcast compatibility |
 | `sync_config.max_videos_per_day` | Daily limit for video processing |
 | `sync_config.max_ai_calls_per_day` | Daily limit for AI API calls (separate from video limit) |
+| `sync_config.chapter_grace_period_days` | Grace period (in days, default: 7) to wait for YouTube subtitles and chapter alignment before publishing |
 | `rss_filename` | Name of the generated RSS file (e.g., `podcast.xml`) |
 | `s3.*_env` | Environment variable names for S3 credentials |
 | `podcast.*` | Podcast metadata (title, description, author, etc.) |

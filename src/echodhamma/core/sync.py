@@ -1,3 +1,4 @@
+import datetime
 import json
 import logging
 import os
@@ -6,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 import sentry_sdk
 from dotenv import load_dotenv
 
+from echodhamma.utils.date_utils import get_safe_pub_date
 from echodhamma.services.ai_manager import (
     AIManager,
 )
@@ -119,26 +121,38 @@ class PodcastSync:
         return True
 
     def _is_valid_episode(self, metadata):
-        video_id = metadata.get("id")
-        if self.s3.file_exists(f"{video_id}_transcript.missing"):
-            return False
-
         ai_resp = metadata.get("ai_response") or {}
         is_friendly = ai_resp.get("podcast_friendly", True)
         is_match = metadata.get("title_match", True)
-
-        is_chapters_ready = not ai_resp.get("chapters") or bool(
-            ai_resp.get("aligned_chapters")
-        )
-
         is_in_block_list = metadata.get("id") in self.blocklist
 
-        return (
-            is_friendly is not False
-            and is_match is not False
-            and is_chapters_ready is not False
-            and is_in_block_list is not True
+        if is_match is False or is_friendly is False or is_in_block_list is True:
+            return False
+
+        if not metadata.get("s3_audio_url"):
+            return False
+
+        # If chapters are not present or already aligned, it's immediately ready
+        has_chapters = bool(ai_resp.get("chapters"))
+        has_aligned = bool(ai_resp.get("aligned_chapters"))
+
+        if not has_chapters or has_aligned:
+            return True
+
+        # Chapters exist but are not yet aligned.
+        # Check grace period: hold from RSS feed only while video is under 7 days old to give YouTube time to generate subtitles.
+        grace_days = self.sync_config.get(
+            "chapter_grace_period_days",
+            self.sync_config.get("chapter_grace_period_hours", 7 * 24) / 24,
         )
+        pub_dt = get_safe_pub_date(metadata)
+        age = datetime.datetime.now(datetime.timezone.utc) - pub_dt
+
+        if age < datetime.timedelta(days=grace_days):
+            return False
+
+        # 7-day grace period has passed; publish without aligned chapters
+        return True
 
     def _get_expanded_whitelist(self):
         whitelisted_ids = set()
@@ -367,9 +381,35 @@ class PodcastSync:
                             s3_transcript_key,
                             "text/plain",
                         )
-            except (TranscriptsDisabled, NoTranscriptFound):
+            except TranscriptsDisabled:
                 logger.warning(
-                    f"[{self.thero_name}] Subtitles disabled/missing for {video_id}. Creating missing marker."
+                    f"[{self.thero_name}] Subtitles disabled by creator for {video_id}. Creating missing marker."
+                )
+                missing_file = f"{video_id}_transcript.missing"
+                with open(missing_file, "w", encoding="utf-8") as f:
+                    f.write(video_id)
+                try:
+                    self.s3.upload_file(missing_file, missing_file, "text/plain")
+                finally:
+                    if os.path.exists(missing_file):
+                        os.remove(missing_file)
+                return
+            except NoTranscriptFound:
+                grace_days = self.sync_config.get(
+                    "chapter_grace_period_days",
+                    self.sync_config.get("chapter_grace_period_hours", 7 * 24) / 24,
+                )
+                pub_dt = get_safe_pub_date(metadata)
+                age = datetime.datetime.now(datetime.timezone.utc) - pub_dt
+
+                if age < datetime.timedelta(days=grace_days):
+                    logger.info(
+                        f"[{self.thero_name}] Subtitles not yet available for {video_id} (age: {age}). Will retry during {grace_days}-day grace period."
+                    )
+                    return
+
+                logger.warning(
+                    f"[{self.thero_name}] Subtitles missing after {grace_days}-day grace period for {video_id}. Creating missing marker."
                 )
                 missing_file = f"{video_id}_transcript.missing"
                 with open(missing_file, "w", encoding="utf-8") as f:
