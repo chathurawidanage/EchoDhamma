@@ -72,8 +72,18 @@ class S3Manager:
             for page in pages
             if "Contents" in page
             for obj in page["Contents"]
-            if obj["Key"].endswith(".json") and obj["Key"] != "sync_state.json"
+            if obj["Key"].endswith(".json")
+            and "/" not in obj["Key"]
+            and not obj["Key"].endswith("_chapters.json")
+            and obj["Key"] != "sync_state.json"
         ]
+
+    def get_existing_video_ids(self):
+        """
+        Fetches all existing metadata video IDs in one paginated call.
+        Returns a set of video ID strings.
+        """
+        return {key[:-5] for key in self.list_metadata_files()}
 
     def load_state(self, state_file):
         try:

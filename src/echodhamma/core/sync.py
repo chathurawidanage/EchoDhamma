@@ -166,13 +166,24 @@ class PodcastSync:
             self.config.get("youtube_channel_url")
         ]
 
-        video_items = self.yt_client.get_channel_videos(urls)
+        existing_ids = self.s3.get_existing_video_ids()
+        chunk_size = self.sync_config.get("channel_chunk_size", 100)
+        consecutive_seen_threshold = self.sync_config.get(
+            "consecutive_seen_threshold", 5
+        )
+
+        video_items = self.yt_client.get_channel_videos(
+            urls,
+            existing_ids=existing_ids,
+            chunk_size=chunk_size,
+            consecutive_seen_threshold=consecutive_seen_threshold,
+        )
         whitelisted_ids = self._get_expanded_whitelist()
 
         # Add whitelisted videos that are not in the channel video feeds
         fetched_ids = {item["id"] for item in video_items}
         for vid_id in whitelisted_ids:
-            if vid_id not in fetched_ids:
+            if vid_id not in fetched_ids and vid_id not in existing_ids:
                 video_items.append(
                     {
                         "id": vid_id,
@@ -187,7 +198,7 @@ class PodcastSync:
                 break
 
             vid_id = item["id"]
-            if self.s3.file_exists(f"{vid_id}.json"):
+            if vid_id in existing_ids:
                 continue
 
             try:
@@ -198,6 +209,7 @@ class PodcastSync:
 
                 # Save metadata regardless of outcome to avoid re-processing
                 self.s3.save_metadata(metadata)
+                existing_ids.add(vid_id)
 
                 if metadata.get("title_match") is False:
                     skipped_counter.labels(

@@ -108,7 +108,8 @@ GNANALOKA_THERO_S3_SECRET_KEY=your-secret-key
 
 ```env
 GEMINI_API_KEY=your-gemini-api-key
-GEMINI_MODEL=gemini-3-flash-preview  # Optional, defaults to gemini-3-flash-preview
+GEMINI_MODEL=gemini-3.8-flash        # Optional, defaults to gemini-3.8-flash
+GEMINI_TIMEOUT_SECONDS=180          # Optional, defaults to 180 seconds
 ```
 
 ## Running Locally

@@ -24,8 +24,16 @@ class AIRateLimitError(AIGenerationError):
     pass
 
 
+class AITimeoutError(AIGenerationError):
+    """Raised when AI request times out."""
+
+    pass
+
+
 class AIManager:
-    def __init__(self, s3_manager=None, rate_limiter=None, api_key=None):
+    def __init__(
+        self, s3_manager=None, rate_limiter=None, api_key=None, timeout_seconds=None
+    ):
         self.s3_manager = s3_manager
         self.rate_limiter = rate_limiter
         if not api_key:
@@ -33,8 +41,14 @@ class AIManager:
         if not api_key:
             logger.warning("GEMINI_API_KEY not found in environment variables.")
 
-        # Initialize the new GenAI client
-        self.client = genai.Client(api_key=api_key)
+        if timeout_seconds is None:
+            timeout_seconds = int(os.getenv("GEMINI_TIMEOUT_SECONDS", "180"))
+
+        self.timeout_seconds = timeout_seconds
+
+        # Initialize the GenAI client with explicit timeout (in milliseconds for HttpOptions)
+        http_options = types.HttpOptions(timeout=self.timeout_seconds * 1000)
+        self.client = genai.Client(api_key=api_key, http_options=http_options)
 
         self.model_name = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
 
@@ -90,6 +104,8 @@ class AIManager:
             err_msg = str(e).lower()
             if "429" in err_msg or "rate limit" in err_msg:
                 raise AIRateLimitError(f"AI Rate limit reached: {e}")
+            if "timeout" in err_msg or "timed out" in err_msg:
+                raise AITimeoutError(f"AI request timed out: {e}")
             raise AIGenerationError(f"AI Generation failed: {e}")
 
         return None
@@ -165,6 +181,8 @@ class AIManager:
             err_msg = str(e).lower()
             if "429" in err_msg or "rate limit" in err_msg:
                 raise AIRateLimitError(f"AI Rate limit reached during alignment: {e}")
+            if "timeout" in err_msg or "timed out" in err_msg:
+                raise AITimeoutError(f"AI alignment request timed out: {e}")
             raise AIGenerationError(f"Alignment failed: {e}")
 
         return None

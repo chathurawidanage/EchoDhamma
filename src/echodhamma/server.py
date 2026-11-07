@@ -73,6 +73,7 @@ def trigger_sync():
     """Triggers the podcast synchronization workflow asynchronously."""
     global _current_task
     if _current_task is not None and not _current_task.done():
+        logger.warning("Sync request rejected: Sync already in progress")
         return jsonify({"status": "error", "message": "Sync already in progress"}), 429
 
     _current_task = executor.submit(_run_sync)
@@ -88,6 +89,7 @@ def trigger_rss_sync():
     """Triggers the RSS update workflow asynchronously."""
     global _current_task
     if _current_task is not None and not _current_task.done():
+        logger.warning("RSS sync request rejected: Sync/RSS update already in progress")
         return (
             jsonify(
                 {"status": "error", "message": "Sync/RSS update already in progress"}
