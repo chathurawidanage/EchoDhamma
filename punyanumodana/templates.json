@@ -62,5 +62,21 @@
     },
     "baseFontSize": 56,
     "data": "https://docs.google.com/spreadsheets/d/1LECETIrZyAwubUahKTg_XC-ccwAPBat9V7wCmpQAeGU/edit?usp=sharing"
+  },
+  {
+    "id": "nelumgala",
+    "name": "Nelumgala",
+    "image": "templates/nelumgala.png",
+    "textColor": "#ffffff",
+    "order": "name_first",
+    "suffix": "විසින්",
+    "bounds": {
+      "x": 157,
+      "y": 680,
+      "width": 1100,
+      "height": 230
+    },
+    "baseFontSize": 56,
+    "data": "https://docs.google.com/spreadsheets/d/1aKVSRl4ePhdV1pzgH5M-g0sUYtmhFq8bLrr-3yCZ7_Q/edit?usp=sharing"
   }
 ]
