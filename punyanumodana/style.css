@@ -116,6 +116,31 @@ body {
   color: var(--text-sub);
 }
 
+.label-with-loader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.inline-loader {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--primary);
+}
+
+.inline-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(217, 119, 6, 0.25);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+  display: inline-block;
+}
+
 .form-control {
   font-family: var(--font-sinhala);
   font-size: 0.95rem;
@@ -387,6 +412,7 @@ textarea.form-control {
 
 /* Canvas Viewport */
 .canvas-viewport {
+  position: relative;
   flex: 1;
   overflow: auto;
   display: flex;
@@ -394,6 +420,54 @@ textarea.form-control {
   justify-content: center;
   padding: 24px;
   -webkit-overflow-scrolling: touch;
+}
+
+/* Canvas Loader Overlay */
+.canvas-loader {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  color: #ffffff;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  pointer-events: none;
+}
+
+.canvas-loader.active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.loader-spinner {
+  width: 38px;
+  height: 38px;
+  border: 3.5px solid rgba(255, 255, 255, 0.18);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+}
+
+.loader-text {
+  font-size: 0.92rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: #f1f5f9;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .canvas-wrapper {

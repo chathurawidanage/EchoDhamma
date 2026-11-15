@@ -15,6 +15,25 @@ const loadedImages = {};
 let currentZoom = 1.0;
 let isFitMode = true;
 
+let currentSwitchToken = 0;
+
+// Loading state helpers
+function setPreviewLoading(isLoading, text = 'Loading template...') {
+  const loader = document.getElementById('canvasLoader');
+  if (loader) {
+    const textEl = loader.querySelector('.loader-text');
+    if (textEl && text) textEl.textContent = text;
+    loader.classList.toggle('active', isLoading);
+  }
+}
+
+function setDonorLoading(isLoading) {
+  const loader = document.getElementById('donorLoader');
+  if (loader) {
+    loader.style.display = isLoading ? 'inline-flex' : 'none';
+  }
+}
+
 // Toast helper
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -135,6 +154,7 @@ async function syncDonorFromSheet() {
   const nameInput = document.getElementById('nameInput');
   if (!dateInput || !nameInput) return;
 
+  setDonorLoading(true);
   try {
     const rows = await fetchSheetData(currentTemplate.data);
     const donors = findDonorsForDate(rows, dateInput.value);
@@ -142,7 +162,6 @@ async function syncDonorFromSheet() {
     if (donors.length > 0) {
       // Default to the first donor for this date
       nameInput.value = donors[0];
-      renderCanvas();
 
       // If multiple donors exist for this date, show clickable options under Donor Name
       if (donors.length > 1 && container && listEl) {
@@ -168,6 +187,8 @@ async function syncDonorFromSheet() {
     }
   } catch (err) {
     console.warn('Sync donor error:', err);
+  } finally {
+    setDonorLoading(false);
   }
 }
 
@@ -367,15 +388,20 @@ function loadTemplateImage(template) {
 async function renderCanvas() {
   await document.fonts.ready;
   const canvas = document.getElementById('certCanvas');
-  if (!canvas) return;
+  if (!canvas || !currentTemplate) return;
   const ctx = canvas.getContext('2d');
 
   let img;
+  const needsImageLoad = !loadedImages[currentTemplate.id];
+  if (needsImageLoad) {
+    setPreviewLoading(true, 'Loading preview...');
+  }
   try {
     img = await loadTemplateImage(currentTemplate);
   } catch (e) {
     console.error('Failed to load image:', e);
     showToast('Template image could not be loaded');
+    setPreviewLoading(false);
     return;
   }
 
@@ -508,6 +534,8 @@ async function renderCanvas() {
       ctx.fillText(formattedDate, cx, dateY);
     }
   }
+
+  setPreviewLoading(false);
 }
 
 // Download high-resolution PNG (Safe on both Mobile Safari & Desktop)
@@ -574,6 +602,7 @@ async function selectTemplate(templateId) {
   const found = templates.find(t => t.id === templateId);
   if (!found) return;
   currentTemplate = found;
+  const switchToken = ++currentSwitchToken;
 
   // Update select input
   const select = document.getElementById('templateSelect');
@@ -585,8 +614,32 @@ async function selectTemplate(templateId) {
   });
 
   updateSuffixUI();
-  await syncDonorFromSheet();
-  renderCanvas();
+
+  // Show loading indicators
+  const needsImageLoad = !loadedImages[currentTemplate.id];
+  if (needsImageLoad) {
+    setPreviewLoading(true, 'Loading template...');
+  }
+  setDonorLoading(true);
+
+  try {
+    // Parallelize sheet data fetch and image preload
+    await Promise.all([
+      syncDonorFromSheet(),
+      loadTemplateImage(currentTemplate)
+    ]);
+  } catch (err) {
+    console.error('Error switching template:', err);
+  } finally {
+    if (switchToken === currentSwitchToken) {
+      setDonorLoading(false);
+    }
+  }
+
+  if (switchToken !== currentSwitchToken) return;
+
+  await renderCanvas();
+  setPreviewLoading(false);
 }
 
 // Populate template selector dropdown and chips dynamically
@@ -727,9 +780,13 @@ window.addEventListener('DOMContentLoaded', async () => {
 
   // Load templates from JSON, sync donor, then draw (fails explicitly if cannot be loaded)
   try {
+    setPreviewLoading(true, 'Loading template...');
     await loadTemplatesConfig();
-    await syncDonorFromSheet();
-    renderCanvas();
+    await Promise.all([
+      syncDonorFromSheet(),
+      loadTemplateImage(currentTemplate)
+    ]);
+    await renderCanvas();
   } catch (err) {
     console.error('Fatal error loading templates:', err);
     showToast('Failed to load templates from JSON');
@@ -737,5 +794,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     if (wrapper) {
       wrapper.innerHTML = `<div style="color: #ef4444; padding: 2rem; text-align: center; font-weight: 600;">Failed to load templates from JSON: ${err.message}</div>`;
     }
+  } finally {
+    setPreviewLoading(false);
   }
 });

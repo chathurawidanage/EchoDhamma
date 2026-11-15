@@ -12,7 +12,7 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Sans+Sinhala:wght@400;600;700&display=swap"
     rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=10">
 </head>
 
 <body>
@@ -43,7 +43,13 @@
 
       <!-- Donor Name Field -->
       <div class="form-group">
-        <label for="nameInput" class="form-label">Donor Name</label>
+        <label for="nameInput" class="form-label label-with-loader">
+          <span>Donor Name</span>
+          <span id="donorLoader" class="inline-loader" style="display: none;">
+            <span class="inline-spinner"></span>
+            <span>Loading donors...</span>
+          </span>
+        </label>
 
         <!-- Multi-donor options container (shown when a date has multiple donors) -->
         <div id="donorOptionsContainer" class="donor-options-container" style="display: none;">
@@ -61,11 +67,11 @@
 
       <!-- Desktop Action Buttons -->
       <div class="action-buttons desktop-actions">
-        <button type="button" class="btn btn-primary btn-lg" id="downloadBtn">
-          📥 Download PNG
+        <button type="button" class="btn btn-primary btn-lg" id="shareBtn">
+          ↗️ Share
         </button>
-        <button type="button" class="btn btn-secondary" id="shareBtn">
-          ↗️ Share Image
+        <button type="button" class="btn btn-secondary" id="downloadBtn">
+          📥 Download
         </button>
       </div>
     </aside>
@@ -77,6 +83,10 @@
       </div>
 
       <div class="canvas-viewport" id="canvasViewport">
+        <div class="canvas-loader" id="canvasLoader">
+          <div class="loader-spinner"></div>
+          <span class="loader-text">Loading template...</span>
+        </div>
         <div class="canvas-wrapper" id="canvasWrapper">
           <canvas id="certCanvas"></canvas>
         </div>
@@ -84,11 +94,11 @@
 
       <!-- Mobile Action Buttons (Displayed after scrolling past the preview) -->
       <div class="action-buttons mobile-actions">
-        <button type="button" class="btn btn-primary btn-lg" id="downloadBtnMobile">
-          📥 Download PNG
-        </button>
-        <button type="button" class="btn btn-secondary" id="shareBtnMobile">
+        <button type="button" class="btn btn-primary btn-lg" id="shareBtnMobile">
           ↗️ Share Image
+        </button>
+        <button type="button" class="btn btn-secondary" id="downloadBtnMobile">
+          📥 Download PNG
         </button>
       </div>
     </section>
@@ -98,7 +108,7 @@
   <div id="toast" class="toast"></div>
 
   <!-- Scripts -->
-  <script src="app.js?v=9"></script>
+  <script src="app.js?v=10"></script>
 </body>
 
 </html>
