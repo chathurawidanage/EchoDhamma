@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Punyanumodana Certificate Generator</title>
+
+  <!-- Modern Clean Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Sans+Sinhala:wght@400;600;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <main class="app-layout">
+    <!-- Controls Sidebar (Desktop: Left column; Mobile: Top section) -->
+    <aside class="panel controls">
+      <div class="sidebar-header">
+        <h1>Punyanumodana</h1>
+      </div>
+
+      <!-- Template Selector -->
+      <div class="form-group">
+        <label for="templateSelect" class="form-label">Template</label>
+        <div class="template-chips" id="templateChips"></div>
+        <select id="templateSelect" class="sr-only"></select>
+      </div>
+
+      <!-- Date Field -->
+      <div class="form-group">
+        <label for="dateInput" class="form-label">Date</label>
+        <div class="date-input-wrap">
+          <input type="date" id="dateInput" class="form-control date-control">
+          <button type="button" class="btn-today" id="btnSetToday">Today</button>
+          <button type="button" class="btn-today" id="btnSetTomorrow">Tomorrow</button>
+        </div>
+      </div>
+
+      <!-- Donor Name Field -->
+      <div class="form-group">
+        <label for="nameInput" class="form-label">Donor Name</label>
+
+        <!-- Multi-donor options container (shown when a date has multiple donors) -->
+        <div id="donorOptionsContainer" class="donor-options-container" style="display: none;">
+          <span class="donor-options-title">Available donors for this date:</span>
+          <div id="donorOptions" class="donor-options-list"></div>
+        </div>
+
+        <textarea id="nameInput" class="form-control" rows="3"
+          placeholder="e.g. පින්වත් ලලනි පතිරණ මිය"></textarea>
+
+        <label class="checkbox-label" for="appendVisinCheck" id="appendVisinLabel">
+          <input type="checkbox" id="appendVisinCheck" checked>
+          <span id="appendVisinText">Append <strong>"විසින්"</strong> at the end</span>
+        </label>
+      </div>
+
+      <!-- Desktop Action Buttons -->
+      <div class="action-buttons desktop-actions">
+        <button type="button" class="btn btn-primary btn-lg" id="downloadBtn">
+          📥 Download PNG
+        </button>
+        <button type="button" class="btn btn-secondary" id="shareBtn">
+          ↗️ Share Image
+        </button>
+      </div>
+    </aside>
+
+    <!-- Certificate Preview Area (Desktop: Right column; Mobile: Below inputs) -->
+    <section class="panel preview-area">
+      <div class="preview-header">
+        <span class="preview-title">Preview</span>
+      </div>
+
+      <div class="canvas-viewport" id="canvasViewport">
+        <div class="canvas-wrapper" id="canvasWrapper">
+          <canvas id="certCanvas"></canvas>
+        </div>
+      </div>
+
+      <!-- Mobile Action Buttons (Displayed after scrolling past the preview) -->
+      <div class="action-buttons mobile-actions">
+        <button type="button" class="btn btn-primary btn-lg" id="downloadBtnMobile">
+          📥 Download PNG
+        </button>
+        <button type="button" class="btn btn-secondary" id="shareBtnMobile">
+          ↗️ Share Image
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Toast notification -->
+  <div id="toast" class="toast"></div>
+
+  <!-- Scripts -->
+  <script src="app.js?v=9"></script>
+</body>
+
+</html>

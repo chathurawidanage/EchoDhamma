@@ -1,0 +1,66 @@
+[
+  {
+    "id": "pabbatharama",
+    "name": "Pabbatharama",
+    "image": "templates/pabbatharama.png",
+    "textColor": "#ffffff",
+    "order": "name_first",
+    "suffix": "විසින්",
+    "bounds": {
+      "x": 157,
+      "y": 661,
+      "width": 1100,
+      "height": 250
+    },
+    "baseFontSize": 56,
+    "data": "https://docs.google.com/spreadsheets/d/1WUOi7n2VTs2NF2sq3IIco9KvXYCob4XKNNTVQJLEoQs/edit?usp=sharing"
+  },
+  {
+    "id": "ranagirilena",
+    "name": "Ranagirilena",
+    "image": "templates/ranagirilena.png",
+    "textColor": "#5e17eb",
+    "order": "name_first",
+    "suffix": "විසින්",
+    "bounds": {
+      "x": 160,
+      "y": 805,
+      "width": 1100,
+      "height": 315
+    },
+    "baseFontSize": 58,
+    "data": "https://docs.google.com/spreadsheets/d/1pndIZN3ez9UBR8aYQp32X42FkMXbDENcYRBpMkOB0T4/edit?usp=sharing"
+  },
+  {
+    "id": "yogavachara_vana_senasuna",
+    "name": "Yogavachara Vana Senasuna",
+    "image": "templates/yogavachara_vana_senasuna.png",
+    "textColor": "#ffffff",
+    "order": "name_first",
+    "suffix": "විසින්",
+    "bounds": {
+      "x": 194,
+      "y": 725,
+      "width": 1200,
+      "height": 270
+    },
+    "baseFontSize": 54,
+    "data": "https://docs.google.com/spreadsheets/d/12juUN5KzoVizzgKrA-zRjKTRD602yxMJrqHnXCQmxwA/edit?usp=sharing"
+  },
+  {
+    "id": "yakdessagala",
+    "name": "Yakdessagala",
+    "image": "templates/yakdessagala.png",
+    "textColor": "#000000",
+    "order": "name_first",
+    "suffix": "විසින්",
+    "bounds": {
+      "x": 157,
+      "y": 1068,
+      "width": 1100,
+      "height": 254
+    },
+    "baseFontSize": 56,
+    "data": "https://docs.google.com/spreadsheets/d/1LECETIrZyAwubUahKTg_XC-ccwAPBat9V7wCmpQAeGU/edit?usp=sharing"
+  }
+]
