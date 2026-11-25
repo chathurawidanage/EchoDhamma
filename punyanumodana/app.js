@@ -3,6 +3,38 @@
  * Mobile-friendly, high-performance HTML5 Canvas renderer.
  */
 
+// Analytics tracking helper for Umami
+const umamiEventQueue = [];
+
+function trackEvent(eventName, eventData = {}) {
+  try {
+    if (typeof window !== 'undefined' && window.umami && typeof window.umami.track === 'function') {
+      window.umami.track(eventName, eventData);
+    } else {
+      umamiEventQueue.push({ eventName, eventData });
+    }
+  } catch (err) {
+    console.debug('Umami track error:', err);
+  }
+}
+
+function flushUmamiQueue() {
+  if (typeof window !== 'undefined' && window.umami && typeof window.umami.track === 'function') {
+    while (umamiEventQueue.length > 0) {
+      const item = umamiEventQueue.shift();
+      try {
+        window.umami.track(item.eventName, item.eventData);
+      } catch (err) {
+        console.debug('Flushed Umami track error:', err);
+      }
+    }
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('load', flushUmamiQueue);
+}
+
 const SINHALA_MONTHS = [
   'ජනවාරි', 'පෙබරවාරි', 'මාර්තු', 'අප්‍රේල්', 'මැයි', 'ජූනි',
   'ජූලි', 'අගෝස්තු', 'සැප්තැම්බර්', 'ඔක්තෝබර්', 'නොවැම්බර්', 'දෙසැම්බර්'
@@ -175,6 +207,12 @@ async function syncDonorFromSheet() {
           btn.textContent = donor;
 
           btn.onclick = () => {
+            trackEvent('Donor Option Selected', {
+              template_id: currentTemplate?.id || '',
+              template_name: currentTemplate?.name || '',
+              donor_index: idx + 1,
+              total_options: donors.length
+            });
             nameInput.value = donor;
             listEl.querySelectorAll('.donor-option-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
@@ -539,11 +577,19 @@ async function renderCanvas() {
 }
 
 // Download high-resolution PNG (Safe on both Mobile Safari & Desktop)
-function downloadCertificate() {
+function downloadCertificate(source = 'desktop') {
   const canvas = document.getElementById('certCanvas');
   if (!canvas) return;
 
   showToast('Preparing download...');
+
+  trackEvent('Certificate Download', {
+    template_id: currentTemplate?.id || '',
+    template_name: currentTemplate?.name || '',
+    source: source,
+    has_donor: Boolean(document.getElementById('nameInput')?.value.trim()),
+    date: document.getElementById('dateInput')?.value || ''
+  });
 
   canvas.toBlob((blob) => {
     if (!blob) {
@@ -568,7 +614,7 @@ function downloadCertificate() {
 }
 
 // Mobile Web Share API
-async function shareCertificate() {
+async function shareCertificate(source = 'desktop') {
   const canvas = document.getElementById('certCanvas');
   if (!canvas) return;
 
@@ -576,6 +622,8 @@ async function shareCertificate() {
     if (!blob) return;
     const filename = `punyanumodana-${currentTemplate.id}.png`;
     const file = new File([blob], filename, { type: 'image/png' });
+    const hasDonor = Boolean(document.getElementById('nameInput')?.value.trim());
+    const date = document.getElementById('dateInput')?.value || '';
 
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       try {
@@ -583,24 +631,64 @@ async function shareCertificate() {
           files: [file],
           title: 'Punyanumodana Certificate'
         });
+        trackEvent('Certificate Share', {
+          template_id: currentTemplate?.id || '',
+          template_name: currentTemplate?.name || '',
+          source: source,
+          method: 'web_share',
+          status: 'success',
+          has_donor: hasDonor,
+          date: date
+        });
         showToast('Shared successfully!');
         return;
       } catch (err) {
-        if (err.name !== 'AbortError') {
-          downloadCertificate();
+        if (err.name === 'AbortError') {
+          trackEvent('Certificate Share', {
+            template_id: currentTemplate?.id || '',
+            template_name: currentTemplate?.name || '',
+            source: source,
+            method: 'web_share',
+            status: 'aborted'
+          });
+          return;
         }
+        trackEvent('Certificate Share', {
+          template_id: currentTemplate?.id || '',
+          template_name: currentTemplate?.name || '',
+          source: source,
+          method: 'fallback_download',
+          status: 'error_fallback'
+        });
+        downloadCertificate(source);
         return;
       }
     }
     // Fallback to download if Web Share is not supported
-    downloadCertificate();
+    trackEvent('Certificate Share', {
+      template_id: currentTemplate?.id || '',
+      template_name: currentTemplate?.name || '',
+      source: source,
+      method: 'unsupported_fallback',
+      status: 'fallback'
+    });
+    downloadCertificate(source);
   }, 'image/png');
 }
 
 // Select template
-async function selectTemplate(templateId) {
+async function selectTemplate(templateId, isUserAction = false, trigger = 'chip') {
   const found = templates.find(t => t.id === templateId);
   if (!found) return;
+
+  if (isUserAction) {
+    trackEvent('Template Selected', {
+      template_id: templateId,
+      template_name: found.name,
+      trigger: trigger
+    });
+  }
+
   currentTemplate = found;
   const switchToken = ++currentSwitchToken;
 
@@ -667,7 +755,7 @@ function initTemplatesUI() {
 
       btn.appendChild(dot);
       btn.appendChild(name);
-      btn.onclick = () => selectTemplate(t.id);
+      btn.onclick = () => selectTemplate(t.id, true, 'chip');
       chipsContainer.appendChild(btn);
     });
   }
@@ -685,7 +773,7 @@ function initTemplatesUI() {
       select.appendChild(opt);
     });
 
-    select.onchange = (e) => selectTemplate(e.target.value);
+    select.onchange = (e) => selectTemplate(e.target.value, true, 'dropdown');
   }
 }
 
@@ -714,6 +802,10 @@ window.addEventListener('DOMContentLoaded', async () => {
   if (dateInput) {
     dateInput.value = todayStr;
     dateInput.addEventListener('change', async () => {
+      trackEvent('Date Changed', {
+        date: dateInput.value,
+        template_id: currentTemplate?.id || ''
+      });
       await syncDonorFromSheet();
       renderCanvas();
     });
@@ -728,6 +820,11 @@ window.addEventListener('DOMContentLoaded', async () => {
   const btnSetToday = document.getElementById('btnSetToday');
   if (btnSetToday && dateInput) {
     btnSetToday.addEventListener('click', async () => {
+      trackEvent('Quick Date Selected', {
+        target: 'today',
+        date: todayStr,
+        template_id: currentTemplate?.id || ''
+      });
       dateInput.value = todayStr;
       await syncDonorFromSheet();
       renderCanvas();
@@ -740,6 +837,11 @@ window.addEventListener('DOMContentLoaded', async () => {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
+      trackEvent('Quick Date Selected', {
+        target: 'tomorrow',
+        date: tomorrowStr,
+        template_id: currentTemplate?.id || ''
+      });
       dateInput.value = tomorrowStr;
       await syncDonorFromSheet();
       renderCanvas();
@@ -762,21 +864,28 @@ window.addEventListener('DOMContentLoaded', async () => {
 
   const appendVisinCheck = document.getElementById('appendVisinCheck');
   if (appendVisinCheck) {
-    appendVisinCheck.addEventListener('change', renderCanvas);
+    appendVisinCheck.addEventListener('change', () => {
+      trackEvent('Suffix Toggled', {
+        template_id: currentTemplate?.id || '',
+        enabled: appendVisinCheck.checked,
+        suffix: getTemplateSuffix()
+      });
+      renderCanvas();
+    });
   }
 
   // Download & Share buttons (desktop & mobile)
   const downloadBtn = document.getElementById('downloadBtn');
-  if (downloadBtn) downloadBtn.addEventListener('click', downloadCertificate);
+  if (downloadBtn) downloadBtn.addEventListener('click', () => downloadCertificate('desktop'));
 
   const downloadBtnMobile = document.getElementById('downloadBtnMobile');
-  if (downloadBtnMobile) downloadBtnMobile.addEventListener('click', downloadCertificate);
+  if (downloadBtnMobile) downloadBtnMobile.addEventListener('click', () => downloadCertificate('mobile'));
 
   const shareBtn = document.getElementById('shareBtn');
-  if (shareBtn) shareBtn.addEventListener('click', shareCertificate);
+  if (shareBtn) shareBtn.addEventListener('click', () => shareCertificate('desktop'));
 
   const shareBtnMobile = document.getElementById('shareBtnMobile');
-  if (shareBtnMobile) shareBtnMobile.addEventListener('click', shareCertificate);
+  if (shareBtnMobile) shareBtnMobile.addEventListener('click', () => shareCertificate('mobile'));
 
   // Load templates from JSON, sync donor, then draw (fails explicitly if cannot be loaded)
   try {
